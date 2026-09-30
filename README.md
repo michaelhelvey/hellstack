@@ -47,6 +47,7 @@ Run these from the repository root:
 | `bun run skills:update [skill...]`    | Update skills from skills.sh.                                      |
 | `bun run skills:remove <skill...>`    | Remove skills from skills.sh.                                      |
 | `bun run validate`                    | Format, then lint, type-check, test, and run the complexity check. |
+| `bun run test:pi`                     | Test the pi extensions against the installed pi, and type-check.   |
 
 ## what's with the name?
 

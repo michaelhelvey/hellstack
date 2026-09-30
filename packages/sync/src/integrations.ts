@@ -6,14 +6,11 @@ export interface Integration {
   command: [string, ...string[]];
 }
 
-/**
- * The integrations that the sync installs, in order. There is no herdr integration for opencode:
- * the herdr opencode plugin does not load in opencode v2, so `@hellstack/opencode` has its own
- * herdr plugin.
- */
+/** The integrations that the sync installs, in order. */
 export const integrations: Integration[] = [
   { name: "herdr (Claude Code)", command: ["herdr", "integration", "install", "claude"] },
   { name: "herdr (pi)", command: ["herdr", "integration", "install", "pi"] },
+  { name: "herdr (opencode)", command: ["herdr", "integration", "install", "opencode"] },
 ];
 
 async function runIntegration(

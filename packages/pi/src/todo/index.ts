@@ -23,7 +23,8 @@ async function showTodoManager(
 async function runTodosCommand(args: string, ctx: ExtensionCommandContext): Promise<void> {
   const store = createTodoStore(ctx);
   const todos = await store.list();
-  if (ctx.hasUI) await showTodoManager(ctx, { store, todos, searchTerm: args.trim() });
+  if (ctx.mode === "tui") await showTodoManager(ctx, { store, todos, searchTerm: args.trim() });
+  else if (ctx.hasUI) ctx.ui.notify(formatTodoList(todos), "info");
   else console.log(formatTodoList(todos));
 }
 

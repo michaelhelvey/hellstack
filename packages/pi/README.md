@@ -41,3 +41,18 @@ load these from a package. `bun run sync` copies them to `~/.pi/agent`. `AGENTS.
 
 The todo folder can have a `settings.json` file. The default is `{ "gc": true, "gcDays": 7 }`: at
 session start, pi deletes closed todos that are older than `gcDays` days.
+
+## Tests
+
+The tests in `tests/e2e` start the installed `pi` with this package, a fake model, and a temporary
+agent folder. They do not use your settings, your credentials, or a real model. Set `PI_BIN` to test
+a different pi binary.
+
+After `pi update`, run this at the repository root:
+
+```sh
+bun run test:pi
+```
+
+If a devDependency test fails, install the pi version that it shows, then run `bun run test:pi`
+again. The type check then finds API changes, and the other tests find changes in behavior.

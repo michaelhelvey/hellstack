@@ -14,6 +14,6 @@
   "tabs": {
     "enabled": false
   },
-  "plugins": ["opencode-quick-quote"],
+  "plugins": ["opencode-quick-quote", "./herdr-opencode"],
   "animations": true
 }
