@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Run jira-cli (https://github.com/ankitpokhrel/jira-cli) with the API token from
+# JIRA_API_TOKEN or JIRA_API_KEY. Run setup one time before you use this script.
+#
+# Usage: jira-cli <jira args...>
+#   jira-cli issue view ABC-123 --plain
+set -euo pipefail
+here="$(dirname "$0")"
+. "$here/common.sh"
+
+command -v jira >/dev/null || die "jira-cli is not installed: run $here/setup"
+[ -f "$JIRA_CONFIG_FILE" ] || die "no jira-cli config at $JIRA_CONFIG_FILE: run $here/setup"
+JIRA_API_TOKEN="$(jira_token)"
+[ -n "$JIRA_API_TOKEN" ] || die "set JIRA_API_TOKEN (or JIRA_API_KEY) to an Atlassian API token"
+export JIRA_API_TOKEN
+exec jira "$@"

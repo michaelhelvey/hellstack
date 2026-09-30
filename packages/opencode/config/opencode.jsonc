@@ -1,0 +1,9 @@
+{
+  "permissions": [
+    // https://opencode.ai/v2/docs/permissions last matching rule wins
+    { "action": "*", "resource": "*", "effect": "allow" },
+    { "action": "shell", "resource": "aws sso *", "effect": "deny" },
+  ],
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": ["@transport4/aig-plugin-opencode"],
+}

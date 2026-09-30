@@ -1,0 +1,19 @@
+{
+  "name": "@agent-stuff/skills",
+  "version": "0.0.0",
+  "description": "Personal agent skills for Claude Code, opencode, and pi.",
+  "type": "module",
+  "private": true,
+  "files": [
+    "skills"
+  ],
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "elkjs": "0.12.0",
+    "puppeteer-core": "^25.11.0",
+    "skills": "^1.7.0",
+    "tldraw": "^5.5.0"
+  }
+}

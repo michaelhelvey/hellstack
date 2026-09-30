@@ -1,0 +1,19 @@
+{
+  "theme": {
+    "name": "system"
+  },
+  "diffs": {
+    "wrap": "word"
+  },
+  "session": {
+    "sidebar": "hide",
+    "scrollbar": true,
+    "thinking": "hide",
+    "grouping": "none"
+  },
+  "tabs": {
+    "enabled": false
+  },
+  "plugins": ["./plugins/herdr-opencode", "opencode-quick-quote"],
+  "animations": true
+}

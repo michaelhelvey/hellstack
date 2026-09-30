@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# List the open operations epics, with the most relevant epic first.
+#
+# An operations epic is an open Epic with "Business Category" = Operations. If no epic has
+# that value, the script uses epics with "Ops" or "Operations" in the summary.
+#
+# Output is tab-separated, with one header row:
+#   epic, project, boards, status, created, my_ops_issues_30d, my_project_issues_60d, summary
+# my_ops_issues_30d counts the issues under the epic that you logged time to in the last 30 days.
+# my_project_issues_60d counts the issues in the project that you worked on in the last 60 days.
+set -euo pipefail
+here="$(dirname "$0")"
+
+search() {
+  "$here/api" /rest/api/3/search/jql -G --data-urlencode "jql=$1" \
+    --data-urlencode "fields=$2" --data-urlencode maxResults=100
+}
+
+open_epics='issuetype = Epic AND statusCategory != Done'
+fields=summary,status,created,project
+epics="$(search "$open_epics AND \"Business Category\" = Operations" "$fields")"
+if [ "$(jq '.issues | length' <<<"$epics")" = 0 ]; then
+  echo "note: no epics have \"Business Category\" = Operations, so the script matches epic summaries" >&2
+  epics="$(search "$open_epics AND (summary ~ \"Operations\" OR summary ~ \"Ops\")" "$fields")"
+fi
+
+keys="$(jq -r '[.issues[].key] | join(",")' <<<"$epics")"
+if [ -z "$keys" ]; then
+  echo "no open operations epics found" >&2
+  exit 0
+fi
+
+mine="$(search "worklogAuthor = currentUser() AND worklogDate >= -30d AND parent in ($keys)" parent)"
+activity="$(search '(worklogAuthor = currentUser() AND worklogDate >= -60d) OR (assignee = currentUser() AND updated >= -60d)' project)"
+boards="$("$here/api" '/rest/agile/1.0/board?maxResults=100')"
+
+jq -rn --argjson epics "$epics" --argjson mine "$mine" --argjson activity "$activity" \
+  --argjson boards "$boards" '
+  ($mine.issues | group_by(.fields.parent.key) | map({(.[0].fields.parent.key): length}) | add // {}) as $ops
+  | ($activity.issues | group_by(.fields.project.key) | map({(.[0].fields.project.key): length}) | add // {}) as $act
+  | ($boards.values | map(select(.location.projectKey)) | group_by(.location.projectKey)
+      | map({(.[0].location.projectKey): (map(.name) | join("; "))}) | add // {}) as $names
+  | ["epic", "project", "boards", "status", "created", "my_ops_issues_30d", "my_project_issues_60d", "summary"],
+    ($epics.issues
+      | map(.fields.project.key as $p | {
+          key, p: $p, boards: ($names[$p] // "-"), status: .fields.status.name,
+          created: .fields.created[:10], ops: ($ops[.key] // 0), act: ($act[$p] // 0),
+          summary: .fields.summary
+        })
+      | sort_by(-.ops, -.act, .created) | .[]
+      | [.key, .p, .boards, .status, .created, .ops, .act, .summary])
+  | @tsv'

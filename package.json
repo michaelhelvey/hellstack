@@ -1,0 +1,32 @@
+{
+  "name": "agent-stuff",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "catalog": {
+      "zod": "^4.6.5"
+    }
+  },
+  "scripts": {
+    "skills:add": "bun packages/skills/src/cli.ts add",
+    "skills:update": "bun packages/skills/src/cli.ts update",
+    "skills:remove": "bun packages/skills/src/cli.ts remove",
+    "check": "rs check --type-check",
+    "format": "rs fmt",
+    "lint": "rs lint",
+    "test": "bun test --pass-with-no-tests",
+    "prepare": "rs hooks",
+    "complexity": "uvx lizard -w -L20 -i0 -Tnloc=300 -Tcyclomatic_complexity=4 -Tparameter_count=4 -x \"./packages/skills/*\" .",
+    "validate": "bun run format && bun run --parallel check test complexity"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "rstack": "^0.8.0",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {}
+}

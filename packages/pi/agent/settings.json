@@ -1,0 +1,11 @@
+{
+  "lastChangelogVersion": "0.87.1",
+  "theme": "nightowl",
+  "hideThinkingBlock": true,
+  "packages": ["git:github.com/earendil-works/pi-review", "npm:@transport4/aig-plugin-pi"],
+  "enabledModels": [
+    "github-copilot/gpt-5.6-luna",
+    "github-copilot/gpt-5.6-sol",
+    "github-copilot/gpt-5.6-terra"
+  ]
+}

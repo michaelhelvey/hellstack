@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Print one JIRA issue as JSON, with the description and the Acceptance Criteria as plain text.
+# The script finds the "Acceptance Criteria" field by its name. It is null if the site does
+# not have that field.
+#
+# Usage: issue <ISSUE-KEY>
+set -euo pipefail
+here="$(dirname "$0")"
+[ $# -eq 1 ] || { echo "usage: issue <ISSUE-KEY>" >&2; exit 1; }
+
+"$here/api" "/rest/api/3/issue/$1?expand=names" | jq '
+  def text: [.. | .text? // empty] | join("");
+  .names as $names | .fields as $f | {
+    key,
+    summary: $f.summary,
+    type: $f.issuetype.name,
+    status: $f.status.name,
+    assignee: $f.assignee.displayName,
+    parent: $f.parent.key,
+    timetracking: $f.timetracking,
+    description: ($f.description | text),
+    acceptanceCriteria: ($names | to_entries
+      | map(select(.value == "Acceptance Criteria") | $f[.key] | text) | first)
+  }'

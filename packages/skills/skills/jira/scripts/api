@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Send an authenticated request to the Atlassian Cloud REST API (JIRA and Confluence).
+#
+# Usage: api <path> [curl args...]
+#   api /rest/api/3/myself
+#   api /rest/api/3/search/jql -G --data-urlencode 'jql=assignee = currentUser()'
+#   api /rest/api/3/issue -X POST -d @body.json
+#   api '/wiki/api/v2/pages/<id>?body-format=storage'
+#
+# On an HTTP error, curl prints the response body and exits with code 22.
+set -euo pipefail
+. "$(dirname "$0")/common.sh"
+
+[ $# -ge 1 ] || die "usage: api <path> [curl args...]"
+require_auth
+path="$1"
+shift
+exec curl -sS --fail-with-body -u "$(jira_email):$(jira_token)" \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  "$@" "$(jira_site)/${path#/}"

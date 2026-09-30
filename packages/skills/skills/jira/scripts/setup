@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Install jira-cli, find the Atlassian site, and write the jira-cli config.
+# It is safe to run this script again. It does not change a config that works.
+#
+# Usage: setup [--server https://<site>.atlassian.net] [--project KEY] [--force]
+#
+# The site is the first of these that accepts the credentials:
+#   --server, JIRA_BASE_URL, the jira-cli config, https://<email domain>.atlassian.net
+set -euo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+. "$here/common.sh"
+
+server="" project="" force=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --server) server="${2%/}"; shift 2 ;;
+    --project) project="$2"; shift 2 ;;
+    --force) force=1; shift ;;
+    *) die "unknown option: $1" ;;
+  esac
+done
+
+install_cli() {
+  if command -v jira >/dev/null; then
+    jira version 2>/dev/null | grep -q GitCommit \
+      || die "the 'jira' on PATH is not jira-cli (https://github.com/ankitpokhrel/jira-cli)"
+    return
+  fi
+  if command -v brew >/dev/null; then
+    brew install jira-cli
+  elif command -v go >/dev/null; then
+    go install github.com/ankitpokhrel/jira-cli/cmd/jira@latest
+  else
+    die "install jira-cli: https://github.com/ankitpokhrel/jira-cli#installation"
+  fi
+}
+
+probe() {
+  curl -s -o /dev/null -w '%{http_code}' -u "$email:$token" "$1/rest/api/3/myself"
+}
+
+find_site() {
+  local domain="${email#*@}" candidate
+  for candidate in "$server" "${JIRA_BASE_URL:-}" "$(config_value server)" \
+    "https://${domain%%.*}.atlassian.net"; do
+    candidate="${candidate%/}"
+    [ -n "$candidate" ] || continue
+    [ "$(probe "$candidate")" = 200 ] && { printf '%s' "$candidate"; return; }
+  done
+  die "no Atlassian site accepts these credentials. Ask the user for the site, then run: $here/setup --server https://<site>.atlassian.net"
+}
+
+most_active_project() {
+  "$here/api" /rest/api/3/search/jql -G \
+    --data-urlencode 'jql=(worklogAuthor = currentUser() AND worklogDate >= -60d) OR (assignee = currentUser() AND updated >= -60d)' \
+    --data-urlencode fields=project --data-urlencode maxResults=100 \
+    | jq -r '[.issues[].fields.project.key] | group_by(.) | max_by(length) | .[0] // empty'
+}
+
+first_project() {
+  "$here/api" '/rest/api/3/project/search?maxResults=1' | jq -r '.values[0].key // empty'
+}
+
+token="$(jira_token)"
+[ -n "$token" ] || die "set JIRA_API_TOKEN (or JIRA_API_KEY) to an Atlassian API token"
+email="$(jira_email)"
+[ -n "$email" ] || email="$(git config user.email || true)"
+[ -n "$email" ] || die "no Atlassian email: set JIRA_USER_EMAIL"
+
+install_cli
+site="$(find_site)"
+export JIRA_BASE_URL="$site" JIRA_USER_EMAIL="$email"
+
+if [ -z "$force" ] && [ -f "$JIRA_CONFIG_FILE" ] && [ "$(config_value server)" = "$site" ]; then
+  echo "ok: $JIRA_CONFIG_FILE already uses $site as $email"
+  exit 0
+fi
+
+[ -n "$project" ] || project="$(most_active_project)"
+[ -n "$project" ] || project="$(first_project)"
+[ -n "$project" ] || die "no project found: run $here/setup --project KEY"
+
+mkdir -p "$(dirname "$JIRA_CONFIG_FILE")"
+JIRA_API_TOKEN="$token" jira init --installation cloud --server "$site" --login "$email" \
+  --auth-type basic --project "$project" --board None --force
+echo "ok: $JIRA_CONFIG_FILE uses $site as $email (default project $project)"

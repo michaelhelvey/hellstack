@@ -1,0 +1,11 @@
+# js
+node_modules
+build
+dist
+
+# macos
+.DS_Store
+
+# misc
+.cache
+.pi/todos
