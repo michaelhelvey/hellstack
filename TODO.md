@@ -1,1 +1,0 @@
-- Fix boards and operations descriptions in jira/SKILL.md

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 
-import { parseTodoContent, serializeTodo, splitFrontMatter } from "./file-format.ts";
-import type { TodoRecord } from "./model.ts";
+import { parseTodoContent, serializeTodo, splitFrontMatter } from "../../src/todo/file-format.ts";
+import type { TodoRecord } from "../../src/todo/model.ts";
 
 const TODO: TodoRecord = {
   id: "deadbeef",

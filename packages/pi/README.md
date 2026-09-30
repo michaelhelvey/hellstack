@@ -1,13 +1,14 @@
-# @agent-stuff/pi
+# @hellstack/pi
 
 Personal extensions and themes for [pi](https://pi.dev).
 
-| Extension   | What it does                                                                                  |
-| ----------- | --------------------------------------------------------------------------------------------- |
-| `todo`      | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager. |
-| `uv`        | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.        |
-| `web-fetch` | Adds the `web_fetch` tool, which returns a web page as Markdown.                              |
-| `whimsical` | Shows a random working message on each turn.                                                  |
+| Extension       | What it does                                                                                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `todo`          | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                              |
+| `uv`            | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                     |
+| `web-fetch`     | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                           |
+| `herdr-prompts` | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs. |
+| `whimsical`     | Shows a random working message on each turn.                                                                                               |
 
 | Theme      | What it is                                  |
 | ---------- | ------------------------------------------- |
@@ -18,21 +19,17 @@ Select a theme with `/settings`, or set `"theme": "nightowl"` in `~/.pi/agent/se
 
 ## Install
 
-Run `bun install` at the repository root, then add the package to pi from its local path:
-
-```sh
-pi install ~/dev/helvetici/agent-stuff/packages/pi
-```
-
-Pi loads the source files directly, so changes apply after `/reload` or a restart.
+Run `bun install` at the repository root, then `bun run sync`. The sync adds this package to
+`packages` in `~/.pi/agent/settings.json`. Pi loads the source files directly, so changes apply
+after `/reload` or a restart.
 
 Use `pi config` to turn off one extension or theme.
 
 ## Agent files
 
 `agent/` holds files for the pi agent folder (`~/.pi/agent`), such as `settings.json`. Pi does not
-load these from a package. Copy them to `~/.pi/agent` to use them. `AGENTS.md` is in
-`@agent-stuff/global`.
+load these from a package. `bun run sync` copies them to `~/.pi/agent`. `AGENTS.md` is in
+`@hellstack/global`.
 
 ## Configuration
 

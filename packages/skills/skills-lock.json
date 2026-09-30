@@ -13,6 +13,13 @@
       "skillPath": "skills/how/SKILL.md",
       "computedHash": "00be7d09300321c3dfe525fb318a90259888210af8114403e2f19fd9842fc21f"
     },
+    "sentry-cli": {
+      "source": "cli.sentry.dev",
+      "sourceUrl": "https://cli.sentry.dev",
+      "sourceType": "well-known",
+      "computedHash": "50bab2a868dc038b602819f069981e6f7d7fafee8f26e1cc77d8116896c4c21c",
+      "wellKnownDigest": "sha256:4dfbed84492c278cc6ee0919e82af19c69632a11b615eb3c3da02cdb436bd2d8"
+    },
     "teach": {
       "source": "backnotprop/pstack",
       "sourceType": "github",

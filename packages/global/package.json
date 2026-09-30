@@ -1,5 +1,5 @@
 {
-  "name": "@agent-stuff/global",
+  "name": "@hellstack/global",
   "version": "0.0.0",
   "description": "Personal agent instructions for all harnesses.",
   "type": "module",

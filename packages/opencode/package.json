@@ -1,5 +1,5 @@
 {
-  "name": "@agent-stuff/opencode",
+  "name": "@hellstack/opencode",
   "version": "0.0.0",
   "description": "Personal opencode config and plugins.",
   "type": "module",

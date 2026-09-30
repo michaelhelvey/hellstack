@@ -1,5 +1,5 @@
 {
-  "name": "@agent-stuff/skills",
+  "name": "@hellstack/skills",
   "version": "0.0.0",
   "description": "Personal agent skills for Claude Code, opencode, and pi.",
   "type": "module",

@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 
-import type { TodoStore } from "./store.ts";
+import type { TodoStore } from "../../src/todo/store.ts";
 import { expectTodo, makeStore } from "./test-helpers.ts";
-import { runTodoAction } from "./tool.ts";
+import { runTodoAction } from "../../src/todo/tool.ts";
 
 async function listedIds(store: TodoStore, action: "list" | "list-all"): Promise<string[]> {
   const { details } = await runTodoAction(store, { action });

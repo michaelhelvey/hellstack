@@ -1,0 +1,10 @@
+{
+  "name": "@hellstack/sync",
+  "version": "0.0.0",
+  "description": "Copies the config and skills in this repository to Claude Code, opencode, and pi.",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "zod": "catalog:"
+  }
+}

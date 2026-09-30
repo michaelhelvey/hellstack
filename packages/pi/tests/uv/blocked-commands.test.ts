@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { findBlockedCommandMessage } from "./blocked-commands.ts";
+import { findBlockedCommandMessage } from "../../src/uv/blocked-commands.ts";
 
 test.each([
   ["pip install requests", "pip is disabled"],

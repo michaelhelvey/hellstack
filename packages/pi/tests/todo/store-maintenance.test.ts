@@ -3,9 +3,9 @@ import { existsSync } from "node:fs";
 import { utimes, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { serializeTodo } from "./file-format.ts";
-import { LOCK_TTL_MS } from "./lock.ts";
-import { getTodosDir, type TodoStore } from "./store.ts";
+import { serializeTodo } from "../../src/todo/file-format.ts";
+import { LOCK_TTL_MS } from "../../src/todo/lock.ts";
+import { getTodosDir, type TodoStore } from "../../src/todo/store.ts";
 import { expectError, expectTodo, makeStore } from "./test-helpers.ts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;

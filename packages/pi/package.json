@@ -1,5 +1,5 @@
 {
-  "name": "@agent-stuff/pi",
+  "name": "@hellstack/pi",
   "version": "0.0.0",
   "description": "Personal pi extensions and themes.",
   "type": "module",

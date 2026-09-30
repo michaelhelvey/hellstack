@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { groupBySource, parseLock, type SkillsLock } from "./lock.ts";
+import { groupBySource, parseLock, type SkillsLock } from "../src/lock.ts";
 
 const lock: SkillsLock = {
   skills: {

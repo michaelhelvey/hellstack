@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 
-import { parseTodoId } from "./ids.ts";
-import { filterTodos, sortTodos, type TodoFrontMatter } from "./model.ts";
+import { parseTodoId } from "../../src/todo/ids.ts";
+import { filterTodos, sortTodos, type TodoFrontMatter } from "../../src/todo/model.ts";
 
 function todo(id: string, fields: Partial<TodoFrontMatter> = {}): TodoFrontMatter {
   return { id, title: id, tags: [], status: "open", created_at: "", ...fields };

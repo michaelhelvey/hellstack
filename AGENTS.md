@@ -10,10 +10,13 @@ opencode, and pi, the 3 agent harnesses that I use regularly).
 This is a bun workspace. Each plugin set (for example, a personal opencode plugin or a personal pi
 plugin) is a package in `packages/<name>`.
 
-- Name packages `@agent-stuff/<name>`.
+- Name packages `@hellstack/<name>`.
 - Each package has a `tsconfig.json` that extends `../../tsconfig.json` and sets its own `include`.
 - Refer to other packages with `"workspace:*"` dependencies.
 - Run lint, format, type checks, and tests from the repository root.
+- Put tests and test helpers in `packages/<name>/tests`, not next to the source. Use the same folder
+  layout as `src` (for example, `src/todo/store.ts` has its tests in `tests/todo/store.test.ts`).
+  Include `tests` in the package `tsconfig.json`.
 
 ## Toolchains
 
@@ -57,3 +60,7 @@ work_
   just use `uv init --script` to start then and then add whatever you need in the `dependencies`
   block of the comment header.
 - If you wanna use JS/TS for a script, use Typescript and Bun. Don't write `.mjs` files for node.
+- If I say something like "add npx skills add https://cli.sentry.dev", I never mean to actually use
+  the `npx skills` CLI directly, I'm using it as short-hand to mean "use the skills:add stuff in
+  this repo to install it into ./packages/skills", because the skills.sh website gives me the npx
+  skills invocation as the copy/paste.

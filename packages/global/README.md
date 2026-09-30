@@ -1,4 +1,4 @@
-# @agent-stuff/global
+# @hellstack/global
 
 Files that all agent harnesses share.
 
@@ -6,7 +6,7 @@ Files that all agent harnesses share.
 | ----------- | ------------------------------------------------------------------------ |
 | `AGENTS.md` | Global instructions for the agent. Pi, opencode, and Claude Code use it. |
 
-Copy or link `AGENTS.md` to the global instructions file of each harness:
+`bun run sync` copies `AGENTS.md` to the global instructions file of each harness:
 
 | Harness     | Path                           |
 | ----------- | ------------------------------ |

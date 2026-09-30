@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 
 import { DEFAULT_MAX_LINES } from "@earendil-works/pi-coding-agent";
 
-import { buildWebFetchArgs, formatWebFetchOutput } from "./run.ts";
+import { buildWebFetchArgs, formatWebFetchOutput } from "../../src/web-fetch/run.ts";
 
 test("buildWebFetchArgs puts the URL after the end of options, so a URL cannot be read as an option", () => {
   expect(buildWebFetchArgs({ url: "--help" })).toEqual(["--", "--help"]);

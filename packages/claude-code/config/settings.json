@@ -1,0 +1,31 @@
+{
+  "$schema": "https://www.schemastore.org/claude-code-settings.json",
+  "syncClaudeAiSkills": false,
+  "syncClaudeAiPlugins": false,
+  "permissions": {
+    "allow": ["Bash(git add:*)"],
+    "deny": ["Bash(aws sso:*)"],
+    "ask": [],
+    "defaultMode": "acceptEdits"
+  },
+  "model": "opus",
+  "allowedMcpServers": [],
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "lua-lsp@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {},
+  "spinnerVerbs": {
+    "mode": "replace",
+    "verbs": ["Being a little goober", "jorkin it", "jorkin it, and by 'it' I mean, well", "uwuing"]
+  },
+  "effortLevel": "xhigh",
+  "promptSuggestionEnabled": false,
+  "tui": "fullscreen",
+  "autoMemoryEnabled": false,
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "auto",
+  "editorMode": "vim"
+}

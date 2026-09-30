@@ -1,5 +1,5 @@
 {
-  "name": "agent-stuff",
+  "name": "hellstack",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -15,6 +15,7 @@
     "skills:add": "bun packages/skills/src/cli.ts add",
     "skills:update": "bun packages/skills/src/cli.ts update",
     "skills:remove": "bun packages/skills/src/cli.ts remove",
+    "sync": "bun packages/sync/src/cli.ts",
     "check": "rs check --type-check",
     "format": "rs fmt",
     "lint": "rs lint",

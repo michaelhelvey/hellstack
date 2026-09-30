@@ -2,9 +2,9 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import type { TodoSession } from "./lock.ts";
-import type { TodoRecord } from "./model.ts";
-import { type TodoResult, TodoStore } from "./store.ts";
+import type { TodoSession } from "../../src/todo/lock.ts";
+import type { TodoRecord } from "../../src/todo/model.ts";
+import { type TodoResult, TodoStore } from "../../src/todo/store.ts";
 
 /** Makes a store in a new temporary folder. */
 export async function makeStore(session: Partial<TodoSession> = {}): Promise<TodoStore> {

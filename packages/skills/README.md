@@ -1,4 +1,4 @@
-# @agent-stuff/skills
+# @hellstack/skills
 
 The single source of truth for my agent skills. Claude Code, opencode, and pi use these skills.
 
