@@ -1,7 +1,7 @@
 # hellstack
 
 stuff for working with clankers. Plugins, skills, etc. pi stuff shamelessly modeled and stolen from
-https://github.com/mitsuhiko/hellstack
+https://github.com/mitsuhiko/agent-stuff
 
 ## Get started
 
@@ -17,6 +17,9 @@ bun run sync            # copy everything to Claude Code, opencode, and pi
 The sync copies files. It does not make links. After you change a file in this repository, run
 `bun run sync` again. See [`packages/sync`](packages/sync/README.md) for the targets, the manifest,
 and the backups.
+
+If you're not me, edit `./packages/global/AGENTS.md` so that it reflects your name and email and
+what you want.
 
 ## Structure
 
@@ -44,3 +47,10 @@ Run these from the repository root:
 | `bun run skills:update [skill...]`    | Update skills from skills.sh.                                      |
 | `bun run skills:remove <skill...>`    | Remove skills from skills.sh.                                      |
 | `bun run validate`                    | Format, then lint, type-check, test, and run the complexity check. |
+
+## what's with the name?
+
+well a bunch of ai people use `<letter>-<stack>` to talk about their shit, like
+[pstack](https://github.com/cursor/plugins/tree/main/pstack) and
+[gstack](https://github.com/garrytan/gstack). well my name is "helvey" and I think that using AI
+agents is a form of hell, so thus, `hellstack`.
