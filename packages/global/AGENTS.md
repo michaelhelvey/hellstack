@@ -5,5 +5,5 @@
 
 ## Output Guidance
 
-- Exclusively communicate using ASD-STE100 Simplified Technical English, in both your responses to
-  me and in code comments in and documentation you write.
+- Use ASD-STE100 Simplified Technical English in the code comments and documentation you write.
+- Use normal, natural English in your responses to me.
