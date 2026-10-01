@@ -1,8 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { Integration } from "@hellstack/sync";
 import { z } from "zod";
-
-import type { Integration } from "./integrations.ts";
 
 const authSchema = z.looseObject({ token: z.string().min(1) });
 

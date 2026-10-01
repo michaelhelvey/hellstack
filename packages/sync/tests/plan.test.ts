@@ -1,58 +1,59 @@
-import { afterAll, beforeAll, expect, test } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
-import { planEntries } from "../src/plan.ts";
+import { planRepo } from "../src/plan.ts";
 import { resolveRoots } from "../src/roots.ts";
 
 let repo: string;
 const roots = resolveRoots("/home/me", {});
 
-const files: Record<string, string> = {
-  "packages/global/AGENTS.md": "# agents\n",
-  "packages/claude-code/config/settings.json": "{}\n",
-  "packages/opencode/config/opencode.jsonc": "{}\n",
-  "packages/opencode/config/plugins/tool.ts": "export {};\n",
-  "packages/pi/agent/settings.json": '{ "theme": "nightowl" }\n',
-  "packages/skills/skills/demo/SKILL.md": "# demo\n",
-  "packages/skills/skills/demo/node_modules/dep/index.js": "\n",
-  "packages/skills/skills/.DS_Store": "\n",
-};
-
-beforeAll(async () => {
+beforeEach(async () => {
   repo = await mkdtemp(join(tmpdir(), "hellstack-plan-"));
-  for (const [path, text] of Object.entries(files)) {
-    await mkdir(dirname(join(repo, path)), { recursive: true });
-    await writeFile(join(repo, path), text);
-  }
 });
 
-afterAll(async () => {
+afterEach(async () => {
   await rm(repo, { recursive: true, force: true });
 });
 
-test("planEntries maps each repository file to each harness", async () => {
-  const entries = await planEntries(repo, roots);
-  expect(entries.map((entry) => `${entry.kind} ${entry.target}`).sort()).toEqual([
-    "dir /home/me/.claude/skills/demo",
-    "dir /home/me/.pi/agent/skills/demo",
-    "file /home/me/.claude/CLAUDE.md",
-    "file /home/me/.claude/settings.json",
-    "file /home/me/.config/opencode/AGENTS.md",
-    "file /home/me/.config/opencode/opencode.jsonc",
-    "file /home/me/.config/opencode/plugins/tool.ts",
-    "file /home/me/.pi/agent/AGENTS.md",
-    "file /home/me/.pi/agent/settings.json",
+async function writeManifest(name: string, body: string): Promise<void> {
+  await mkdir(join(repo, "packages", name), { recursive: true });
+  await writeFile(join(repo, "packages", name, "hellstack.sync.ts"), body);
+}
+
+function manifest(target: string, integration: string): string {
+  return `export default {
+  plan: ({ packageDir, layers }) => ({
+    entries: [{ kind: "dir", target: ${JSON.stringify(target)} + [...layers].join(), source: packageDir }],
+    integrations: [{ name: ${JSON.stringify(integration)}, command: ["true"] }],
+  }),
+};\n`;
+}
+
+test("planRepo collects the plan of each package in name order", async () => {
+  await writeManifest("b", manifest("/t/b", "second"));
+  await writeManifest("a", manifest("/t/a", "first"));
+  await mkdir(join(repo, "packages", "no-manifest"), { recursive: true });
+  const plan = await planRepo(repo, roots, new Set(["t4"]));
+  expect(plan.entries).toEqual([
+    { kind: "dir", target: "/t/at4", source: join(repo, "packages", "a") },
+    { kind: "dir", target: "/t/bt4", source: join(repo, "packages", "b") },
   ]);
+  expect(plan.integrations.map((integration) => integration.name)).toEqual(["first", "second"]);
 });
 
-test("planEntries adds the pi package to the pi settings", async () => {
-  const entries = await planEntries(repo, roots);
-  const settings = entries.find((entry) => entry.target === "/home/me/.pi/agent/settings.json");
-  if (settings?.kind !== "file") throw new Error("pi settings entry is missing");
-  expect(JSON.parse(new TextDecoder().decode(settings.file.content))).toEqual({
-    theme: "nightowl",
-    packages: [join(repo, "packages", "pi")],
-  });
+test("planRepo rejects two entries with the same target", async () => {
+  await writeManifest("a", manifest("/t/same", "first"));
+  await writeManifest("b", manifest("/t/same", "second"));
+  const error = await planRepo(repo, roots, new Set()).catch((caught: unknown) => caught);
+  expect(error).toBeInstanceOf(Error);
+  expect(String(error)).toContain("two entries write to /t/same");
+});
+
+test("planRepo rejects a manifest without a plan function", async () => {
+  await writeManifest("a", "export default { plan: 1 };\n");
+  const error = await planRepo(repo, roots, new Set()).catch((caught: unknown) => caught);
+  expect(error).toBeInstanceOf(Error);
+  expect(String(error)).toContain("does not export a manifest");
 });

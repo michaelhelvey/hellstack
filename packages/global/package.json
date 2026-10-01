@@ -3,5 +3,8 @@
   "version": "0.0.0",
   "description": "Personal agent instructions for all harnesses.",
   "type": "module",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@hellstack/sync": "workspace:*"
+  }
 }

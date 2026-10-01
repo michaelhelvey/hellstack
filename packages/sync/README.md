@@ -4,27 +4,60 @@ Copies the config and skills in this repository to Claude Code, opencode, and pi
 repository root:
 
 ```sh
-bun run sync            # copy everything, then install the integrations
-bun run sync --dry-run  # show the changes only
+bun run sync               # copy everything, then run the integrations
+bun run sync --dry-run     # show the changes only
+bun run sync --layers t4   # use these layers, not the layers file
 ```
 
-| Source                 | Target                                                                            |
-| ---------------------- | --------------------------------------------------------------------------------- |
-| `global/AGENTS.md`     | `~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`, `~/.pi/agent/AGENTS.md`    |
-| `claude-code/config/*` | `~/.claude/*`                                                                     |
-| `opencode/config/*`    | `~/.config/opencode/*`                                                            |
-| `pi/agent/*`           | `~/.pi/agent/*`. The sync adds `packages/pi` to `packages` in `settings.json`.    |
-| `skills/skills/<name>` | `~/.claude/skills/<name>` (Claude Code and opencode), `~/.pi/agent/skills/<name>` |
+## Layers
 
-After it copies the files, the sync runs `herdr integration install claude` and
-`herdr integration install pi`. It skips this step when `herdr` is not on the `PATH`. The list is in
-`src/integrations.ts`. It does not install the herdr opencode integration, because that plugin does
-not load in opencode v2. `@hellstack/opencode` has its own herdr plugin.
+A layer is a name, for example `t4`. The sync reads the layers of this machine from
+`~/.config/hellstack/layers.json`:
 
-When `~/.config/.t4-ai-gateway/auth.json` exists, the sync then runs
-`bunx @transport4/ai-gateway setup claude-code --key <token>` with the `token` from that file. This
-adds the gateway config to `~/.claude/settings.json` again after the sync writes it. The token does
-not go into this repository, and the output does not show it.
+```json
+{ "layers": ["t4"] }
+```
+
+The file is not in the repository. When it does not exist, the sync stops. Write `{ "layers": [] }`
+to it for a machine with no layers. When you remove a layer, the next sync removes the files that
+only that layer added.
+
+## Manifests
+
+The sync loads `hellstack.sync.ts` from the root of each package in `packages/`, in name order. The
+default export makes the files and integrations of the package for the layers:
+
+```ts
+import { join } from "node:path";
+
+import { configEntries, defineSync, setJsonValue } from "@hellstack/sync";
+
+export default defineSync(async ({ packageDir, roots, layers }) => ({
+  entries: await configEntries(join(packageDir, "config"), roots.claude, {
+    "settings.json": (text) => (layers.has("t4") ? setJsonValue(text, ["model"], "x") : text),
+  }),
+  integrations: [
+    { name: "herdr (Claude Code)", command: ["herdr", "integration", "install", "claude"] },
+  ],
+}));
+```
+
+| Export             | What it does                                                                |
+| ------------------ | --------------------------------------------------------------------------- |
+| `defineSync`       | Makes the manifest. The function gets `packageDir`, `roots`, and `layers`.  |
+| `fileEntry`        | Copies one file. A transform can change its text.                           |
+| `configEntries`    | Copies each file in a directory. A transform can change a file at its path. |
+| `skillEntries`     | Copies each skill directory to each skill target.                           |
+| `setJsonValue`     | Sets a value in JSON or JSONC text. It keeps the comments.                  |
+| `appendJsonValues` | Adds values to an array in JSON or JSONC text. It keeps the comments.       |
+
+Keep the base files in the repository free of layer data. Layers add or replace values. The sync
+stops when two entries write to the same target.
+
+The sync runs the integrations after it writes the files. It skips an integration when its command
+is not on the `PATH`.
+
+## Owned files
 
 The sync changes only the files that it owns. Other files in the harness directories stay.
 

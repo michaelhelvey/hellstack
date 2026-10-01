@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, stat, symlink, writeFile } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { Entry } from "../src/plan.ts";
+import type { Entry } from "../src/entries.ts";
 import { resolveRoots, type Roots } from "../src/roots.ts";
 import { sync, type SyncResult } from "../src/sync.ts";
 

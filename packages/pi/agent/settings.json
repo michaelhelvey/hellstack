@@ -2,7 +2,11 @@
   "lastChangelogVersion": "0.87.1",
   "theme": "system",
   "hideThinkingBlock": true,
-  "packages": ["git:github.com/earendil-works/pi-review", "npm:@transport4/aig-plugin-pi"],
-  "enabledModels": ["t4/gpt-5.6-luna", "t4/gpt-5.6-sol", "t4/gpt-5.6-terra"],
+  "packages": ["git:github.com/earendil-works/pi-review"],
+  "enabledModels": [
+    "openai-codex/gpt-5.6-luna",
+    "openai-codex/gpt-5.6-sol",
+    "openai-codex/gpt-5.6-terra"
+  ],
   "defaultTools": ["+codemode"]
 }

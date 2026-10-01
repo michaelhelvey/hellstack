@@ -16,6 +16,7 @@
     ]
   },
   "dependencies": {
+    "@hellstack/sync": "workspace:*",
     "zod": "catalog:"
   },
   "peerDependencies": {

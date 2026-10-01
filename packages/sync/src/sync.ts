@@ -1,7 +1,7 @@
 import { join, relative } from "node:path";
 
 import { type Manifest, readManifest, writeManifest } from "./manifest.ts";
-import type { Entry } from "./plan.ts";
+import type { Entry } from "./entries.ts";
 import type { Roots } from "./roots.ts";
 import { copyTree, hashFile, hashPath, removePath, writeFileData } from "./tree.ts";
 

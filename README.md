@@ -10,6 +10,7 @@ You need [bun](https://bun.sh). [uv](https://docs.astral.sh/uv/) runs the comple
 
 ```sh
 bun install
+mkdir -p ~/.config/hellstack && echo '{ "layers": [] }' > ~/.config/hellstack/layers.json
 bun run sync --dry-run  # show what the sync changes
 bun run sync            # copy everything to Claude Code, opencode, and pi
 ```
@@ -18,8 +19,15 @@ The sync copies files. It does not make links. After you change a file in this r
 `bun run sync` again. See [`packages/sync`](packages/sync/README.md) for the targets, the manifest,
 and the backups.
 
-If you're not me, edit `./packages/global/AGENTS.md` so that it reflects your name and email and
-what you want.
+Each machine has a set of _layers_ in `~/.config/hellstack/layers.json`, for example
+`{ "layers": ["t4"] }` on my work computer and `{ "layers": [] }` on my personal one. The repository
+holds the base config. Each package has a `hellstack.sync.ts` manifest that tells the sync what to
+copy and how each layer changes it (for example, `t4` adds the work plugins and models). See
+[`packages/sync`](packages/sync/README.md#layers).
+
+If you're not me, edit `packages/global/AGENTS.md` and the base config files for your setup. Then
+find `layers.has("t4")` in the `hellstack.sync.ts` files, and remove those parts or change them to
+your own layers.
 
 ## Structure
 
@@ -42,7 +50,7 @@ Run these from the repository root:
 
 | Command                               | What it does                                                       |
 | ------------------------------------- | ------------------------------------------------------------------ |
-| `bun run sync [--dry-run]`            | Copy everything to the harness directories.                        |
+| `bun run sync [--dry-run] [--layers]` | Copy everything to the harness directories.                        |
 | `bun run skills:add <source> <skill>` | Install a skill from skills.sh.                                    |
 | `bun run skills:update [skill...]`    | Update skills from skills.sh.                                      |
 | `bun run skills:remove <skill...>`    | Remove skills from skills.sh.                                      |

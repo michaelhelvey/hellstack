@@ -8,6 +8,7 @@
     "skills"
   ],
   "dependencies": {
+    "@hellstack/sync": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -1,1 +1,1 @@
-{ "extends": "../../tsconfig.json", "include": ["config/plugins"] }
+{ "extends": "../../tsconfig.json", "include": ["hellstack.sync.ts", "config/plugins", "tests"] }

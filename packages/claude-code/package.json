@@ -3,5 +3,9 @@
   "version": "0.0.0",
   "description": "Personal Claude Code config.",
   "type": "module",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@hellstack/sync": "workspace:*",
+    "zod": "catalog:"
+  }
 }
