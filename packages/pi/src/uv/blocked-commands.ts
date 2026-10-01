@@ -1,4 +1,5 @@
 const SEGMENT_START = String.raw`(?:^|\n|[;|&]{1,2})\s*(?:\S+\/)?`;
+
 const PYTHON = String.raw`python(?:3(?:\.\d+)?)?\b[^\n;|&]*`;
 
 function commandPattern(name: string): RegExp {
@@ -62,7 +63,9 @@ const BLOCKED_COMMANDS: ReadonlyArray<{ pattern: RegExp; lines: string[] }> = [
  */
 export function findBlockedCommandMessage(command: string): string | undefined {
   const blocked = BLOCKED_COMMANDS.find(({ pattern }) => pattern.test(command));
+
   if (!blocked) return undefined;
   const [heading, ...hints] = blocked.lines;
+
   return [heading, "", ...hints, ""].join("\n");
 }

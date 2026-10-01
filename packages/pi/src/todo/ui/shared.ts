@@ -15,6 +15,7 @@ export type KeyBinding = readonly [matched: boolean, handler: () => void];
 export function dispatchKey(bindings: readonly KeyBinding[]): boolean {
   const binding = bindings.find(([matched]) => matched);
   binding?.[1]();
+
   return binding !== undefined;
 }
 

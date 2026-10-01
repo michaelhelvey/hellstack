@@ -29,6 +29,7 @@ export function formatTags(todo: TodoFrontMatter): string {
 /** Returns the one-line plain text heading of a todo. */
 export function formatTodoHeading(todo: TodoFrontMatter): string {
   const assignment = todo.assigned_to_session ? ` (assigned: ${todo.assigned_to_session})` : "";
+
   return `${formatTodoId(todo.id)} ${getTodoTitle(todo)}${formatTags(todo)}${assignment}`;
 }
 
@@ -36,11 +37,14 @@ export function formatTodoHeading(todo: TodoFrontMatter): string {
 export function formatTodoList(todos: TodoFrontMatter[]): string {
   if (!todos.length) return "No todos.";
   const groups = groupTodos(todos);
+
   return TODO_STATES.flatMap((state) => {
     const section = groups[state];
+
     const items = section.length
       ? section.map((todo) => `  ${formatTodoHeading(todo)}`)
       : ["  none"];
+
     return [`${SECTION_LABELS[state]} (${section.length}):`, ...items];
   }).join("\n");
 }
@@ -53,10 +57,12 @@ export function serializeTodoForAgent(todo: TodoRecord): string {
 /** Returns a list of todos as JSON for the agent, in groups by state. */
 export function serializeTodoListForAgent(todos: TodoFrontMatter[]): string {
   const groups = groupTodos(todos);
+
   const withDisplayIds = TODO_STATES.map((state) => [
     state,
     groups[state].map((todo) => ({ ...todo, id: formatTodoId(todo.id) })),
   ]);
+
   return JSON.stringify(Object.fromEntries(withDisplayIds), null, 2);
 }
 
@@ -69,6 +75,7 @@ export function renderAssignmentSuffix(
   if (!todo.assigned_to_session) return "";
   const isCurrent = todo.assigned_to_session === currentSessionId;
   const suffix = isCurrent ? ", current" : "";
+
   return theme.fg(
     isCurrent ? "success" : "dim",
     ` (assigned: ${todo.assigned_to_session}${suffix})`,
@@ -82,6 +89,7 @@ export function renderTodoHeading(
   currentSessionId?: string,
 ): string {
   const titleColor = isTodoClosed(getTodoStatus(todo)) ? "dim" : "text";
+
   return (
     theme.fg("accent", formatTodoId(todo.id)) +
     " " +
@@ -98,10 +106,13 @@ function renderSection(
 ): string[] {
   if (!todos.length) return [theme.fg("dim", "  none")];
   const shown = options.expanded ? todos : todos.slice(0, COLLAPSED_SECTION_SIZE);
+
   const lines = shown.map(
     (todo) => `  ${renderTodoHeading(theme, todo, options.currentSessionId)}`,
   );
+
   const hidden = todos.length - shown.length;
+
   return hidden > 0 ? [...lines, theme.fg("dim", `  ... ${hidden} more`)] : lines;
 }
 
@@ -120,9 +131,11 @@ export function renderTodoList(
 ): string {
   if (!todos.length) return theme.fg("dim", "No todos");
   const groups = groupTodos(todos);
+
   return TODO_STATES.map((state) => {
     const section = groups[state];
     const heading = theme.fg("muted", `${SECTION_LABELS[state]} (${section.length})`);
+
     return [heading, ...renderSection(theme, section, options)].join("\n");
   }).join("\n\n");
 }
@@ -130,9 +143,11 @@ export function renderTodoList(
 /** Returns a todo in color. If `expanded` is true, includes the metadata and the body. */
 export function renderTodoDetail(theme: Theme, todo: TodoRecord, expanded: boolean): string {
   const summary = renderTodoHeading(theme, todo);
+
   if (!expanded) return summary;
   const tags = todo.tags.length ? todo.tags.join(", ") : "none";
   const body = todo.body.trim() || "No details yet.";
+
   return [
     summary,
     theme.fg("muted", `Status: ${getTodoStatus(todo)}`),
@@ -147,11 +162,13 @@ export function renderTodoDetail(theme: Theme, todo: TodoRecord, expanded: boole
 /** Adds a hint about the key that expands tool output. */
 export function appendExpandHint(theme: Theme, text: string): string {
   const hint = keyHint("app.tools.expand", "to expand");
+
   return text + "\n" + theme.fg("dim", "(" + hint + ")");
 }
 
 function selectorTitleColor(state: TodoState, selected: boolean): ThemeColor {
   if (selected) return "accent";
+
   return state === "closed" ? "dim" : "text";
 }
 
@@ -169,6 +186,7 @@ export function renderSelectorLine(
   const tags = theme.fg("muted", formatTags(todo));
   const assignment = renderAssignmentSuffix(theme, todo, currentSessionId);
   const status = theme.fg(state === "closed" ? "dim" : "success", `(${getTodoStatus(todo)})`);
+
   return `${prefix}${id} ${title}${tags}${assignment} ${status}`;
 }
 

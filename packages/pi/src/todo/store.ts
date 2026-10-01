@@ -52,6 +52,7 @@ const SettingsSchema = z
 /** Returns the todo folder for a working directory. `PI_TODO_PATH` overrides the default. */
 export function getTodosDir(cwd: string, env: NodeJS.ProcessEnv = process.env): string {
   const override = env[TODO_PATH_ENV]?.trim();
+
   return path.resolve(cwd, override || TODO_DIR_NAME);
 }
 
@@ -73,6 +74,7 @@ function applyPatch(todo: TodoRecord, patch: TodoPatch): TodoChange {
   Object.assign(todo, Object.fromEntries(defined));
   todo.created_at ||= new Date().toISOString();
   clearAssignmentIfClosed(todo);
+
   return "save";
 }
 
@@ -80,6 +82,7 @@ function appendBody(todo: TodoRecord, text: string): TodoChange {
   if (!text.trim()) return "keep";
   const spacer = todo.body.trim() ? "\n\n" : "";
   todo.body = `${todo.body.replace(/\s+$/, "")}${spacer}${text.trim()}\n`;
+
   return "save";
 }
 
@@ -106,6 +109,7 @@ export class TodoStore {
     const entries = await readdir(this.dir).catch(() => []);
     const ids = entries.filter((entry) => entry.endsWith(".md")).map((entry) => entry.slice(0, -3));
     const todos = await Promise.all(ids.map((id) => this.read(id).catch(() => undefined)));
+
     return sortTodos(
       todos
         .filter((todo) => todo !== undefined)
@@ -116,14 +120,17 @@ export class TodoStore {
   /** Returns one todo. */
   async get(rawId: string): Promise<TodoResult> {
     const id = parseTodoId(rawId);
+
     if (!id) return { error: "Invalid todo id. Expected TODO-<hex>." };
     const todo = await this.read(id);
+
     return todo ? { todo } : notFound(id);
   }
 
   /** Makes a new todo with a random id. */
   async create(input: NewTodo): Promise<TodoResult> {
     await this.ensureDir();
+
     const todo: TodoRecord = {
       id: this.generateId(),
       title: input.title,
@@ -132,6 +139,7 @@ export class TodoStore {
       created_at: new Date().toISOString(),
       body: input.body ?? "",
     };
+
     return this.withLock(todo.id, () => this.commit(todo, "save"));
   }
 
@@ -148,15 +156,19 @@ export class TodoStore {
   /** Assigns a todo to this session. `force` takes a todo from a different session. */
   claim(rawId: string, force = false): Promise<TodoResult> {
     const sessionId = this.session.id;
+
     return this.change(rawId, (todo): TodoChange => {
       if (isTodoClosed(todo.status)) return { error: `Todo ${displayTodoId(todo.id)} is closed` };
+
       if (hasAssignmentConflict(todo, sessionId, force)) {
         return {
           error: `Todo ${displayTodoId(todo.id)} is already assigned to session ${todo.assigned_to_session}. Use force to override.`,
         };
       }
+
       if (todo.assigned_to_session === sessionId) return "keep";
       todo.assigned_to_session = sessionId;
+
       return "save";
     });
   }
@@ -164,14 +176,18 @@ export class TodoStore {
   /** Removes the assignment of a todo. `force` releases a todo of a different session. */
   release(rawId: string, force = false): Promise<TodoResult> {
     const sessionId = this.session.id;
+
     return this.change(rawId, (todo): TodoChange => {
       if (!todo.assigned_to_session) return "keep";
+
       if (hasAssignmentConflict(todo, sessionId, force)) {
         return {
           error: `Todo ${displayTodoId(todo.id)} is assigned to session ${todo.assigned_to_session}. Use force to release.`,
         };
       }
+
       todo.assigned_to_session = undefined;
+
       return "save";
     });
   }
@@ -187,35 +203,44 @@ export class TodoStore {
    */
   async collectGarbage(): Promise<void> {
     const settings = await this.readSettings();
+
     if (!settings.gc) return;
     const cutoff = Date.now() - settings.gcDays * 24 * 60 * 60 * 1000;
+
     const expired = (await this.list()).filter(
       (todo) => isTodoClosed(todo.status) && Date.parse(todo.created_at) < cutoff,
     );
+
     await Promise.all(expired.map((todo) => unlink(this.pathFor(todo.id)).catch(() => undefined)));
   }
 
   private async readSettings(): Promise<z.infer<typeof SettingsSchema>> {
     const raw = await readFile(path.join(this.dir, "settings.json"), "utf8").catch(() => "");
+
     return SettingsSchema.parse(parseJsonOrUndefined(raw));
   }
 
   private async read(id: string): Promise<TodoRecord | undefined> {
     const filePath = this.pathFor(id);
+
     if (!existsSync(filePath)) return undefined;
+
     return parseTodoContent(await readFile(filePath, "utf8"), id);
   }
 
   private generateId(): string {
     for (let attempt = 0; attempt < 10; attempt += 1) {
       const id = crypto.randomBytes(4).toString("hex");
+
       if (!existsSync(this.pathFor(id))) return id;
     }
+
     throw new Error("Failed to generate unique todo id");
   }
 
   private withLock(id: string, fn: () => Promise<TodoResult>): Promise<TodoResult> {
     const lockPath = path.join(this.dir, `${id}.lock`);
+
     return withTodoLock({ lockPath, id, session: this.session }, fn);
   }
 
@@ -224,18 +249,25 @@ export class TodoStore {
     apply: (todo: TodoRecord) => TodoChange,
   ): Promise<TodoResult> {
     const id = parseTodoId(rawId);
+
     if (!id) return { error: "Invalid todo id. Expected TODO-<hex>." };
+
     if (!existsSync(this.pathFor(id))) return notFound(id);
+
     return this.withLock(id, async () => {
       const todo = await this.read(id);
+
       return todo ? this.commit(todo, apply(todo)) : notFound(id);
     });
   }
 
   private async commit(todo: TodoRecord, change: TodoChange): Promise<TodoResult> {
     if (typeof change === "object") return change;
+
     if (change === "save") await writeFile(this.pathFor(todo.id), serializeTodo(todo), "utf8");
+
     if (change === "delete") await unlink(this.pathFor(todo.id));
+
     return { todo };
   }
 }

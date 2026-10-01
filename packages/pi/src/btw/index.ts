@@ -13,15 +13,21 @@ import {
 import type { AssistantMessage, Message } from "@earendil-works/pi-ai";
 
 const ENTRY_TYPE = "btw-thread-entry";
+
 const RESET_TYPE = "btw-thread-reset";
+
 const BTW_PROMPT =
   "You are BTW, a focused side-channel assistant. Give direct and practical answers.";
+
 const SUMMARY_PROMPT =
   "Summarize this side conversation for the main conversation. Output only the summary.";
 
 type Item = { question: string; answer: string; timestamp: number };
+
 type Runtime = { session: AgentSession; modelKey: string };
+
 type CustomEntry = { type: "custom"; customType: string; data?: unknown };
+
 type SideContext = ExtensionContext & { model: NonNullable<ExtensionContext["model"]> };
 
 function answerText(content: AssistantMessage["content"]): string {
@@ -38,6 +44,7 @@ function modelKey(ctx: SideContext): string {
 
 function createLoader(ctx: ExtensionContext, prompt: string): ResourceLoader {
   const extensions = { extensions: [], errors: [], runtime: createExtensionRuntime() };
+
   return {
     getExtensions: () => extensions,
     getSkills: () => ({ skills: [], diagnostics: [] }),
@@ -59,6 +66,7 @@ function seedContext(ctx: ExtensionContext): Message[] {
       ctx.sessionManager.getEntries(),
       ctx.sessionManager.getLeafId(),
     );
+
     return context.messages.filter((message) => "role" in message) as Message[];
   } catch {
     return [];
@@ -128,12 +136,14 @@ class BtwExtension {
   private restore(ctx: ExtensionContext): void {
     this.items = [];
     const branch = ctx.sessionManager.getBranch() as CustomEntry[];
+
     for (const entry of branch.slice(this.resetIndex(branch) + 1)) this.restoreEntry(entry);
   }
 
   private restoreEntry(entry: CustomEntry): void {
     if (entry.customType !== ENTRY_TYPE) return;
     const value = entry.data as Item | undefined;
+
     if (value?.question && value.answer) this.items.push(value);
   }
 
@@ -146,12 +156,15 @@ class BtwExtension {
   private async dispose(): Promise<void> {
     const current = this.side;
     this.side = null;
+
     if (!current) return;
+
     try {
       await current.session.abort();
     } catch {
       /* The session may already be idle. */
     }
+
     current.session.dispose();
   }
 
@@ -163,10 +176,12 @@ class BtwExtension {
       tools: ["read", "bash", "edit", "write"],
       resourceLoader: createLoader(ctx, prompt),
     });
+
     created.session.agent.state.messages = [
       ...seedContext(ctx),
       ...this.items.flatMap((item) => seedItem(ctx, item)),
     ];
+
     return { session: created.session, modelKey: modelKey(ctx) };
   }
 
@@ -174,6 +189,7 @@ class BtwExtension {
     if (this.side?.modelKey === modelKey(ctx)) return this.side;
     await this.dispose();
     this.side = await this.createSide(ctx, prompt);
+
     return this.side;
   }
 
@@ -181,6 +197,7 @@ class BtwExtension {
     const runtime = await this.ensureSide(ctx, BTW_PROMPT);
     await runtime.session.prompt(question, { source: "extension" });
     const answer = this.answer(runtime.session);
+
     if (!answer) throw new Error("BTW returned no text");
     const item = { question, answer, timestamp: Date.now() };
     this.items.push(item);
@@ -192,6 +209,7 @@ class BtwExtension {
     if (this.busy)
       return this.notify(ctx, "BTW is still processing the previous question.", "warning");
     this.busy = true;
+
     try {
       await this.completeAsk(ctx, question);
     } catch (error) {
@@ -208,6 +226,7 @@ class BtwExtension {
   private async runSummary(ctx: SideContext, session: AgentSession): Promise<void> {
     await session.prompt(transcript(this.items), { source: "extension" });
     const answer = this.answer(session);
+
     if (!answer) throw new Error("BTW returned no summary");
     this.pi.sendUserMessage(`Summary of my BTW side conversation:\n\n${answer}`);
     await this.reset(ctx);
@@ -215,6 +234,7 @@ class BtwExtension {
 
   private async summarize(ctx: SideContext): Promise<void> {
     if (this.items.length === 0) return this.notify(ctx, "No BTW thread to summarize.", "warning");
+
     const temporary = await createAgentSession({
       sessionManager: SessionManager.inMemory(),
       model: ctx.model,
@@ -222,6 +242,7 @@ class BtwExtension {
       tools: [],
       resourceLoader: createLoader(ctx, SUMMARY_PROMPT),
     });
+
     try {
       await this.runSummary(ctx, temporary.session);
     } finally {
@@ -240,11 +261,13 @@ class BtwExtension {
     if (!ctx.hasUI)
       return this.notify(ctx, "Use /btw <question> in non-interactive mode.", "warning");
     const question = await ctx.ui.input("BTW question:");
+
     if (question?.trim()) await this.ask(ctx, question.trim());
   }
 
   private async command(args: string, ctx: ExtensionContext): Promise<void> {
     if (!ctx.model) return this.notify(ctx, "No active model selected.", "error");
+
     return this.route(args.trim(), ctx as SideContext, ctx);
   }
 

@@ -4,6 +4,8 @@ export interface Integration {
   name: string;
   /** The command and its arguments. The sync skips the integration when the command is not on the PATH. */
   command: [string, ...string[]];
+  /** The command to show in the output. Use it to hide secrets. The default is the command. */
+  display?: string;
 }
 
 /** The integrations that the sync installs, in order. */
@@ -23,7 +25,7 @@ async function runIntegration(
     log(`skip    ${integration.name}: ${binary} is not on the PATH`);
     return true;
   }
-  log(`run     ${integration.command.join(" ")}`);
+  log(`run     ${integration.display ?? integration.command.join(" ")}`);
   const child = Bun.spawn([path, ...args], { stdio: ["ignore", "inherit", "inherit"] });
   return (await child.exited) === 0;
 }

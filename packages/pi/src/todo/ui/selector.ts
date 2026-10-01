@@ -34,6 +34,7 @@ export interface TodoSelectorOptions {
 
 function visibleRange(selected: number, total: number): { start: number; end: number } {
   const start = Math.max(0, Math.min(selected - Math.floor(MAX_VISIBLE / 2), total - MAX_VISIBLE));
+
   return { start, end: Math.min(start + MAX_VISIBLE, total) };
 }
 
@@ -81,6 +82,7 @@ export class TodoSelector extends Container implements Focusable {
   /** Moves the selection, selects a todo, or changes the search text. */
   handleInput(keyData: string): void {
     const kb = this.options.keybindings;
+
     const handled = dispatchKey([
       [kb.matches(keyData, "tui.select.up"), () => this.moveSelection(-1)],
       [kb.matches(keyData, "tui.select.down"), () => this.moveSelection(1)],
@@ -89,6 +91,7 @@ export class TodoSelector extends Container implements Focusable {
       [matchesKey(keyData, Key.ctrlShift("r")), () => this.quickAction("refine")],
       [matchesKey(keyData, Key.ctrlShift("w")), () => this.quickAction("work")],
     ]);
+
     if (handled) return;
     this.searchInput.handleInput(keyData);
     this.refresh();
@@ -116,16 +119,20 @@ export class TodoSelector extends Container implements Focusable {
     const { theme, currentSessionId } = this.options;
     const total = this.filteredTodos.length;
     this.listContainer.clear();
+
     if (total === 0) {
       this.listContainer.addChild(new Text(theme.fg("muted", "  No matching todos"), 0, 0));
+
       return;
     }
+
     const { start, end } = visibleRange(this.selectedIndex, total);
     this.filteredTodos.slice(start, end).forEach((todo, offset) => {
       const selected = start + offset === this.selectedIndex;
       const line = renderSelectorLine(theme, todo, selected, currentSessionId);
       this.listContainer.addChild(new Text(line, 0, 0));
     });
+
     if (start > 0 || end < total) {
       const scrollInfo = theme.fg("dim", `  (${this.selectedIndex + 1}/${total})`);
       this.listContainer.addChild(new Text(scrollInfo, 0, 0));
@@ -134,6 +141,7 @@ export class TodoSelector extends Container implements Focusable {
 
   private moveSelection(delta: number): void {
     const total = this.filteredTodos.length;
+
     if (total === 0) return;
     this.selectedIndex = (this.selectedIndex + delta + total) % total;
     this.updateList();
@@ -141,11 +149,13 @@ export class TodoSelector extends Container implements Focusable {
 
   private selectCurrent(): void {
     const selected = this.filteredTodos[this.selectedIndex];
+
     if (selected) this.options.onSelect(selected);
   }
 
   private quickAction(action: "work" | "refine"): void {
     const selected = this.filteredTodos[this.selectedIndex];
+
     if (selected) this.options.onQuickAction(selected, action);
   }
 }

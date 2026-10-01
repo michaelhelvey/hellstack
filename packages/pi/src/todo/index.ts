@@ -11,10 +11,13 @@ async function showTodoManager(
   input: Pick<TodoManagerOptions, "store" | "todos" | "searchTerm">,
 ): Promise<void> {
   let rootTui: TUI | undefined;
+
   const prompt = await ctx.ui.custom<string | undefined>((tui, theme, keybindings, done) => {
     rootTui = tui;
+
     return new TodoManager({ ...input, tui, theme, keybindings, ctx, done });
   });
+
   if (!prompt) return;
   ctx.ui.setEditorText(prompt);
   rootTui?.requestRender();
@@ -23,6 +26,7 @@ async function showTodoManager(
 async function runTodosCommand(args: string, ctx: ExtensionCommandContext): Promise<void> {
   const store = createTodoStore(ctx);
   const todos = await store.list();
+
   if (ctx.mode === "tui") await showTodoManager(ctx, { store, todos, searchTerm: args.trim() });
   else if (ctx.hasUI) ctx.ui.notify(formatTodoList(todos), "info");
   else console.log(formatTodoList(todos));

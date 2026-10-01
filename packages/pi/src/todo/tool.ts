@@ -48,7 +48,9 @@ export const TodoParams = Type.Object({
 export type TodoToolParams = Static<typeof TodoParams>;
 
 type TodoAction = TodoToolParams["action"];
+
 type ListAction = Extract<TodoAction, "list" | "list-all">;
+
 type SingleAction = Exclude<TodoAction, ListAction>;
 
 /** The details of a `todo` tool result, which the renderer uses. */
@@ -83,6 +85,7 @@ function missingFieldResult(action: TodoAction, field: string): TodoToolResult {
 
 function todoResult(action: SingleAction, result: TodoResult): TodoToolResult {
   if ("error" in result) return errorResult(action, result.error);
+
   return textResult(serializeTodoForAgent(result.todo), { action, todo: result.todo });
 }
 
@@ -91,12 +94,14 @@ async function listResult(store: TodoStore, action: ListAction): Promise<TodoToo
   const groups = groupTodos(all);
   const todos = action === "list" ? [...groups.assigned, ...groups.open] : all;
   const details = { action, todos, currentSessionId: store.session.id };
+
   return textResult(serializeTodoListForAgent(todos), details);
 }
 
 async function createResult(store: TodoStore, params: TodoToolParams): Promise<TodoToolResult> {
   if (!params.title) return missingFieldResult("create", "title");
   const { title, tags, status, body } = params;
+
   return todoResult("create", await store.create({ title, tags, status, body }));
 }
 
@@ -108,6 +113,7 @@ function withId(
 ): TodoHandler {
   return async (store, params) => {
     if (!params.id) return missingFieldResult(action, "id");
+
     return todoResult(action, await run(store, params.id, params));
   };
 }
@@ -142,11 +148,13 @@ export function createTodoStore(ctx: ExtensionContext): TodoStore {
 
 function renderCall(args: TodoToolParams, theme: Theme): Text {
   const id = args.id ? normalizeTodoId(args.id) : "";
+
   const parts = [
     theme.fg("toolTitle", theme.bold("todo ")) + theme.fg("muted", args.action),
     id ? theme.fg("accent", formatTodoId(id)) : "",
     args.title ? theme.fg("dim", `"${args.title}"`) : "",
   ];
+
   return new Text(parts.filter(Boolean).join(" "), 0, 0);
 }
 
@@ -158,6 +166,7 @@ function renderSingle(
   const text = renderTodoDetail(theme, details.todo, expanded);
   const label = ACTION_LABELS[details.action];
   const labeled = label ? theme.fg("success", "✓ ") + theme.fg("muted", `${label} `) + text : text;
+
   return expanded ? labeled : appendExpandHint(theme, labeled);
 }
 
@@ -169,17 +178,21 @@ function renderList(
   const { todos, currentSessionId } = details;
   const text = renderTodoList(theme, todos, { expanded, currentSessionId });
   const hasHidden = !expanded && groupTodos(todos).closed.length > 0;
+
   return hasHidden ? appendExpandHint(theme, text) : text;
 }
 
 function renderDetails(theme: Theme, details: TodoToolDetails, expanded: boolean): string {
   if ("error" in details) return theme.fg("error", `Error: ${details.error}`);
+
   if ("todo" in details) return renderSingle(theme, details, expanded);
+
   return renderList(theme, details, expanded);
 }
 
 function firstText(result: Partial<TodoToolResult>): string {
   const [first] = result.content ?? [];
+
   return first?.type === "text" ? first.text : "";
 }
 
@@ -189,6 +202,7 @@ function renderResultText(
   options: { expanded: boolean; isPartial: boolean },
 ): string {
   if (options.isPartial) return theme.fg("warning", "Processing...");
+
   return result.details
     ? renderDetails(theme, result.details, options.expanded)
     : firstText(result);

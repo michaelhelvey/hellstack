@@ -48,6 +48,7 @@ class SelectMenu extends Container {
 
 function actionItems(todo: TodoRecord): SelectItem[] {
   const closed = isTodoClosed(todo.status);
+
   return [
     { value: "view", label: "view", description: "View todo" },
     { value: "work", label: "work", description: "Work on todo" },
@@ -91,6 +92,7 @@ export class ConfirmMenu extends SelectMenu {
       { value: "yes", label: "Yes" },
       { value: "no", label: "No" },
     ];
+
     super(theme, theme.fg("accent", message), items);
     this.onSelect(
       (value) => onConfirm(value === "yes"),

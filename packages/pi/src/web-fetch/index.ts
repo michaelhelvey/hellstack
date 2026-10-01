@@ -30,6 +30,7 @@ const webFetchTool = defineTool({
   async execute(_toolCallId, params, signal, _onUpdate, ctx) {
     const stdout = await runWebFetch(params, { cwd: ctx.cwd, signal });
     const { text, truncated, fullOutputPath } = await formatWebFetchOutput(stdout);
+
     return {
       content: [{ type: "text", text }],
       details: { url: params.url, truncated, fullOutputPath },
@@ -38,6 +39,7 @@ const webFetchTool = defineTool({
 
   renderCall(args, theme) {
     const text = theme.fg("toolTitle", theme.bold("web_fetch ")) + theme.fg("accent", args.url);
+
     return new Text(text, 0, 0);
   },
 });

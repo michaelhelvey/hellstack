@@ -40,53 +40,68 @@ async function tryCreateLock(target: LockTarget): Promise<Failure | "exists" | u
     session: target.session.file,
     created_at: new Date().toISOString(),
   };
+
   try {
     await writeFile(target.lockPath, JSON.stringify(info, null, 2), { flag: "wx" });
+
     return undefined;
   } catch (error) {
     const { code, message } = parseErrorInfo(error);
+
     if (code === "EEXIST") return "exists";
+
     return { error: `Failed to acquire lock: ${message ?? "unknown error"}` };
   }
 }
 
 async function isLockFresh(lockPath: string): Promise<boolean> {
   const stats = await stat(lockPath).catch(() => undefined);
+
   return stats !== undefined && Date.now() - stats.mtimeMs <= LOCK_TTL_MS;
 }
 
 async function lockOwnerSuffix(lockPath: string): Promise<string> {
   const raw = await readFile(lockPath, "utf8").catch(() => "");
   const { session } = LockInfoSchema.parse(parseJsonOrUndefined(raw));
+
   return session ? ` (session ${session})` : "";
 }
 
 async function confirmSteal(target: LockTarget): Promise<Failure | undefined> {
   const todo = `Todo ${displayTodoId(target.id)}`;
   const { confirm } = target.session;
+
   if (!confirm) return { error: `${todo} lock is stale; rerun in interactive mode to steal it.` };
   const steal = await confirm("Todo locked", `${todo} appears locked. Steal the lock?`);
+
   return steal ? undefined : { error: `${todo} remains locked.` };
 }
 
 async function resolveExistingLock(target: LockTarget): Promise<Failure | undefined> {
   if (await isLockFresh(target.lockPath)) {
     const owner = await lockOwnerSuffix(target.lockPath);
+
     return { error: `Todo ${displayTodoId(target.id)} is locked${owner}. Try again later.` };
   }
+
   const failure = await confirmSteal(target);
+
   if (failure) return failure;
   await unlink(target.lockPath).catch(() => undefined);
+
   return undefined;
 }
 
 async function acquireLock(target: LockTarget): Promise<Failure | undefined> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const created = await tryCreateLock(target);
+
     if (created !== "exists") return created;
     const failure = await resolveExistingLock(target);
+
     if (failure) return failure;
   }
+
   return { error: `Failed to acquire lock for todo ${displayTodoId(target.id)}.` };
 }
 
@@ -100,7 +115,9 @@ export async function withTodoLock<T>(
   fn: () => Promise<T>,
 ): Promise<T | Failure> {
   const failure = await acquireLock(target);
+
   if (failure) return failure;
+
   try {
     return await fn();
   } finally {

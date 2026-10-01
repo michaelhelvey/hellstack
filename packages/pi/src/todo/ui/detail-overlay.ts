@@ -17,7 +17,9 @@ import { dispatchKey, type KeybindingMatcher } from "./shared.ts";
 export type TodoOverlayAction = "back" | "work";
 
 const HEADER_LINES = 3;
+
 const FOOTER_LINES = 3;
+
 const BORDER_LINES = 2;
 
 /** The environment and callback of a {@link TodoDetailOverlay}. */
@@ -63,6 +65,7 @@ export class TodoDetailOverlay implements Component {
   /** Renders the frame, the title, the metadata, the visible part of the body, and the key hints. */
   render(width: number): string[] {
     const innerWidth = Math.max(10, width - 2);
+
     const lines = [
       this.buildTitleLine(innerWidth),
       this.buildMetaLine(innerWidth),
@@ -71,6 +74,7 @@ export class TodoDetailOverlay implements Component {
       "",
       this.buildActionLine(innerWidth),
     ];
+
     return this.frame(lines, innerWidth).map((line) => truncateToWidth(line, width));
   }
 
@@ -80,6 +84,7 @@ export class TodoDetailOverlay implements Component {
 
   private buildMarkdown(): Markdown {
     const body = this.options.todo.body.trim() || "_No details yet._";
+
     return new Markdown(body, 1, 0, getMarkdownTheme());
   }
 
@@ -93,17 +98,22 @@ export class TodoDetailOverlay implements Component {
     this.scrollBy(0);
     const visible = markdownLines.slice(this.scrollOffset, this.scrollOffset + contentHeight);
     const padding = Array.from({ length: contentHeight - visible.length }, () => "");
+
     return [...visible.map((line) => truncateToWidth(line, innerWidth)), ...padding];
   }
 
   private frame(lines: string[], innerWidth: number): string[] {
     const side = this.border("│");
+
     const framed = lines.map((line) => {
       const truncated = truncateToWidth(line, innerWidth);
       const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(truncated)));
+
       return side + truncated + padding + side;
     });
+
     const horizontal = "─".repeat(innerWidth);
+
     return [this.border(`┌${horizontal}┐`), ...framed, this.border(`└${horizontal}┘`)];
   }
 
@@ -115,9 +125,11 @@ export class TodoDetailOverlay implements Component {
     const { theme, todo } = this.options;
     const titleText = todo.title ? ` ${todo.title} ` : ` Todo ${formatTodoId(todo.id)} `;
     const titleWidth = visibleWidth(titleText);
+
     if (titleWidth >= width) return truncateToWidth(theme.fg("accent", titleText.trim()), width);
     const leftWidth = Math.floor((width - titleWidth) / 2);
     const rightWidth = width - titleWidth - leftWidth;
+
     return (
       theme.fg("borderMuted", "─".repeat(leftWidth)) +
       theme.fg("accent", titleText) +
@@ -129,21 +141,25 @@ export class TodoDetailOverlay implements Component {
     const { theme, todo } = this.options;
     const status = getTodoStatus(todo);
     const separator = theme.fg("muted", " • ");
+
     const line = [
       theme.fg("accent", formatTodoId(todo.id)),
       theme.fg(isTodoClosed(status) ? "dim" : "success", status),
       theme.fg("muted", todo.tags.length ? todo.tags.join(", ") : "no tags"),
     ].join(separator);
+
     return truncateToWidth(line, width);
   }
 
   private buildActionLine(width: number): string {
     const { theme } = this.options;
+
     const line = [
       theme.fg("accent", "enter") + theme.fg("muted", " work on todo"),
       theme.fg("dim", "esc back"),
       theme.fg("dim", "↑/↓: move. ←/→: page."),
     ].join(theme.fg("muted", " • "));
+
     return truncateToWidth(line + this.scrollInfo(), width);
   }
 
@@ -151,6 +167,7 @@ export class TodoDetailOverlay implements Component {
     if (this.totalLines <= this.viewHeight) return "";
     const start = Math.min(this.totalLines, this.scrollOffset + 1);
     const end = Math.min(this.totalLines, this.scrollOffset + this.viewHeight);
+
     return this.options.theme.fg("dim", ` ${start}-${end}/${this.totalLines}`);
   }
 

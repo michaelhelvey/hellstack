@@ -21,6 +21,11 @@ After it copies the files, the sync runs `herdr integration install claude` and
 `src/integrations.ts`. It does not install the herdr opencode integration, because that plugin does
 not load in opencode v2. `@hellstack/opencode` has its own herdr plugin.
 
+When `~/.config/.t4-ai-gateway/auth.json` exists, the sync then runs
+`bunx @transport4/ai-gateway setup claude-code --key <token>` with the `token` from that file. This
+adds the gateway config to `~/.claude/settings.json` again after the sync writes it. The token does
+not go into this repository, and the output does not show it.
+
 The sync changes only the files that it owns. Other files in the harness directories stay.
 
 - It records each target in `~/.local/state/hellstack/manifest.json`. When you remove a file or a

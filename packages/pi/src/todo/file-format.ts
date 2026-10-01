@@ -31,8 +31,10 @@ interface ScanState {
 function scanStringChar(state: ScanState, char: string): void {
   if (state.escaped) {
     state.escaped = false;
+
     return;
   }
+
   state.escaped = char === "\\";
   state.inString = char !== '"';
 }
@@ -44,18 +46,23 @@ function depthChange(char: string): number {
 function scanChar(state: ScanState, char: string): boolean {
   if (state.inString) {
     scanStringChar(state, char);
+
     return false;
   }
+
   state.inString = char === '"';
   state.depth += depthChange(char);
+
   return char === "}" && state.depth === 0;
 }
 
 function findJsonObjectEnd(content: string): number {
   const state: ScanState = { depth: 0, inString: false, escaped: false };
+
   for (let i = 0; i < content.length; i += 1) {
     if (scanChar(state, content.charAt(i))) return i;
   }
+
   return -1;
 }
 
@@ -65,7 +72,9 @@ function findJsonObjectEnd(content: string): number {
  */
 export function splitFrontMatter(content: string): { frontMatter: string; body: string } {
   const endIndex = content.startsWith("{") ? findJsonObjectEnd(content) : -1;
+
   if (endIndex === -1) return { frontMatter: "", body: content };
+
   return {
     frontMatter: content.slice(0, endIndex + 1),
     body: content.slice(endIndex + 1).replace(/^\r?\n+/, ""),
@@ -83,6 +92,7 @@ export function parseFrontMatter(text: string, id: string): TodoFrontMatter {
 /** Parses the full content of a todo file. */
 export function parseTodoContent(content: string, id: string): TodoRecord {
   const { frontMatter, body } = splitFrontMatter(content);
+
   return { ...parseFrontMatter(frontMatter, id), body };
 }
 
@@ -100,6 +110,8 @@ export function serializeTodo(todo: TodoRecord): string {
     null,
     2,
   );
+
   const body = todo.body.replace(/^\n+/, "").replace(/\s+$/, "");
+
   return body ? `${frontMatter}\n\n${body}\n` : `${frontMatter}\n`;
 }

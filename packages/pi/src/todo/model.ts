@@ -49,6 +49,7 @@ export function clearAssignmentIfClosed(todo: TodoFrontMatter): void {
 /** Returns the state of a todo. */
 export function getTodoState(todo: TodoFrontMatter): TodoState {
   if (isTodoClosed(getTodoStatus(todo))) return "closed";
+
   return todo.assigned_to_session ? "assigned" : "open";
 }
 
@@ -66,24 +67,30 @@ export function sortTodos(todos: TodoFrontMatter[]): TodoFrontMatter[] {
 /** Puts todos into groups by state. The order in each group does not change. */
 export function groupTodos(todos: TodoFrontMatter[]): TodoGroups {
   const groups: TodoGroups = { assigned: [], open: [], closed: [] };
+
   for (const todo of todos) groups[getTodoState(todo)].push(todo);
+
   return groups;
 }
 
 function buildSearchText(todo: TodoFrontMatter): string {
   const assignment = todo.assigned_to_session ? `assigned:${todo.assigned_to_session}` : "";
   const fields = [formatTodoId(todo.id), todo.id, todo.title, ...todo.tags, todo.status];
+
   return [...fields, assignment].join(" ").trim();
 }
 
 function scoreTodo(todo: TodoFrontMatter, tokens: string[]): number | undefined {
   const text = buildSearchText(todo);
   let total = 0;
+
   for (const token of tokens) {
     const result = fuzzyMatch(token, text);
+
     if (!result.matches) return undefined;
     total += result.score;
   }
+
   return total;
 }
 
@@ -93,7 +100,9 @@ function scoreTodo(todo: TodoFrontMatter, tokens: string[]): number | undefined 
  */
 export function filterTodos(todos: TodoFrontMatter[], query: string): TodoFrontMatter[] {
   const tokens = query.split(/\s+/).filter(Boolean);
+
   if (tokens.length === 0) return todos;
+
   return todos
     .map((todo) => ({ todo, score: scoreTodo(todo, tokens) }))
     .filter((match): match is { todo: TodoFrontMatter; score: number } => match.score !== undefined)

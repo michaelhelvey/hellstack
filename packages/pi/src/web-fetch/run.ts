@@ -71,6 +71,7 @@ export async function runWebFetch(
 ): Promise<string> {
   const webFetch = binaryPath("WEB_FETCH_BIN", ".cargo", "bin", "web-fetch");
   const lightpanda = binaryPath("LIGHTPANDA_BIN", ".local", "bin", "lightpanda");
+
   try {
     const result = await execFileAsync(webFetch, buildWebFetchArgs(params), {
       ...options,
@@ -78,6 +79,7 @@ export async function runWebFetch(
       encoding: "utf8",
       maxBuffer: 20 * 1024 * 1024,
     });
+
     return result.stdout;
   } catch (error) {
     throw toWebFetchError(error, options.signal);
@@ -89,6 +91,7 @@ function toWebFetchError(error: unknown, signal: AbortSignal | undefined): Error
   const failure = parseErrorInfo(error);
   const message = (failure.stderr || failure.message || "unknown error").trim();
   const code = failure.code ? ` (${failure.code})` : "";
+
   return new Error(`web-fetch failed${code}: ${message}`);
 }
 
@@ -101,6 +104,7 @@ export async function formatWebFetchOutput(stdout: string): Promise<WebFetchOutp
     maxLines: DEFAULT_MAX_LINES,
     maxBytes: DEFAULT_MAX_BYTES,
   });
+
   if (!truncation.truncated) {
     return { text: truncation.content, truncated: false, fullOutputPath: undefined };
   }
@@ -108,9 +112,11 @@ export async function formatWebFetchOutput(stdout: string): Promise<WebFetchOutp
   const directory = await mkdtemp(join(tmpdir(), "pi-web-fetch-"));
   const fullOutputPath = join(directory, "page.md");
   await writeFile(fullOutputPath, stdout, "utf8");
+
   const note =
     `[Output truncated: showing ${truncation.outputLines} of ${truncation.totalLines} lines ` +
     `(${formatSize(truncation.outputBytes)} of ${formatSize(truncation.totalBytes)}). ` +
     `Full output saved to: ${fullOutputPath}]`;
+
   return { text: `${truncation.content}\n\n${note}`, truncated: true, fullOutputPath };
 }

@@ -12,6 +12,7 @@ export function formatTodoId(id: string): string {
 export function normalizeTodoId(id: string): string {
   const trimmed = id.trim().replace(/^#/, "");
   const hasPrefix = trimmed.toUpperCase().startsWith(TODO_ID_PREFIX);
+
   return hasPrefix ? trimmed.slice(TODO_ID_PREFIX.length) : trimmed;
 }
 
@@ -21,6 +22,7 @@ export function normalizeTodoId(id: string): string {
  */
 export function parseTodoId(id: string): string | undefined {
   const normalized = normalizeTodoId(id);
+
   return TODO_ID_PATTERN.test(normalized) ? normalized.toLowerCase() : undefined;
 }
 

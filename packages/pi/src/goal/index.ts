@@ -7,12 +7,17 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Type } from "typebox";
 
 const STATE_TYPE = "goal";
+
 const UI_MESSAGE_TYPE = "goal-ui";
+
 const CONTINUATION_TYPE = "goal-continuation";
+
 const MAX_OBJECTIVE_CHARS = 4_000;
 
 type GoalStatus = "active" | "paused" | "blocked" | "usageLimited" | "budgetLimited" | "complete";
+
 type GoalAction = "set" | "edit" | "status" | "clear" | "account";
+
 type Goal = {
   id: string;
   objective: string;
@@ -23,9 +28,13 @@ type Goal = {
   createdAt: number;
   updatedAt: number;
 };
+
 type StateEntry = { version: 2; action: GoalAction; goal: Goal | null };
+
 type MessageLike = { role?: string; stopReason?: string; errorMessage?: string; usage?: Usage };
+
 type Usage = { input?: number; output?: number; cacheRead?: number; totalTokens?: number };
+
 type GoalResult = {
   goal: {
     threadId: string;
@@ -47,7 +56,9 @@ const CreateParams = Type.Object({
     Type.Number({ description: "Optional positive integer token budget." }),
   ),
 });
+
 const UpdateParams = Type.Object({ status: StringEnum(["complete", "blocked"] as const) });
+
 const STATUS_LABELS: Record<GoalStatus, string> = {
   active: "active",
   paused: "paused",
@@ -60,23 +71,31 @@ const STATUS_LABELS: Record<GoalStatus, string> = {
 function now(): number {
   return Math.floor(Date.now() / 1000);
 }
+
 function positiveInteger(value: unknown): number | undefined {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
 }
+
 function safeInteger(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.max(0, Math.floor(value))
     : fallback;
 }
+
 function asText(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
+
 function validateObjective(value: string): string {
   const result = value.trim();
+
   if (!result) throw new Error("goal objective must not be empty");
+
   if ([...result].length > MAX_OBJECTIVE_CHARS) throw new Error("goal objective is too long");
+
   return result;
 }
+
 function normalizeStatus(value: unknown): GoalStatus {
   const map: Record<string, GoalStatus> = {
     active: "active",
@@ -88,6 +107,7 @@ function normalizeStatus(value: unknown): GoalStatus {
     budgetLimited: "budgetLimited",
     budget_limited: "budgetLimited",
   };
+
   return typeof value === "string" ? (map[value] ?? "active") : "active";
 }
 
@@ -101,8 +121,11 @@ function createRestoredGoal(raw: Record<string, unknown>, objective: string): Go
     createdAt: safeInteger(raw.createdAt, now()),
     updatedAt: safeInteger(raw.updatedAt, now()),
   };
+
   const tokenBudget = positiveInteger(raw.tokenBudget);
+
   if (tokenBudget !== undefined) result.tokenBudget = tokenBudget;
+
   return result;
 }
 
@@ -110,6 +133,7 @@ function restoreGoal(value: unknown): Goal | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
   const objective = asText(raw.objective).trim();
+
   return objective ? createRestoredGoal(raw, objective) : null;
 }
 
@@ -120,19 +144,25 @@ function compactTokens(value: number): string {
       ? `${(value / 1_000).toFixed(1)}K`
       : String(value);
 }
+
 function elapsed(value: number): string {
   const minutes = Math.floor(value / 60);
+
   return minutes > 0 ? `${minutes}m ${value % 60}s` : `${value}s`;
 }
+
 function usageValue(value: number | undefined): number {
   return Math.max(0, value ?? 0);
 }
+
 function usageTokens(message: MessageLike): number {
   if (message.role !== "assistant" || !message.usage) return 0;
   const input = usageValue(message.usage.input) - usageValue(message.usage.cacheRead);
   const output = usageValue(message.usage.output);
+
   return input + output || usageValue(message.usage.totalTokens);
 }
+
 function totalUsage(messages: unknown[]): number {
   return messages.reduce<number>(
     (total, message) =>
@@ -140,6 +170,7 @@ function totalUsage(messages: unknown[]): number {
     0,
   );
 }
+
 function lastAssistant(messages: unknown[]): MessageLike | undefined {
   return [...messages]
     .reverse()
@@ -152,7 +183,9 @@ function lastAssistant(messages: unknown[]): MessageLike | undefined {
 function summary(goal: Goal): string {
   const limit =
     goal.tokenBudget === undefined ? "" : `\nToken budget: ${compactTokens(goal.tokenBudget)}`;
+
   const command = goal.status === "active" ? "pause" : "resume";
+
   return [
     "Goal",
     `Status: ${STATUS_LABELS[goal.status]}`,
@@ -169,6 +202,7 @@ function continuation(goal: Goal): string {
     goal.tokenBudget === undefined
       ? "unbounded"
       : String(Math.max(0, goal.tokenBudget - goal.tokensUsed));
+
   return [
     "Continue work toward the active goal.",
     `<untrusted_objective>\n${goal.objective}\n</untrusted_objective>`,
@@ -180,6 +214,7 @@ function continuation(goal: Goal): string {
 
 function wireGoal(goal: Goal | null, sessionId: string): GoalResult["goal"] {
   if (!goal) return null;
+
   return {
     threadId: sessionId,
     objective: goal.objective,
@@ -191,15 +226,19 @@ function wireGoal(goal: Goal | null, sessionId: string): GoalResult["goal"] {
     updatedAt: goal.updatedAt,
   };
 }
+
 function result(goal: Goal | null, sessionId: string, report: boolean): GoalResult {
   const remainingTokens =
     goal?.tokenBudget === undefined ? null : Math.max(0, goal.tokenBudget - goal.tokensUsed);
+
   const completionBudgetReport =
     report && goal?.status === "complete"
       ? `Goal achieved. Tokens used: ${goal.tokensUsed}.`
       : null;
+
   return { goal: wireGoal(goal, sessionId), remainingTokens, completionBudgetReport };
 }
+
 function resultText(value: unknown): { type: "text"; text: string }[] {
   return [{ type: "text", text: JSON.stringify(value, null, 2) }];
 }
@@ -218,8 +257,10 @@ class GoalExtension {
   private snapshot(): Goal | null {
     if (!this.goal) return null;
     const copy = { ...this.goal };
+
     if (copy.status === "active" && this.activeSince !== null)
       copy.timeUsedSeconds += Math.floor((Date.now() - this.activeSince) / 1000);
+
     return copy;
   }
 
@@ -240,6 +281,7 @@ class GoalExtension {
   private statusText(ctx: ExtensionContext): string | undefined {
     if (!this.goal) return undefined;
     const color = this.goal.status === "active" ? "accent" : "warning";
+
     return ctx.ui.theme.fg(color, `Goal ${STATUS_LABELS[this.goal.status]}`);
   }
 
@@ -255,6 +297,7 @@ class GoalExtension {
   private accountTime(): boolean {
     if (!this.hasActiveClock()) return false;
     const seconds = Math.floor((Date.now() - this.activeSince!) / 1000);
+
     return seconds > 0 && this.addTime(seconds);
   }
 
@@ -263,11 +306,13 @@ class GoalExtension {
     this.goal.timeUsedSeconds += seconds;
     this.goal.updatedAt = now();
     this.activeSince += seconds * 1000;
+
     return true;
   }
 
   private setGoal(value: string, tokenBudgetInput?: number): Goal {
     const timestamp = now();
+
     const created: Goal = {
       id: randomUUID(),
       objective: validateObjective(value),
@@ -277,13 +322,17 @@ class GoalExtension {
       createdAt: timestamp,
       updatedAt: timestamp,
     };
+
     const tokenBudget = positiveInteger(tokenBudgetInput);
+
     if (tokenBudgetInput !== undefined && tokenBudget === undefined)
       throw new Error("goal budgets must be positive integers");
+
     if (tokenBudget !== undefined) created.tokenBudget = tokenBudget;
     this.goal = created;
     this.activeSince = Date.now();
     this.continuationQueued = false;
+
     return created;
   }
 
@@ -293,12 +342,14 @@ class GoalExtension {
     this.updateActivity(previous, next);
     this.goal.status = next;
     this.goal.updatedAt = now();
+
     return this.goal;
   }
 
   private updateActivity(previous: GoalStatus, next: GoalStatus): void {
     this.stopActivity(previous, next);
     this.startActivity(previous, next);
+
     if (next !== "active") this.continuationQueued = false;
   }
 
@@ -318,8 +369,10 @@ class GoalExtension {
 
   private queue(ctx: ExtensionContext): void {
     const goal = this.snapshot();
+
     if (!this.canQueue(goal, ctx)) return;
     this.continuationQueued = true;
+
     try {
       this.sendQueue(ctx, goal);
     } catch {
@@ -343,9 +396,11 @@ class GoalExtension {
       display: false,
       details: { goalId: goal.id },
     };
+
     const options = ctx.isIdle()
       ? { triggerTurn: true }
       : { triggerTurn: true, deliverAs: "followUp" as const };
+
     this.pi.sendMessage(message, options);
   }
 
@@ -358,12 +413,14 @@ class GoalExtension {
 
   private restoreBranch(ctx: ExtensionContext): Goal | null {
     let restored: Goal | null = null;
+
     for (const entry of ctx.sessionManager.getBranch()) {
       if (this.isStateEntry(entry))
         restored = restoreGoal(
           ((entry as { data?: unknown }).data as Partial<StateEntry> | undefined)?.goal,
         );
     }
+
     return restored;
   }
 
@@ -375,11 +432,14 @@ class GoalExtension {
     if (!this.goal) throw new Error("cannot edit goal because no goal exists");
     this.accountTime();
     this.goal.objective = validateObjective(value);
+
     if (this.goal.status === "complete" || this.goal.status === "budgetLimited") {
       this.goal.status = "active";
       this.activeSince = Date.now();
     }
+
     this.goal.updatedAt = now();
+
     return this.goal;
   }
 
@@ -390,18 +450,24 @@ class GoalExtension {
   private async editValue(ctx: ExtensionContext): Promise<string | undefined> {
     if (!this.goal) {
       this.show("No goal is currently set.\n\nUsage: /goal <objective>");
+
       return undefined;
     }
+
     if (!ctx.hasUI) {
       this.show("/goal edit requires interactive mode.");
+
       return undefined;
     }
+
     return ctx.ui.editor("Edit goal objective:", this.goal.objective);
   }
 
   private async editCommand(ctx: ExtensionContext): Promise<void> {
     const value = await this.editValue(ctx);
+
     if (value === undefined) return;
+
     try {
       this.edit(value);
       this.persist("edit");
@@ -415,12 +481,14 @@ class GoalExtension {
 
   private async canReplace(value: string, ctx: ExtensionContext): Promise<boolean> {
     if (!this.goal || this.goal.status === "complete") return true;
+
     return ctx.hasUI && ctx.ui.confirm("Replace goal?", `New objective: ${value}`);
   }
 
   private async createCommand(args: string, ctx: ExtensionContext): Promise<void> {
     try {
       const value = validateObjective(args);
+
       if (!(await this.canReplace(value, ctx))) return;
       this.setGoal(value);
       this.persist("set");
@@ -434,7 +502,9 @@ class GoalExtension {
 
   private async command(args: string, ctx: ExtensionContext): Promise<void> {
     const value = args.trim().toLowerCase();
+
     if (!value) return this.showCurrent(ctx);
+
     return this.routeCommand(value, args, ctx);
   }
 
@@ -446,8 +516,11 @@ class GoalExtension {
 
   private async routeCommand(value: string, args: string, ctx: ExtensionContext): Promise<void> {
     if (value === "clear") return this.clearCommand(ctx);
+
     if (this.isStatusCommand(value)) return this.statusCommand(this.statusValue(value), ctx);
+
     if (value === "edit") return this.editCommand(ctx);
+
     return this.createCommand(args, ctx);
   }
 
@@ -473,6 +546,7 @@ class GoalExtension {
       this.persist("status");
       this.show(summary(this.goal!));
       this.setStatus(ctx);
+
       if (status === "active") this.queue(ctx);
     } catch (error) {
       this.reportError(error);
@@ -484,6 +558,7 @@ class GoalExtension {
     report: boolean,
   ): { content: { type: "text"; text: string }[]; details: GoalResult } {
     const details = result(this.snapshot(), ctx.sessionManager.getSessionId(), report);
+
     return { content: resultText(details), details };
   }
   private createTool(
@@ -495,6 +570,7 @@ class GoalExtension {
     this.setGoal(params.objective, params.token_budget);
     this.persist("set");
     this.setStatus(ctx);
+
     return Promise.resolve(this.goalTool(ctx, false));
   }
   private updateTool(
@@ -504,6 +580,7 @@ class GoalExtension {
     this.changeStatus(status);
     this.persist("status");
     this.setStatus(ctx);
+
     return Promise.resolve(this.goalTool(ctx, status === "complete"));
   }
 
@@ -521,6 +598,7 @@ class GoalExtension {
   private registerAgentEvents(): void {
     this.pi.on("before_agent_start", (event) => {
       const goal = this.snapshot();
+
       return goal?.status === "active"
         ? { systemPrompt: `${event.systemPrompt}\n\nActive goal: ${goal.objective}` }
         : undefined;
@@ -556,6 +634,7 @@ class GoalExtension {
       return false;
     this.changeStatus("budgetLimited");
     this.show(`Goal limited by budget\n\n${summary(this.goal)}`);
+
     return true;
   }
 
@@ -565,6 +644,7 @@ class GoalExtension {
     this.persistAccount(this.accountTime(), this.applyBudget());
     this.startedGoal = null;
     this.setStatus(ctx);
+
     if (this.handleStop(messages, ctx)) return;
     this.queueIfActive(messages, ctx);
   }
@@ -575,18 +655,22 @@ class GoalExtension {
 
   private queueIfActive(messages: unknown[], ctx: ExtensionContext): void {
     if (this.goal?.status !== "active") return;
+
     if (lastAssistant(messages)?.stopReason === "error") return;
     this.queue(ctx);
   }
 
   private handleStop(messages: unknown[], ctx: ExtensionContext): boolean {
     const assistant = lastAssistant(messages);
+
     if (assistant?.stopReason === "error") return this.stopForError(assistant, ctx);
+
     if (assistant?.stopReason !== "aborted") return false;
     this.changeStatus("paused");
     this.persist("status");
     this.show(`Goal paused\n\n${summary(this.goal!)}`);
     this.setStatus(ctx);
+
     return true;
   }
 
@@ -594,10 +678,12 @@ class GoalExtension {
     const status: GoalStatus = /usage|rate|quota|limit/i.test(message.errorMessage ?? "")
       ? "usageLimited"
       : "blocked";
+
     this.changeStatus(status);
     this.persist("status");
     this.show(`Goal ${STATUS_LABELS[status]}\n\n${summary(this.goal!)}`);
     this.setStatus(ctx);
+
     return true;
   }
 

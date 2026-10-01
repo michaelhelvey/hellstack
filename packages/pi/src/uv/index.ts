@@ -10,7 +10,9 @@ export default function uv(pi: ExtensionAPI): void {
   const bashTool = createBashTool(process.cwd(), {
     spawnHook: (spawn) => {
       const message = findBlockedCommandMessage(spawn.command);
+
       if (message) throw new Error(message);
+
       return spawn;
     },
   });

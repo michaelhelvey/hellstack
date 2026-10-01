@@ -22,7 +22,7 @@
     "test": "bun test --pass-with-no-tests",
     "test:pi": "bun test packages/pi/tests && rs check --type-check",
     "prepare": "rs hooks",
-    "complexity": "uvx lizard -w -L20 -i0 -Tnloc=300 -Tcyclomatic_complexity=4 -Tparameter_count=4 -x \"./packages/skills/*\" .",
+    "complexity": "uvx lizard -w -i0 -Tnloc=20 -Tcyclomatic_complexity=4 -Tparameter_count=4 -x \"./packages/skills/*\" .",
     "validate": "bun run format && bun run --parallel check test complexity"
   },
   "devDependencies": {

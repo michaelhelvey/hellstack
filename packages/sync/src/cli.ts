@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { gatewayIntegration } from "./gateway.ts";
 import { integrations, runIntegrations } from "./integrations.ts";
 import { planEntries } from "./plan.ts";
 import { resolveRoots } from "./roots.ts";
@@ -34,7 +35,9 @@ async function main(args: string[]): Promise<number> {
   const roots = resolveRoots(homedir(), process.env);
   const failed: string[] = [];
   async function afterApply(): Promise<void> {
-    failed.push(...(await runIntegrations(integrations, log)));
+    const gateway = await gatewayIntegration(roots.home);
+    const list = gateway === undefined ? integrations : [...integrations, gateway];
+    failed.push(...(await runIntegrations(list, log)));
   }
   const entries = await planEntries(repo, roots);
   const result = await sync({ entries, roots, dryRun: parsed.dryRun, log, afterApply });

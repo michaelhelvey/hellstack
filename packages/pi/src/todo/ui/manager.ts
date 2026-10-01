@@ -36,6 +36,7 @@ export interface TodoManagerOptions {
 function clipboardText(todo: TodoRecord): string {
   const body = todo.body.trim();
   const heading = `# ${getTodoTitle(todo)}`;
+
   return body ? `${heading}\n\n${body}` : heading;
 }
 
@@ -121,10 +122,13 @@ export class TodoManager implements Component, Focusable {
 
   private async showActionMenu(todo: TodoFrontMatter): Promise<void> {
     const result = await this.options.store.get(todo.id);
+
     if ("error" in result) {
       this.options.ctx.ui.notify(result.error, "error");
+
       return;
     }
+
     const record = result.todo;
     this.actionMenu = new TodoActionMenu(this.options.theme, record, {
       onSelect: (action) => this.run(this.menuHandlers[action](record)),
@@ -139,32 +143,38 @@ export class TodoManager implements Component, Focusable {
         new TodoDetailOverlay({ tui, theme, keybindings, todo, onAction: done }),
       { overlay: true, overlayOptions: { width: "80%", maxHeight: "80%", anchor: "center" } },
     );
+
     if (action === "work") this.options.done(buildWorkPrompt(todo));
     else this.setActive(this.actionMenu ?? this.selector);
   }
 
   private confirmDelete(todo: TodoRecord): void {
     const message = `Delete todo ${formatTodoId(todo.id)}? This cannot be undone.`;
+
     const confirm = new ConfirmMenu(this.options.theme, message, (confirmed) => {
       if (confirmed) this.run(this.apply(this.options.store.delete(todo.id), "Deleted"));
       else this.setActive(this.actionMenu ?? this.selector);
     });
+
     this.setActive(confirm);
   }
 
   private async apply(pending: Promise<TodoResult>, verb: string): Promise<void> {
     const result = await pending;
+
     if ("error" in result) {
       this.options.ctx.ui.notify(result.error, "error");
     } else {
       this.selector.setTodos(await this.options.store.list());
       this.options.ctx.ui.notify(`${verb} todo ${formatTodoId(result.todo.id)}`, "info");
     }
+
     this.setActive(this.selector);
   }
 
   private copyPath(todo: TodoRecord): Promise<void> {
     const absolutePath = path.resolve(this.options.store.pathFor(todo.id));
+
     return this.copy(absolutePath, `Copied ${absolutePath} to clipboard`);
   }
 
@@ -175,6 +185,7 @@ export class TodoManager implements Component, Focusable {
     } catch (error) {
       this.options.ctx.ui.notify(errorMessage(error), "error");
     }
+
     this.setActive(this.selector);
   }
 }
