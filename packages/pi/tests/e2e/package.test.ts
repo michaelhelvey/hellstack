@@ -25,9 +25,16 @@ test("pi loads the package with no errors or warnings, and gives its tools to th
   sandbox.model.reply({ text: "Hello." });
   await pi.prompt("hello");
 
-  expect(CommandsSchema.parse(data).commands.map((c) => c.name)).toContain("todos");
+  const commands = CommandsSchema.parse(data).commands.map((c) => c.name);
+  expect(commands).toContain("btw");
+  expect(commands).toContain("goal");
+  expect(commands).toContain("todos");
   const tools = sandbox.model.requests[0]?.tools.map((t) => t.function.name) ?? [];
-  expect(["todo", "web_fetch", "bash"].filter((name) => !tools.includes(name))).toEqual([]);
+  expect(
+    ["create_goal", "get_goal", "todo", "update_goal", "web_fetch", "bash"].filter(
+      (name) => !tools.includes(name),
+    ),
+  ).toEqual([]);
   expect(tools.filter((name) => name === "bash")).toHaveLength(1);
   expect(await pi.stop()).toBe("");
 });
@@ -50,9 +57,3 @@ test.each(["@earendil-works/pi-coding-agent", "@earendil-works/pi-ai", "@earendi
     expect(await devDependencyVersion(name), hint).toBe(installed);
   },
 );
-
-test.each(["nightowl", "dayowl"])("the %s theme loads in interactive mode", async (theme) => {
-  const pi = sandbox.startTui("--use-theme", theme);
-  const output = await pi.waitFor("fake-1");
-  expect(output).not.toContain("Failed to load theme");
-});

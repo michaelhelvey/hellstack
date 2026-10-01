@@ -4,18 +4,13 @@ Personal extensions and themes for [pi](https://pi.dev).
 
 | Extension       | What it does                                                                                                                               |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `btw`           | Opens a side conversation for focused questions, with optional summary injection into the main chat.                                       |
+| `goal`          | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                              |
 | `todo`          | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                              |
 | `uv`            | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                     |
 | `web-fetch`     | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                           |
 | `herdr-prompts` | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs. |
 | `whimsical`     | Shows a random working message on each turn.                                                                                               |
-
-| Theme      | What it is                                  |
-| ---------- | ------------------------------------------- |
-| `nightowl` | Dark theme, based on the Night Owl palette. |
-| `dayowl`   | Light theme, for use with `nightowl`.       |
-
-Select a theme with `/settings`, or set `"theme": "nightowl"` in `~/.pi/agent/settings.json`.
 
 ## Install
 
