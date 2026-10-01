@@ -180,7 +180,7 @@ category searches would be redundant. Say so explicitly. This should be rare.
 Spawn one synthesizer subagent:
 
 - `subagent_type`: `generalPurpose`
-- `model`: your configured why-synthesizer model (default `claude-fable-5-1-thinking-max`)
+- `model`: your configured why-synthesizer model (default `claude-opus-5-5-thinking-high`)
 - `readonly`: `false` (agent mode). The synthesizer's quality check spot-verifies citations, which
   can require MCP access. Readonly/Ask mode strips MCPs and defeats that.
 

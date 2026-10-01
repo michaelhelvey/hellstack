@@ -51,7 +51,7 @@ to Step 3.
 Spawn one Task subagent that explores and explains in one pass:
 
 - `subagent_type`: `generalPurpose`
-- `model`: your configured how-explainer model (default `claude-fable-5-1-thinking-max`)
+- `model`: your configured how-explainer model (default `claude-opus-5-5-thinking-high`)
 - `readonly`: `true`
 
 Build its prompt from `references/explainer-prompt.md` without the explorer-findings section. Go to
@@ -63,7 +63,7 @@ Once all explorers have returned, spawn one Task subagent to synthesize their fi
 explanation:
 
 - `subagent_type`: `generalPurpose`
-- `model`: your configured how-explainer model (default `claude-fable-5-1-thinking-max`)
+- `model`: your configured how-explainer model (default `claude-opus-5-5-thinking-high`)
 - `readonly`: `true`
 
 Build its prompt from `references/explainer-prompt.md` with every explorer's findings filled in.
