@@ -1,7 +1,13 @@
-# hellstack
-
-stuff for working with clankers. Plugins, skills, etc. pi stuff shamelessly modeled and stolen from
-https://github.com/mitsuhiko/agent-stuff
+<div align="center">
+  <img src="./assets/mascot.png" alt="The hellstack mascot: a small demon mouse" width="320" />
+  <h1>hellstack</h1>
+  <p>Stuff for working with clankers: plugins, skills, and more.</p>
+  <p>
+    Pi stuff is shamelessly modeled and borrowed from <a
+    href="https://github.com/mitsuhiko/agent-stuff">agent-stuff</a>, various skills from <a
+    href="https://github.com/backnotprop/pstack">pstack</a>.
+  </p>
+</div>
 
 ## Get started
 
