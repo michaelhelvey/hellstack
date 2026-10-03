@@ -6,6 +6,8 @@ export interface Roots {
   home: string;
   /** The Claude Code config directory, usually `~/.claude`. */
   claude: string;
+  /** The shared agent directory, usually `~/.agents`. opencode, Codex, and other tools read it. */
+  agents: string;
   /** The opencode config directory, usually `~/.config/opencode`. */
   opencode: string;
   /** The pi agent directory, usually `~/.pi/agent`. */
@@ -30,6 +32,7 @@ export function resolveRoots(home: string, env: Env): Roots {
   return {
     home,
     claude: envOr(env, "CLAUDE_CONFIG_DIR", join(home, ".claude")),
+    agents: join(home, ".agents"),
     opencode: join(config, "opencode"),
     pi: envOr(env, "PI_CODING_AGENT_DIR", join(home, ".pi", "agent")),
     state: join(state, "hellstack"),

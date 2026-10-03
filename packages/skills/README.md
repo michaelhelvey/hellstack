@@ -1,6 +1,7 @@
 # @hellstack/skills
 
-The single source of truth for my agent skills. Claude Code, opencode, and pi use these skills.
+The single source of truth for my agent skills. The sync installs them to `~/.claude/skills`,
+`~/.pi/agent/skills`, and the shared `~/.agents/skills`.
 
 Each skill is a directory in `skills/` with a `SKILL.md` file:
 

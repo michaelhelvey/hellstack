@@ -29,3 +29,13 @@ async function targets(layers: string[]): Promise<string[]> {
 test("the repository plan writes the same targets for each set of layers", async () => {
   expect(await targets(["t4"])).toEqual(await targets([]));
 });
+
+test("the repository plan installs skills into the shared agent directory", async () => {
+  const plan = await planRepo(repo, roots, new Set());
+  const skillTargets = plan.entries
+    .filter((entry) => entry.kind === "dir")
+    .map((entry) => entry.target);
+  expect(skillTargets.some((target) => target.startsWith(join(roots.agents, "skills") + "/"))).toBe(
+    true,
+  );
+});
