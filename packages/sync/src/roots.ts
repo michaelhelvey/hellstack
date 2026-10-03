@@ -6,7 +6,7 @@ export interface Roots {
   home: string;
   /** The Claude Code config directory, usually `~/.claude`. */
   claude: string;
-  /** The shared agent directory, usually `~/.agents`. opencode, Codex, and other tools read it. */
+  /** The shared agent directory, usually `~/.agents`. pi, opencode, Codex, and other tools read it. */
   agents: string;
   /** The opencode config directory, usually `~/.config/opencode`. */
   opencode: string;

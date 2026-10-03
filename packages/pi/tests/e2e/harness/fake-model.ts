@@ -42,9 +42,11 @@ function chunk(delta: Record<string, unknown>, finishReason: string | null = nul
   return `data: ${JSON.stringify({ ...record, choices: [choice] })}\n\n`;
 }
 
+let nextToolCallId = 0;
+
 function toolCallChunk(call: FakeToolCall, index: number): string {
   const fn = { name: call.name, arguments: JSON.stringify(call.arguments) };
-  const toolCall = { index, id: `call_${index}`, type: "function", function: fn };
+  const toolCall = { index, id: `call_${nextToolCallId++}`, type: "function", function: fn };
   return chunk({ role: "assistant", tool_calls: [toolCall] });
 }
 

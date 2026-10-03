@@ -1,7 +1,8 @@
 # @hellstack/sync
 
-Copies the config and skills in this repository to Claude Code, opencode, and pi. Skills also go to
-the shared `~/.agents/skills`. Run it from the repository root:
+Copies the config and skills in this repository to Claude Code, opencode, and pi. Skills go to
+`~/.claude/skills` for Claude Code and to the shared `~/.agents/skills` for pi, opencode, and other
+tools. Run it from the repository root:
 
 ```sh
 bun run sync               # copy everything, then run the integrations

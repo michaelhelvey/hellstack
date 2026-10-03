@@ -18,7 +18,7 @@ You need [bun](https://bun.sh). [uv](https://docs.astral.sh/uv/) runs the comple
 bun install
 mkdir -p ~/.config/hellstack && echo '{ "layers": [] }' > ~/.config/hellstack/layers.json
 bun run sync --dry-run  # show what the sync changes
-bun run sync            # copy everything to Claude Code, opencode, and pi (and skills to ~/.agents)
+bun run sync            # copy everything to Claude Code, opencode, and pi
 ```
 
 The sync copies files. It does not make links. After you change a file in this repository, run

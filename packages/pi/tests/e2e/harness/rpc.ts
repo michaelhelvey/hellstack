@@ -36,8 +36,14 @@ export type UiAnswer = { value: string } | { confirmed: boolean } | { cancelled:
 
 const DIALOG_METHODS = new Set(["select", "confirm", "input", "editor"]);
 
+const ToolStartSchema = z.looseObject({
+  type: z.literal("tool_execution_start"),
+  toolCallId: z.string(),
+});
+
 const ToolEndSchema = z.looseObject({
   type: z.literal("tool_execution_end"),
+  toolCallId: z.string(),
   toolName: z.string(),
   isError: z.boolean(),
   result: z.looseObject({
@@ -68,11 +74,22 @@ function toToolResult(record: z.infer<typeof ToolEndSchema>): ToolResult {
 export class Run {
   constructor(readonly records: RpcRecord[]) {}
 
-  /** Returns the results of the tool calls in this run, in order. */
+  /**
+   * Returns the results of the tool calls in this run, in the order of the calls. pi runs tool
+   * calls in parallel by default, so the results do not always arrive in that order.
+   */
   toolResults(): ToolResult[] {
-    return this.records.flatMap((record) => {
-      const parsed = ToolEndSchema.safeParse(record);
-      return parsed.success ? [toToolResult(parsed.data)] : [];
+    const order: string[] = [];
+    const results = new Map<string, ToolResult>();
+    for (const record of this.records) {
+      const start = ToolStartSchema.safeParse(record);
+      if (start.success) order.push(start.data.toolCallId);
+      const end = ToolEndSchema.safeParse(record);
+      if (end.success) results.set(end.data.toolCallId, toToolResult(end.data));
+    }
+    return order.flatMap((id) => {
+      const result = results.get(id);
+      return result ? [result] : [];
     });
   }
 }
