@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-docs
-version: 0.45.0
+version: 0.47.0
 description: Search and query current Sentry documentation
 requires:
   bins: ["sentry"]
@@ -16,7 +16,6 @@ Search and query current Sentry documentation
 Find Sentry documentation pages by keyword
 
 **Flags:**
-
 - `-n, --limit <value> - Maximum matches to return (1-20) - (default: "8")`
 
 **Examples:**

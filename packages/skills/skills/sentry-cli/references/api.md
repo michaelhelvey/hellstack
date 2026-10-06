@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-api
-version: 0.45.0
+version: 0.47.0
 description: Make an authenticated API request
 requires:
   bins: ["sentry"]
@@ -16,7 +16,6 @@ Make an authenticated API request
 Make an authenticated API request
 
 **Flags:**
-
 - `-X, --method <value> - The HTTP method for the request - (default: "GET")`
 - `-d, --data <value> - Inline JSON body for the request (like curl -d)`
 - `-F, --field <value>... - Add a typed parameter (key=value, key[sub]=value, key[]=value)`
@@ -66,7 +65,7 @@ sentry api organizations/ --verbose
 # Preview the request without sending
 sentry api organizations/ --dry-run
 
-sentry api "projects/my-org/my-project/events/EVENT_ID/attachments/ATTACHMENT_ID/?download=1" > screenshot.png
+sentry api "https://sentry.io/api/0/projects/my-org/my-project/events/EVENT_ID/attachments/ATTACHMENT_ID/?download=1" > screenshot.png
 ```
 
 All commands also support `--json`, `--fields`, `--help`, `--log-level`, and `--verbose` flags.

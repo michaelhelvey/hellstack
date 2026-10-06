@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["hellstack.sync.ts", "src", "tests", "skills/**/*.ts"]
+  "include": [
+    "hellstack.sync.ts",
+    "src",
+    "tests",
+    "skills/tldraw/**/*.ts",
+    "skills/whitespace/**/*.ts"
+  ]
 }

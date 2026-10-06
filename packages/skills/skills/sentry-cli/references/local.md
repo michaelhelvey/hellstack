@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-local
-version: 0.45.0
+version: 0.47.0
 description: Sentry for local development
 requires:
   bins: ["sentry"]
@@ -16,7 +16,6 @@ Sentry for local development
 Start the local dev server and tail events
 
 **Flags:**
-
 - `-p, --port <value> - Port to listen on (default 8969) - (default: "8969")`
 - `-H, --host <value> - Hostname to bind to (default localhost) - (default: "localhost")`
 - `-q, --quiet - Suppress per-envelope tail output`
@@ -30,7 +29,6 @@ Start the local dev server and tail events
 Run a command with the local dev server enabled
 
 **Flags:**
-
 - `-p, --port <value> - Port for the local server (default 8969) - (default: "8969")`
 - `--host <value> - Hostname for the local server (default localhost) - (default: "localhost")`
 - `-f, --filter <value>... - Only show items of this type (repeatable: error, transaction, log, ai)`
@@ -58,6 +56,12 @@ sentry local -f error -f log
 
 # Run quietly (suppress per-envelope tail output)
 sentry local --quiet
+
+# Start the server and open the UI
+sentry local --open
+
+# Run your app with the UI
+sentry local run --open -- npm run dev
 
 sentry local -f error -f log    # only errors and logs
 

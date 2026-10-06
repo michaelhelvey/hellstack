@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-trace
-version: 0.45.0
+version: 0.47.0
 description: View distributed traces
 requires:
   bins: ["sentry"]
@@ -16,24 +16,23 @@ View distributed traces
 List recent traces in a project
 
 **Flags:**
-
 - `-n, --limit <value> - Number of traces (1-1000) - (default: "25")`
 - `-q, --query <value> - Search query (Sentry search syntax)`
 - `-s, --sort <value> - Sort by: date, duration - (default: "date")`
-- `-t, --period <value> - Time range: "7d", "2026-08-01..2026-09-01", ">=2026-08-01" - (default: "7d")`
+- `-t, --period <value> - Time range: "7d", "2024-01-01..2024-02-01", ">=2024-01-01" - (default: "7d")`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 - `-c, --cursor <value> - Navigate pages: "next", "prev", "first" (or raw cursor string)`
 
 **JSON Fields** (use `--json --fields` to select specific fields):
 
-| Field                  | Type   | Description          |
-| ---------------------- | ------ | -------------------- |
-| `trace`                | string | Trace ID             |
-| `id`                   | string | Event ID             |
-| `transaction`          | string | Transaction name     |
-| `timestamp`            | string | Timestamp (ISO 8601) |
-| `transaction.duration` | number | Duration (ms)        |
-| `project`              | string | Project slug         |
+| Field | Type | Description |
+|-------|------|-------------|
+| `trace` | string | Trace ID |
+| `id` | string | Span ID of the root span |
+| `transaction` | string | Transaction name |
+| `timestamp` | string | Timestamp (ISO 8601) |
+| `span.duration` | number | Duration (ms) |
+| `project` | string | Project slug |
 
 **Examples:**
 
@@ -56,7 +55,6 @@ sentry trace list my-org/backend -c next
 View details of a specific trace
 
 **Flags:**
-
 - `-w, --web - Open in browser`
 - `--full - Fetch full span attributes (auto-enabled with --json)`
 - `--spans <value> - Span tree depth limit (number, "all" for unlimited, "no" to disable) - (default: "3")`
@@ -92,9 +90,8 @@ sentry trace logs abc123def456abc123def456abc12345 -q "project:[cli-server,api]"
 View logs associated with a trace
 
 **Flags:**
-
 - `-w, --web - Open trace in browser`
-- `-t, --period <value> - Time range: "7d", "2026-08-01..2026-09-01", ">=2026-08-01" - (default: "14d")`
+- `-t, --period <value> - Time range: "7d", "2024-01-01..2024-02-01", ">=2024-01-01" - (default: "14d")`
 - `-n, --limit <value> - Number of log entries (<=1000) - (default: "100")`
 - `-q, --query <value> - Filter query (e.g., "severity:error", "project:backend", "project:[a,b]")`
 - `-s, --sort <value> - Sort order: "newest" (default) or "oldest" - (default: "newest")`

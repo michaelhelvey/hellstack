@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-issue
-version: 0.45.0
+version: 0.47.0
 description: Manage Sentry issues
 requires:
   bins: ["sentry"]
@@ -16,38 +16,37 @@ Manage Sentry issues
 List issues in a project
 
 **Flags:**
-
 - `-q, --query <value> - Search query (Sentry syntax, implicit AND, no OR operator)`
 - `-n, --limit <value> - Maximum number of issues to list - (default: "25")`
 - `-s, --sort <value> - Sort by: recommended, date, new, freq, user (default: recommended on sentry.io, else date)`
-- `-t, --period <value> - Time range: "7d", "2026-08-01..2026-09-01", ">=2026-08-01" - (default: "90d")`
+- `-t, --period <value> - Time range: "7d", "2024-01-01..2024-02-01", ">=2024-01-01" - (default: "90d")`
 - `-c, --cursor <value> - Pagination cursor (use "next" for next page, "prev" for previous)`
 - `--compact - Single-line rows for compact output (auto-detects if omitted)`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 
 **JSON Fields** (use `--json --fields` to select specific fields):
 
-| Field                 | Type           | Description                             |
-| --------------------- | -------------- | --------------------------------------- |
-| `id`                  | string         | Numeric issue ID                        |
-| `shortId`             | string         | Human-readable short ID (e.g. PROJ-ABC) |
-| `title`               | string         | Issue title                             |
-| `culprit`             | string \| null | Culprit string                          |
-| `count`               | string         | Total event count                       |
-| `userCount`           | number         | Number of affected users                |
-| `firstSeen`           | string \| null | First occurrence (ISO 8601)             |
-| `lastSeen`            | string \| null | Most recent occurrence (ISO 8601)       |
-| `level`               | string         | Severity level                          |
-| `status`              | string         | Issue status                            |
-| `permalink`           | string         | URL to the issue in Sentry              |
-| `project`             | object         | Project info                            |
-| `metadata`            | object         | Issue metadata                          |
-| `assignedTo`          | object \| null | Assigned user or team                   |
-| `priority`            | string         | Triage priority                         |
-| `platform`            | string         | Platform                                |
-| `substatus`           | string \| null | Issue substatus                         |
-| `isUnhandled`         | boolean        | Whether the issue is unhandled          |
-| `seerFixabilityScore` | number \| null | Seer AI fixability score (0-1)          |
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Numeric issue ID |
+| `shortId` | string | Human-readable short ID (e.g. PROJ-ABC) |
+| `title` | string | Issue title |
+| `culprit` | string \| null | Culprit string |
+| `count` | string | Total event count |
+| `userCount` | number | Number of affected users |
+| `firstSeen` | string \| null | First occurrence (ISO 8601) |
+| `lastSeen` | string \| null | Most recent occurrence (ISO 8601) |
+| `level` | string | Severity level |
+| `status` | string | Issue status |
+| `permalink` | string | URL to the issue in Sentry |
+| `project` | object | Project info |
+| `metadata` | object | Issue metadata |
+| `assignedTo` | object \| null | Assigned user or team |
+| `priority` | string | Triage priority |
+| `platform` | string | Platform |
+| `substatus` | string \| null | Issue substatus |
+| `isUnhandled` | boolean | Whether the issue is unhandled |
+| `seerFixabilityScore` | number \| null | Seer AI fixability score (0-1) |
 
 **Examples:**
 
@@ -90,33 +89,32 @@ sentry issue list --query "browser:[Chrome,Firefox]"
 List events for a specific issue
 
 **Flags:**
-
 - `-n, --limit <value> - Number of events (1-1000) - (default: "25")`
 - `-q, --query <value> - Search query (Sentry search syntax)`
 - `--full - Include full event body (stacktraces)`
-- `-t, --period <value> - Time range: "7d", "2026-08-01..2026-09-01", ">=2026-08-01" - (default: "7d")`
+- `-t, --period <value> - Time range: "7d", "2024-01-01..2024-02-01", ">=2024-01-01" - (default: "7d")`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 - `-c, --cursor <value> - Navigate pages: "next", "prev", "first" (or raw cursor string)`
 
 **JSON Fields** (use `--json --fields` to select specific fields):
 
-| Field         | Type           | Description                              |
-| ------------- | -------------- | ---------------------------------------- |
-| `id`          | string         | Internal event ID                        |
-| `event.type`  | string         | Event type (error, default, transaction) |
-| `groupID`     | string \| null | Group (issue) ID                         |
-| `eventID`     | string         | UUID-format event ID                     |
-| `projectID`   | string         | Project ID                               |
-| `message`     | string         | Event message                            |
-| `title`       | string         | Event title                              |
-| `location`    | string \| null | Source location (file:line)              |
-| `culprit`     | string \| null | Culprit function/module                  |
-| `user`        | object \| null | User context                             |
-| `tags`        | array          | Event tags                               |
-| `platform`    | string \| null | Platform (python, javascript, etc.)      |
-| `dateCreated` | string         | ISO 8601 creation timestamp              |
-| `crashFile`   | string \| null | Crash file URL                           |
-| `metadata`    | object         | Event metadata                           |
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Internal event ID |
+| `event.type` | string | Event type (error, default, transaction) |
+| `groupID` | string \| null | Group (issue) ID |
+| `eventID` | string | UUID-format event ID |
+| `projectID` | string | Project ID |
+| `message` | string | Event message |
+| `title` | string | Event title |
+| `location` | string \| null | Source location (file:line) |
+| `culprit` | string \| null | Culprit function/module |
+| `user` | object \| null | User context |
+| `tags` | array | Event tags |
+| `platform` | string \| null | Platform (python, javascript, etc.) |
+| `dateCreated` | string | ISO 8601 creation timestamp |
+| `crashFile` | string \| null | Crash file URL |
+| `metadata` | object | Event metadata |
 
 **Examples:**
 
@@ -137,12 +135,11 @@ sentry issue events FRONT-ABC --limit 50 --period 24h
 sentry issue events FRONT-ABC -c next
 ```
 
-### `sentry issue explain <issue>`
+### `sentry issue explain <issue...>`
 
-Analyze an issue's root cause using Seer AI
+Analyze one or more issues using Seer AI
 
 **Flags:**
-
 - `--force - Force new analysis even if one exists`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 
@@ -164,14 +161,11 @@ sentry issue explain 123456789
 # By short ID with org prefix
 sentry issue explain my-org/MYPROJECT-ABC
 
+# Analyze multiple issues in one invocation
+sentry issue explain FRONT-ABC BACK-2
+
 # Force a fresh analysis
 sentry issue explain 123456789 --force
-
-# Generate a fix plan (automatically runs explain if needed)
-sentry issue plan 123456789
-
-# Force a fresh plan even if one already exists
-sentry issue plan 123456789 --force
 ```
 
 ### `sentry issue plan <issue>`
@@ -179,55 +173,70 @@ sentry issue plan 123456789 --force
 Generate a solution plan using Seer AI
 
 **Flags:**
-
 - `--force - Force new plan even if one exists`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 
-### `sentry issue view <issue>`
+**Examples:**
 
-View details of a specific issue
+```bash
+# Generate a fix plan (automatically runs explain if needed)
+sentry issue plan 123456789
+
+# Force a fresh plan even if one already exists
+sentry issue plan 123456789 --force
+```
+
+### `sentry issue view <issue...>`
+
+View details of one or more issues
 
 **Flags:**
-
 - `-w, --web - Open in browser`
+- `--force - Allow --web to open more than 5 issues`
 - `--spans <value> - Span tree depth limit (number, "all" for unlimited, "no" to disable) - (default: "3")`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 
 **JSON Fields** (use `--json --fields` to select specific fields):
 
-| Field                 | Type            | Description                                                                                                                                                                               |
-| --------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                  | string          | Numeric issue ID                                                                                                                                                                          |
-| `shortId`             | string          | Human-readable short ID (e.g. PROJ-ABC)                                                                                                                                                   |
-| `title`               | string          | Issue title                                                                                                                                                                               |
-| `culprit`             | string \| null  | Culprit string                                                                                                                                                                            |
-| `count`               | string          | Total event count                                                                                                                                                                         |
-| `userCount`           | number          | Number of affected users                                                                                                                                                                  |
-| `firstSeen`           | string \| null  | First occurrence (ISO 8601)                                                                                                                                                               |
-| `lastSeen`            | string \| null  | Most recent occurrence (ISO 8601)                                                                                                                                                         |
-| `level`               | string          | Severity level                                                                                                                                                                            |
-| `status`              | string          | Issue status                                                                                                                                                                              |
-| `permalink`           | string          | URL to the issue in Sentry                                                                                                                                                                |
-| `project`             | object          | Project info                                                                                                                                                                              |
-| `metadata`            | object          | Issue metadata                                                                                                                                                                            |
-| `assignedTo`          | object \| null  | Assigned user or team                                                                                                                                                                     |
-| `priority`            | string          | Triage priority                                                                                                                                                                           |
-| `platform`            | string          | Platform                                                                                                                                                                                  |
-| `substatus`           | string \| null  | Issue substatus                                                                                                                                                                           |
-| `isUnhandled`         | boolean         | Whether the issue is unhandled                                                                                                                                                            |
-| `seerFixabilityScore` | number \| null  | Seer AI fixability score (0-1)                                                                                                                                                            |
-| `event`               | unknown \| null | Latest event for the issue (full detail). Select named fields with `--fields event.id,event.title` to avoid pulling the whole payload; the `request` entry may include live session data. |
-| `org`                 | string \| null  | Organization slug                                                                                                                                                                         |
-| `replayIds`           | array           | Related Session Replay IDs                                                                                                                                                                |
-| `trace`               | object \| null  | Trace context from the latest event's span tree                                                                                                                                           |
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Numeric issue ID |
+| `shortId` | string | Human-readable short ID (e.g. PROJ-ABC) |
+| `title` | string | Issue title |
+| `culprit` | string \| null | Culprit string |
+| `count` | string | Total event count |
+| `userCount` | number | Number of affected users |
+| `firstSeen` | string \| null | First occurrence (ISO 8601) |
+| `lastSeen` | string \| null | Most recent occurrence (ISO 8601) |
+| `level` | string | Severity level |
+| `status` | string | Issue status |
+| `permalink` | string | URL to the issue in Sentry |
+| `project` | object | Project info |
+| `metadata` | object | Issue metadata |
+| `assignedTo` | object \| null | Assigned user or team |
+| `priority` | string | Triage priority |
+| `platform` | string | Platform |
+| `substatus` | string \| null | Issue substatus |
+| `isUnhandled` | boolean | Whether the issue is unhandled |
+| `seerFixabilityScore` | number \| null | Seer AI fixability score (0-1) |
+| `event` | unknown \| null | Latest event for the issue (full detail). Select named fields with `--fields event.id,event.title` to avoid pulling the whole payload; the `request` entry may include live session data. |
+| `org` | string \| null | Organization slug |
+| `replayIds` | array | Related Session Replay IDs |
+| `trace` | object \| null | Trace context from the latest event's span tree |
 
 **Examples:**
 
 ```bash
 sentry issue view FRONT-ABC
 
-# Open in browser
-sentry issue view FRONT-ABC -w
+# Multiple issues in one invocation (space-separated, not commas)
+sentry issue view FRONT-ABC BACK-2
+
+# Open one or more issues in the browser (up to 5 tabs by default)
+sentry issue view FRONT-ABC BACK-2 -w
+
+# Explicitly allow more than 5 tabs
+sentry issue view FRONT-ABC BACK-2 API-3 WEB-4 IOS-5 OPS-6 -w --force
 
 # GitHub-style identifiers work too (the "#" replaces the final slash)
 sentry issue view my-org/my-project#FRONT-ABC
@@ -235,6 +244,9 @@ sentry issue view my-project#FRONT-ABC
 
 # Full JSON (issue fields + latest event + trace/replay context)
 sentry issue view FRONT-ABC --json
+
+# Multiple issues: JSON is an array of the same objects
+sentry issue view FRONT-ABC BACK-2 --json
 
 # Select specific top-level fields to keep output small
 sentry issue view FRONT-ABC --json --fields shortId,title,culprit,count,userCount,permalink
@@ -262,7 +274,6 @@ sentry issue view FRONT-ABC --json | jq '.event.entries[] | select(.type == "exc
 Mark an issue as resolved
 
 **Flags:**
-
 - `-i, --in <value> - Resolve in a release, next release, or commit ('<version>' | '@next' | '@commit' | '@commit:<repo>@<sha>')`
 
 ### `sentry issue unresolve <issue>`
@@ -303,7 +314,6 @@ sentry issue reopen CLI-G5   # alias
 Archive (ignore) an issue
 
 **Flags:**
-
 - `-u, --until <value> - Condition for unarchival: forever, auto, 30m, 10x, 10u, 10x/5m, etc.`
 
 **Examples:**
@@ -342,7 +352,6 @@ sentry issue ignore CLI-G5 --until auto
 Merge 2+ issues into a single canonical group
 
 **Flags:**
-
 - `-i, --into <value> - Prefer this issue as the canonical parent (included in the merge if not already listed)`
 
 **Examples:**

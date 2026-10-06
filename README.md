@@ -4,7 +4,7 @@
   <p>Stuff for working with clankers: plugins, skills, and more.</p>
   <p>
     Pi stuff is shamelessly modeled and borrowed from <a
-    href="https://github.com/mitsuhiko/agent-stuff">agent-stuff</a>, various skills from <a
+    href="https://github.com/mitsuhiko/agent-stuff">agent-stuff</a>, most skills from <a
     href="https://github.com/backnotprop/pstack">pstack</a>.
   </p>
 </div>

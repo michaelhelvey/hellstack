@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-project
-version: 0.45.0
+version: 0.47.0
 description: Work with Sentry projects
 requires:
   bins: ["sentry"]
@@ -16,7 +16,6 @@ Work with Sentry projects
 Create one or more projects
 
 **Flags:**
-
 - `-t, --team <value> - Team to create the project under`
 - `-n, --dry-run - Show what would happen without making changes`
 
@@ -42,7 +41,6 @@ sentry project create my-new-app:node --dry-run
 Delete a project
 
 **Flags:**
-
 - `-y, --yes - Skip confirmation prompt`
 - `-f, --force - Force the operation without confirmation`
 - `-n, --dry-run - Show what would happen without making changes`
@@ -62,7 +60,6 @@ sentry project delete my-org/old-project --yes
 List projects
 
 **Flags:**
-
 - `-n, --limit <value> - Maximum number of projects to list - (default: "25")`
 - `-p, --platform <value> - Filter by platform (e.g., javascript, python)`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
@@ -73,7 +70,6 @@ List projects
 View details of a project
 
 **Flags:**
-
 - `-w, --web - Open in browser`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 

@@ -19,7 +19,7 @@
     "check": "rs check --type-check",
     "format": "rs fmt",
     "lint": "rs lint",
-    "test": "bun test --pass-with-no-tests",
+    "test": "bun test --pass-with-no-tests --path-ignore-patterns='packages/skills/skills/**'",
     "test:pi": "bun test packages/pi/tests && rs check --type-check",
     "prepare": "rs hooks",
     "complexity": "uvx lizard -w -i0 -Tnloc=20 -Tcyclomatic_complexity=4 -Tparameter_count=4 -x \"./packages/skills/*\" .",

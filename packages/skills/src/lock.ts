@@ -1,3 +1,5 @@
+import { basename, dirname } from "node:path";
+
 import { z } from "zod";
 
 const lockEntrySchema = z.object({
@@ -5,6 +7,7 @@ const lockEntrySchema = z.object({
   sourceType: z.string(),
   sourceUrl: z.string().optional(),
   ref: z.string().optional(),
+  skillPath: z.string().optional(),
 });
 
 type LockEntry = z.infer<typeof lockEntrySchema>;
@@ -42,6 +45,17 @@ export function groupBySource(lock: SkillsLock, names: readonly string[] = []): 
     groups.set(source, group);
   }
   return [...groups.values()];
+}
+
+/**
+ * Returns the directory name in `skills/` of each skill in the lock. The skills CLI installs a
+ * skill into the directory that contains its `SKILL.md` file. A skill without a `skillPath` uses
+ * its name as the directory name.
+ */
+export function skillDirs(lock: SkillsLock): string[] {
+  return Object.entries(lock.skills).map(([name, entry]) =>
+    entry.skillPath ? basename(dirname(entry.skillPath)) : name,
+  );
 }
 
 function installSource(entry: LockEntry): string {

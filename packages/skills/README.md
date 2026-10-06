@@ -16,8 +16,9 @@ skills/
 
 Make a new directory in `skills/`. The skills.sh commands do not change manual skills.
 
-Write skill scripts in TypeScript for `bun`. `bun run check` type-checks them. Put their tests in
-`tests/`, not in the skill directory, because the skill directory is copied to each harness.
+Write skill scripts in TypeScript for `bun`. Add the skill directory to `include` in
+`tsconfig.json`, so that `bun run check` type-checks the scripts. Put their tests in `tests/`, not
+in the skill directory, because the skill directory is copied to each harness.
 
 A synced skill has no `node_modules`. A script that needs packages at run time must install them
 itself (see `skills/tldraw/scripts/lib/deps.ts`). Add the same packages as `devDependencies` of this
@@ -37,5 +38,8 @@ bun run skills:remove <skill...>             # remove skills.sh skills
 For example: `bun run skills:add herdrdev/herdr herdr`.
 
 `skills-lock.json` records the source of each skills.sh skill. Commit it with the skill files.
+
+The lint, format, and test commands do not examine skills.sh skills, because they are third-party
+code. `rstack.config.ts` reads the list of these skills from `skills-lock.json`.
 
 Do not run `bunx skills add` or `bunx skills update` directly. They write to other directories.

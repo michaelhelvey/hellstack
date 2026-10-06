@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-build
-version: 0.45.0
+version: 0.47.0
 description: Manage mobile build artifacts
 requires:
   bins: ["sentry"]
@@ -16,7 +16,6 @@ Manage mobile build artifacts
 Upload builds to a project
 
 **Flags:**
-
 - `--build-configuration <value> - Build configuration for the upload (defaults to the current version)`
 - `--release-notes <value> - Release notes for the build`
 - `--install-group <value>... - Install group(s) for this build (repeatable); builds sharing a group show updates for each other`
@@ -36,7 +35,6 @@ Upload builds to a project
 Download a build artifact
 
 **Flags:**
-
 - `-o, --output <value> - Output path (default: preprod_artifact_<build-id>.<ext> in the current directory)`
 
 **Examples:**

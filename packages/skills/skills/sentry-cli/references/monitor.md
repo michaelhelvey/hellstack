@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-monitor
-version: 0.45.0
+version: 0.47.0
 description: Work with Sentry cron monitors
 requires:
   bins: ["sentry"]
@@ -16,7 +16,6 @@ Work with Sentry cron monitors
 Wrap a command with cron monitor check-ins
 
 **Flags:**
-
 - `--dsn <value> - DSN to send check-ins to (overrides SENTRY_DSN env var)`
 - `-e, --environment <value> - Environment of the monitor - (default: "production")`
 - `-s, --schedule <value> - Upsert the monitor with this crontab schedule (e.g. '0 * * * *')`
@@ -31,23 +30,22 @@ Wrap a command with cron monitor check-ins
 List cron monitors
 
 **Flags:**
-
 - `-n, --limit <value> - Maximum number of monitors to list - (default: "25")`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 - `-c, --cursor <value> - Navigate pages: "next", "prev", "first" (or raw cursor string)`
 
 **JSON Fields** (use `--json --fields` to select specific fields):
 
-| Field         | Type    | Description                            |
-| ------------- | ------- | -------------------------------------- |
-| `id`          | string  | Monitor ID                             |
-| `slug`        | string  | Monitor slug                           |
-| `name`        | string  | Monitor name                           |
-| `status`      | string  | Monitor status (e.g. active, disabled) |
-| `isMuted`     | boolean | Whether the monitor is muted           |
-| `config`      | object  | Schedule configuration                 |
-| `dateCreated` | string  | Creation date (ISO 8601)               |
-| `project`     | object  | Owning project                         |
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Monitor ID |
+| `slug` | string | Monitor slug |
+| `name` | string | Monitor name |
+| `status` | string | Monitor status (e.g. active, disabled) |
+| `isMuted` | boolean | Whether the monitor is muted |
+| `config` | object | Schedule configuration |
+| `dateCreated` | string | Creation date (ISO 8601) |
+| `project` | object | Owning project |
 
 **Examples:**
 

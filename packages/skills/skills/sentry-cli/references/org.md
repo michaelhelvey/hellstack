@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-org
-version: 0.45.0
+version: 0.47.0
 description: Work with Sentry organizations
 requires:
   bins: ["sentry"]
@@ -16,7 +16,6 @@ Work with Sentry organizations
 List organizations
 
 **Flags:**
-
 - `-n, --limit <value> - Maximum number of organizations to list - (default: "25")`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 
@@ -25,7 +24,6 @@ List organizations
 View details of an organization
 
 **Flags:**
-
 - `-w, --web - Open in browser`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 

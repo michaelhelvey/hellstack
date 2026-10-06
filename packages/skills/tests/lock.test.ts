@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { groupBySource, parseLock, type SkillsLock } from "../src/lock.ts";
+import { groupBySource, parseLock, skillDirs, type SkillsLock } from "../src/lock.ts";
 
 const lock: SkillsLock = {
   skills: {
@@ -48,10 +48,30 @@ test("parseLock reads a lock file that the skills CLI wrote", () => {
     },
   });
   expect(parseLock(text)).toEqual({
-    skills: { herdr: { source: "herdrdev/herdr", sourceType: "github" } },
+    skills: {
+      herdr: {
+        source: "herdrdev/herdr",
+        sourceType: "github",
+        skillPath: "skills/herdr/SKILL.md",
+      },
+    },
   });
 });
 
 test("parseLock rejects an entry without a source", () => {
   expect(() => parseLock('{"skills":{"herdr":{"sourceType":"github"}}}')).toThrow();
+});
+
+test("skillDirs uses the directory of the SKILL.md file, not the display name", () => {
+  const text = JSON.stringify({
+    skills: {
+      "Poteto Mode": {
+        source: "acme/skills",
+        sourceType: "github",
+        skillPath: "skills/poteto-mode/SKILL.md",
+      },
+      "sentry-cli": { source: "cli.sentry.dev", sourceType: "well-known" },
+    },
+  });
+  expect(skillDirs(parseLock(text))).toEqual(["poteto-mode", "sentry-cli"]);
 });

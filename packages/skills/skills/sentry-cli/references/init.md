@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-init
-version: 0.45.0
+version: 0.47.0
 description: Initialize Sentry in your project (experimental)
 requires:
   bins: ["sentry"]
@@ -16,7 +16,6 @@ Initialize Sentry in your project (experimental)
 Initialize Sentry in your project (experimental)
 
 **Flags:**
-
 - `-y, --yes - Accept non-interactive defaults (requires --features outside a TTY)`
 - `-n, --dry-run - Show what would happen without making changes`
 - `--features <value>... - Features to enable: errors,tracing,logs,replay,profiling,crons,agent-tracing,mcp-observability`

@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-sourcemap
-version: 0.45.0
+version: 0.47.0
 description: Manage sourcemaps
 requires:
   bins: ["sentry"]
@@ -16,7 +16,6 @@ Manage sourcemaps
 Inject debug IDs into JavaScript files and sourcemaps
 
 **Flags:**
-
 - `--ext <value> - Comma-separated file extensions to process (default: .js,.cjs,.mjs)`
 - `--ignore <value> - Comma-separated glob patterns to exclude (gitignore-style)`
 - `--ignore-file <value> - Path to a file with gitignore-style patterns to exclude`
@@ -41,7 +40,6 @@ sentry sourcemap inject ./build --ext .js,.mjs
 Upload sourcemaps to Sentry
 
 **Flags:**
-
 - `--release <value> - Release version to associate with the upload`
 - `--dist <value> - Distribution identifier to disambiguate builds within a release`
 - `--url-prefix <value> - URL prefix for uploaded files (default: ~/) - (default: "~/")`
@@ -73,7 +71,6 @@ sentry sourcemap upload ./dist --allow-empty
 Resolve and report sourcemap linkage for JavaScript files
 
 **Flags:**
-
 - `--ext <value> - Comma-separated file extensions to process (default: .js,.cjs,.mjs)`
 - `--ignore <value> - Comma-separated glob patterns to exclude (gitignore-style)`
 - `--ignore-file <value> - Path to a file with gitignore-style patterns to exclude`

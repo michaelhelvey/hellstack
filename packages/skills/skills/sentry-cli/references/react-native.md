@@ -1,6 +1,6 @@
 ---
 name: sentry-cli-react-native
-version: 0.45.0
+version: 0.47.0
 description: Upload React Native sourcemaps from build steps
 requires:
   bins: ["sentry"]
@@ -16,7 +16,6 @@ Upload React Native sourcemaps from build steps
 Upload a React Native bundle + sourcemap (Gradle build step)
 
 **Flags:**
-
 - `--sourcemap <value> - Path to the sourcemap to upload`
 - `--bundle <value> - Path to the bundle to upload`
 - `--release <value> - Release version to publish to`
@@ -29,7 +28,6 @@ Upload a React Native bundle + sourcemap (Gradle build step)
 Upload React Native sourcemaps (Xcode build step)
 
 **Flags:**
-
 - `-f, --force - Run even in a debug configuration`
 - `--allow-fetch - Fetch sourcemaps from the packager on simulator builds`
 - `--fetch-from <value> - Packager URL to fetch from (default: http://127.0.0.1:8081/)`
@@ -56,7 +54,7 @@ sentry react-native gradle \
   --dist 1000
 
 # Xcode build phase (usually added automatically to your build script)
-../node_modules/.bin/sentry-cli react-native xcode
+sentry react-native xcode
 ```
 
 All commands also support `--json`, `--fields`, `--help`, `--log-level`, and `--verbose` flags.
