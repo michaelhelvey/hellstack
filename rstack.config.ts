@@ -30,8 +30,7 @@ define.fmt({
   singleQuote: false,
   proseWrap: "always",
   printWidth: 100,
-  // pstack reads this file one line at a time, so prose wrap must not join its lines.
-  ignorePatterns: [...vendoredSkills, "packages/global/pstack-models.md"],
+  ignorePatterns: vendoredSkills,
 });
 
 define.staged({

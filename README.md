@@ -4,8 +4,8 @@
   <p>Stuff for working with clankers: plugins, skills, and more.</p>
   <p>
     Pi stuff is shamelessly modeled and borrowed from <a
-    href="https://github.com/mitsuhiko/agent-stuff">agent-stuff</a>, most skills from <a
-    href="https://github.com/backnotprop/pstack">pstack</a>.
+    href="https://github.com/mitsuhiko/agent-stuff">agent-stuff</a>; skills come from several
+    open-source projects.
   </p>
 </div>
 
@@ -66,6 +66,5 @@ Run these from the repository root:
 ## what's with the name?
 
 well a bunch of ai people use `<letter>-<stack>` to talk about their shit, like
-[pstack](https://github.com/cursor/plugins/tree/main/pstack) and
 [gstack](https://github.com/garrytan/gstack). well my name is "helvey" and I think that using AI
 agents is a form of hell, so thus, `hellstack`.

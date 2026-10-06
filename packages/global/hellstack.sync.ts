@@ -15,10 +15,7 @@ export function agentsText(text: string, layers: Layers): string {
   return text.replaceAll(personalEmail, t4Email);
 }
 
-/**
- * Copies `AGENTS.md` to the global instructions file of each harness. Copies `pstack-models.md` to
- * `~/.agents`, where the pstack skills read their model choices.
- */
+/** Copies `AGENTS.md` to the global instructions file of each harness. */
 export default defineSync(async ({ packageDir, roots, layers }) => {
   const source = join(packageDir, "AGENTS.md");
   const targets = [
@@ -28,12 +25,6 @@ export default defineSync(async ({ packageDir, roots, layers }) => {
   ];
   const entries = targets.map((target) =>
     fileEntry(source, target, (text) => agentsText(text, layers)),
-  );
-  entries.push(
-    fileEntry(
-      join(packageDir, "pstack-models.md"),
-      join(roots.home, ".agents", "pstack-models.md"),
-    ),
   );
   return { entries: await Promise.all(entries) };
 });
