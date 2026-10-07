@@ -1,0 +1,5 @@
+{
+  "name": "spinner",
+  "version": "0.1.0",
+  "description": "Replaces the spinner word and the end-of-turn word with random unhinged ones."
+}
