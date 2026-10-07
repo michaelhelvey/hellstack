@@ -19,6 +19,13 @@
       "skillPath": "skills/herdr/SKILL.md",
       "computedHash": "66715d76e5947497431ec0db32f2693b9c916ad799c3f32b99e6174b4b9c607f"
     },
+    "hunk-review": {
+      "source": "modem-dev/hunk",
+      "ref": "main",
+      "sourceType": "github",
+      "skillPath": "packages/hunk/skills/hunk-review/SKILL.md",
+      "computedHash": "45ab66c42e9586bc6b43a66a04a812c1520a1328a279c9f88660ca525c52f47a"
+    },
     "maintain-verification-skill": {
       "source": "backnotprop/pstack",
       "sourceType": "github",

@@ -27,5 +27,6 @@
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "theme": "auto",
-  "editorMode": "vim"
+  "editorMode": "vim",
+  "outputStyle": "Chinchilla Mode"
 }

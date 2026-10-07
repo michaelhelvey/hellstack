@@ -16,6 +16,7 @@ Find Sentry DSNs
 List DSNs
 
 **Flags:**
+
 - `-n, --limit <value> - Maximum number of DSNs to list - (default: "25")`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 - `-c, --cursor <value> - Navigate pages: "next", "prev", "first" (or raw cursor string)`

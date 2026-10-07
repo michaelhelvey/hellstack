@@ -16,55 +16,56 @@ View, list, and send Sentry events
 View details of one or more events
 
 **Flags:**
+
 - `-w, --web - Open in browser`
 - `--spans <value> - Span tree depth limit (number, "all" for unlimited, "no" to disable) - (default: "3")`
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 
 **JSON Fields** (use `--json --fields` to select specific fields):
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string |  |
-| `groupID` | string \| null |  |
-| `eventID` | string | UUID-format event ID |
-| `projectID` | string |  |
-| `message` | string \| null |  |
-| `title` | string |  |
-| `location` | string \| null |  |
-| `user` | object \| null |  |
-| `tags` | array |  |
-| `platform` | string |  |
-| `dateReceived` | string \| null |  |
-| `contexts` | object \| null |  |
-| `size` | number \| null |  |
-| `entries` | array |  |
-| `dist` | string \| null |  |
-| `sdk` | object \| null |  |
-| `context` | object \| null |  |
-| `packages` | object |  |
-| `type` | string |  |
-| `metadata` | object |  |
-| `errors` | array |  |
-| `occurrence` | object \| null |  |
-| `_meta` | object |  |
-| `crashFile` | string \| null |  |
-| `culprit` | string \| null |  |
-| `dateCreated` | string |  |
-| `fingerprints` | array |  |
-| `groupingConfig` | object |  |
-| `startTimestamp` | number |  |
-| `endTimestamp` | number |  |
-| `measurements` | object \| null |  |
-| `breakdowns` | object \| null |  |
-| `release` | object \| null |  |
-| `userReport` | object \| null |  |
-| `sdkUpdates` | array |  |
-| `resolvedWith` | array |  |
-| `nextEventID` | string \| null |  |
-| `previousEventID` | string \| null |  |
-| `formatted` | object |  |
-| `trace` | object \| null | Trace context, or null when unavailable |
-| `attachments` | array | Event attachments; each includes metadata and an absolute authenticated download URL |
+| Field             | Type           | Description                                                                          |
+| ----------------- | -------------- | ------------------------------------------------------------------------------------ |
+| `id`              | string         |                                                                                      |
+| `groupID`         | string \| null |                                                                                      |
+| `eventID`         | string         | UUID-format event ID                                                                 |
+| `projectID`       | string         |                                                                                      |
+| `message`         | string \| null |                                                                                      |
+| `title`           | string         |                                                                                      |
+| `location`        | string \| null |                                                                                      |
+| `user`            | object \| null |                                                                                      |
+| `tags`            | array          |                                                                                      |
+| `platform`        | string         |                                                                                      |
+| `dateReceived`    | string \| null |                                                                                      |
+| `contexts`        | object \| null |                                                                                      |
+| `size`            | number \| null |                                                                                      |
+| `entries`         | array          |                                                                                      |
+| `dist`            | string \| null |                                                                                      |
+| `sdk`             | object \| null |                                                                                      |
+| `context`         | object \| null |                                                                                      |
+| `packages`        | object         |                                                                                      |
+| `type`            | string         |                                                                                      |
+| `metadata`        | object         |                                                                                      |
+| `errors`          | array          |                                                                                      |
+| `occurrence`      | object \| null |                                                                                      |
+| `_meta`           | object         |                                                                                      |
+| `crashFile`       | string \| null |                                                                                      |
+| `culprit`         | string \| null |                                                                                      |
+| `dateCreated`     | string         |                                                                                      |
+| `fingerprints`    | array          |                                                                                      |
+| `groupingConfig`  | object         |                                                                                      |
+| `startTimestamp`  | number         |                                                                                      |
+| `endTimestamp`    | number         |                                                                                      |
+| `measurements`    | object \| null |                                                                                      |
+| `breakdowns`      | object \| null |                                                                                      |
+| `release`         | object \| null |                                                                                      |
+| `userReport`      | object \| null |                                                                                      |
+| `sdkUpdates`      | array          |                                                                                      |
+| `resolvedWith`    | array          |                                                                                      |
+| `nextEventID`     | string \| null |                                                                                      |
+| `previousEventID` | string \| null |                                                                                      |
+| `formatted`       | object         |                                                                                      |
+| `trace`           | object \| null | Trace context, or null when unavailable                                              |
+| `attachments`     | array          | Event attachments; each includes metadata and an absolute authenticated download URL |
 
 **Examples:**
 
@@ -83,6 +84,7 @@ sentry api "https://sentry.io/api/0/projects/my-org/my-project/events/EVENT_ID/a
 List events for an issue
 
 **Flags:**
+
 - `-n, --limit <value> - Number of events (1-1000) - (default: "25")`
 - `-q, --query <value> - Search query (Sentry search syntax)`
 - `--full - Include full event body (stacktraces)`
@@ -92,23 +94,23 @@ List events for an issue
 
 **JSON Fields** (use `--json --fields` to select specific fields):
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Internal event ID |
-| `event.type` | string | Event type (error, default, transaction) |
-| `groupID` | string \| null | Group (issue) ID |
-| `eventID` | string | UUID-format event ID |
-| `projectID` | string | Project ID |
-| `message` | string | Event message |
-| `title` | string | Event title |
-| `location` | string \| null | Source location (file:line) |
-| `culprit` | string \| null | Culprit function/module |
-| `user` | object \| null | User context |
-| `tags` | array | Event tags |
-| `platform` | string \| null | Platform (python, javascript, etc.) |
-| `dateCreated` | string | ISO 8601 creation timestamp |
-| `crashFile` | string \| null | Crash file URL |
-| `metadata` | object | Event metadata |
+| Field         | Type           | Description                              |
+| ------------- | -------------- | ---------------------------------------- |
+| `id`          | string         | Internal event ID                        |
+| `event.type`  | string         | Event type (error, default, transaction) |
+| `groupID`     | string \| null | Group (issue) ID                         |
+| `eventID`     | string         | UUID-format event ID                     |
+| `projectID`   | string         | Project ID                               |
+| `message`     | string         | Event message                            |
+| `title`       | string         | Event title                              |
+| `location`    | string \| null | Source location (file:line)              |
+| `culprit`     | string \| null | Culprit function/module                  |
+| `user`        | object \| null | User context                             |
+| `tags`        | array          | Event tags                               |
+| `platform`    | string \| null | Platform (python, javascript, etc.)      |
+| `dateCreated` | string         | ISO 8601 creation timestamp              |
+| `crashFile`   | string \| null | Crash file URL                           |
+| `metadata`    | object         | Event metadata                           |
 
 **Examples:**
 
@@ -141,6 +143,7 @@ sentry event list PROJ-ABC --json
 Send a Sentry event
 
 **Flags:**
+
 - `-m, --message <value>... - Event message (repeat for multi-line)`
 - `-a, --message-arg <value>... - Arguments for message template (repeat for multiple)`
 - `-l, --level <value> - Event severity level - (default: "error")`

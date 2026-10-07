@@ -16,6 +16,7 @@ Add build ids to WebAssembly modules and split out debug data
 Add build ids to WebAssembly modules and split out debug data
 
 **Flags:**
+
 - `-o, --out <value> - Path to the output wasm file (default: modify input in place)`
 - `-d, --debug-out <value> - Path to the output debug wasm file (default: debug data stays in the input)`
 - `--strip - Strip the file of debug info`

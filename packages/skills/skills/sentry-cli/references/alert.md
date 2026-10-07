@@ -16,6 +16,7 @@ Manage Sentry alert rules
 List issue alert rules
 
 **Flags:**
+
 - `-w, --web - Open in browser`
 - `-n, --limit <value> - Maximum number of issue alert rules to list - (default: "25")`
 - `-q, --query <value> - Filter rules by name`
@@ -37,6 +38,7 @@ sentry alert issues list my-org/my-project --query "spike"
 View an issue alert rule
 
 **Flags:**
+
 - `-w, --web - Open issue alert rules page in browser`
 
 **Examples:**
@@ -54,6 +56,7 @@ sentry alert issues view my-org/my-project/"Error Spike"
 Create an issue alert rule
 
 **Flags:**
+
 - `--name <value> - Rule name`
 - `-c, --condition <value>... - Condition object JSON (repeatable, or pass one JSON array)`
 - `-a, --action <value>... - Action object JSON (repeatable, or pass one JSON array)`
@@ -79,6 +82,7 @@ sentry alert issues create my-org/my-project \
 Delete an issue alert rule
 
 **Flags:**
+
 - `-y, --yes - Skip confirmation prompt`
 - `-f, --force - Force the operation without confirmation`
 - `-n, --dry-run - Show what would happen without making changes`
@@ -95,6 +99,7 @@ sentry alert issues delete my-org/my-project/12345 --dry-run
 Edit an issue alert rule
 
 **Flags:**
+
 - `--name <value> - New rule name`
 - `--status <value> - Rule status: active or disabled`
 - `-c, --condition <value>... - Condition object JSON (repeatable, or pass one JSON array)`
@@ -117,6 +122,7 @@ sentry alert issues edit my-org/my-project/12345 --name "Prod Error Spike" --sta
 List metric alert rules
 
 **Flags:**
+
 - `-w, --web - Open in browser`
 - `-n, --limit <value> - Maximum number of metric alert rules to list - (default: "25")`
 - `-q, --query <value> - Filter rules by name`
@@ -135,6 +141,7 @@ sentry alert metrics list my-org/
 View a metric alert rule
 
 **Flags:**
+
 - `-w, --web - Open metric alert rules page in browser`
 
 **Examples:**
@@ -152,6 +159,7 @@ sentry alert metrics view my-org/"P95 latency alert"
 Create a metric alert rule
 
 **Flags:**
+
 - `--name <value> - Rule name`
 - `--query <value> - Metric query filter string`
 - `--aggregate <value> - Aggregate expression (for example count(), p95(span.duration))`
@@ -181,6 +189,7 @@ sentry alert metrics create my-org \
 Delete a metric alert rule
 
 **Flags:**
+
 - `-y, --yes - Skip confirmation prompt`
 - `-f, --force - Force the operation without confirmation`
 - `-n, --dry-run - Show what would happen without making changes`
@@ -197,6 +206,7 @@ sentry alert metrics delete my-org/67890 --yes
 Edit a metric alert rule
 
 **Flags:**
+
 - `--name <value> - New rule name`
 - `--status <value> - active or disabled`
 - `--query <value> - Metric query filter`
