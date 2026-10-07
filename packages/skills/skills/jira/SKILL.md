@@ -2,9 +2,10 @@
 name: jira
 description:
   Works with JIRA and Confluence on Atlassian Cloud. Searches, reads, creates, updates, and moves
-  issues, logs time, creates operations (ops) tasks, and reads Confluence pages. Use when the user
-  asks about JIRA tickets, tasks, epics, sprints, boards, time tracking, ops tasks, or Confluence
-  pages, specs, PRDs, and wiki links (<site>.atlassian.net/wiki/...).
+  issues, logs time, creates operations (ops) tasks, manages weekly KPIs, and reads Confluence
+  pages. Use when the user asks about JIRA tickets, tasks, epics, sprints, boards, time tracking,
+  ops tasks, weekly or individual KPIs, quarterly rocks, or Confluence pages, specs, PRDs, and wiki
+  links (<site>.atlassian.net/wiki/...).
 ---
 
 All paths below are relative to the directory of this skill.
@@ -47,6 +48,7 @@ The site URL is in the `server` line of the jira-cli config. Use it when you giv
 | `scripts/issue <KEY>`           | Read one issue with its description and Acceptance Criteria as text. |
 | `scripts/ops-epics`             | Find the current operations epics. See [Operations tasks](#ops).     |
 | `scripts/worklog.py`            | "What did I log time to today, yesterday, or on \<date\>?"           |
+| `scripts/kpi.ts`                | Create, list, and update weekly KPIs. See [Weekly KPIs](#kpi).       |
 | `scripts/render-confluence.py`  | Change a Confluence page to Markdown. See [Confluence](#confluence). |
 
 Always use `scripts/jira-cli`, not `jira`. The wrapper gives the token to jira-cli.
@@ -196,6 +198,51 @@ epics first:
 3. Create a Task in the project of that epic, with the epic as parent (see
    [Create an issue under an epic](#create-under-epic)).
 4. Give the user the new key and the link.
+
+<a id="kpi"></a>
+
+## Weekly KPIs
+
+Each person has individual (leading) KPIs for the quarter. A KPI is a Task under a quarterly rock
+(an Epic). It has one Sub-task for each week ("Week 1" to "Week 13"), and each week has a due date.
+A week has the status "No" until the person sets it to "Yes" (the KPI target for that week was
+achieved). The workflow cannot move a week from "Yes" back to "No".
+
+All KPIs are copies of a template issue. `scripts/kpi.ts` finds the template from
+`JIRA_KPI_TEMPLATE` (an issue key), or else searches for an open issue with
+`JIRA_KPI_TEMPLATE_SUMMARY` in its summary (default: "Template Individual KPI"). The project and the
+rocks come from the template.
+
+```bash
+scripts/kpi.ts info                    # the template, its project, and the due date of each week
+scripts/kpi.ts rocks                   # open quarterly rocks, with their initiatives
+scripts/kpi.ts list [--all]            # my KPIs and the result of each week
+scripts/kpi.ts create --rock <EPIC-KEY> --summary "<KPI text>" [--dry-run]
+scripts/kpi.ts update <KPI-KEY> --yes [--week <n|current|previous>] [--comment "<notes>"]
+```
+
+- `create` copies the template and its weeks, assigns all of them to the user, sets the rock as
+  parent, and moves the KPI to In Progress. It does not add a "clones" link.
+- `list` shows `weeks` as one character for each week: `Y` (Yes), `N` (past week, No), and `.` (not
+  due yet). `this_week` is the week that is due next.
+- `update` changes the current week by default: the first week with a due date on or after today. If
+  the user tells you about last week (for example, on a Monday), use `--week previous`.
+
+### Create a KPI
+
+1. Run `scripts/kpi.ts rocks`. Ask the user which rock the KPI supports, unless they told you. Show
+   the rock key, the initiative, and the summary.
+2. Get the KPI text from the user. Do not write it yourself.
+3. Run `create` with `--dry-run`, and show the plan to the user. Run it without `--dry-run` after
+   the user agrees.
+4. Give the user the new key and the link.
+
+### Update a KPI
+
+Ask the user for the result of each KPI (Yes or No) and for notes, unless they told you. Do not
+guess a result from other work. Setting "Yes" cannot be undone, so confirm the KPI and the week
+before you run `update --yes`. `--no` only adds the comment, because a week is "No" until it
+changes.
 
 ## Fields that you must not change
 

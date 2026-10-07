@@ -5,6 +5,7 @@
     "src",
     "tests",
     "skills/tldraw/**/*.ts",
-    "skills/whitespace/**/*.ts"
+    "skills/whitespace/**/*.ts",
+    "skills/jira/**/*.ts"
   ]
 }
