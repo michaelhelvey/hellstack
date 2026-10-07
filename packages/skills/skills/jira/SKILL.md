@@ -39,6 +39,69 @@ If the script fails:
 The site URL is in the `server` line of the jira-cli config. Use it when you give links to the user:
 `<server>/browse/<ISSUE-KEY>`.
 
+<a id="memory"></a>
+
+## Memory
+
+The memory file keeps facts that the user tells you, for example the boards and projects that they
+use. The file is `$JIRA_MEMORY_FILE`, or `~/.config/jira/memory.md` if that variable is not set.
+
+Read the memory file before your first JIRA call in a session. It is short. If it does not exist,
+continue without it.
+
+Use the memory to find the scope of a request. For example, "what do I have this sprint" means the
+active sprint on the boards in the memory file. If there are no boards in the memory file, search
+across all projects (see [Search](#search)) and ask the user if they want to save a board.
+
+### Save to memory
+
+When the user tells you to remember something (for example, "I am on a new project, here is its
+board"), write it to the memory file. Create the file and its directory if they do not exist.
+
+For a board URL such as `<server>/jira/software/c/projects/<KEY>/boards/<ID>/...`, get the board
+data before you save it:
+
+```bash
+scripts/api /rest/agile/1.0/board/<ID> | jq '{id, name, type, project: .location.projectKey}'
+```
+
+Use this format, and keep one line for each board:
+
+```markdown
+## Boards
+
+- Platform Scrum Board: id 905, scrum, project PT. My team board.
+
+## Notes
+
+- <other facts the user told you>
+```
+
+Rules:
+
+- Save only facts that stay correct for a long time: boards, projects, teams, and the user's role on
+  them. Do not save sprints, ops epics, or issue status. These change, so find them each time.
+- When the user leaves a project or a board, remove its line. Do not keep old entries.
+- Tell the user what you changed in the file.
+
+### Board recipes
+
+```bash
+# The active sprint of a scrum board
+scripts/api /rest/agile/1.0/board/<ID>/sprint -G --data-urlencode state=active \
+  | jq -r '.values[] | [.id, .name, .startDate, .endDate] | @tsv'
+
+# My issues in the active sprint of a board
+scripts/api /rest/agile/1.0/board/<ID>/issue -G \
+  --data-urlencode 'jql=sprint in openSprints() AND assignee = currentUser() AND status NOT IN (Accounted, Removed)' \
+  --data-urlencode 'fields=summary,status,issuetype,priority' --data-urlencode maxResults=100 \
+  | jq -r '.issues[] | [.key, .fields.issuetype.name, .fields.status.name, .fields.summary] | @tsv'
+```
+
+Remove `assignee = currentUser()` for all issues in the sprint. For the backlog, use
+`/rest/agile/1.0/board/<ID>/backlog`. A kanban board has no sprints. Use `/board/<ID>/issue` with
+`statusCategory != Done`.
+
 ## Tools
 
 | Tool                            | Use for                                                              |

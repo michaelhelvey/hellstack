@@ -15,6 +15,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@hellstack/sync": "workspace:*",
+        "grok-mermaid": "0.2.3",
         "zod": "catalog:",
       },
     },

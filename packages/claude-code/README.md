@@ -9,6 +9,14 @@ its files to that folder. `CLAUDE.md` is in `@hellstack/global`.
 | --------------- | -------------------------------------------------------------------------- |
 | `settings.json` | User settings: model, effort, permissions, plugins, spinner verbs, and UI. |
 
+## Mermaid
+
+`bun run sync` writes a mod to `~/.claude/mods/mermaid` and sets `CLAUDE_CODE_PLUGIN_DIRS` in
+`settings.json` to load it. The mod draws ` ```mermaid ` blocks in replies as Unicode diagrams, the
+same as pi (it uses the same library, `grok-mermaid`). When a diagram is wider than the terminal, or
+the library cannot draw it, the reply shows the source. The sync bundles the hooks module from
+`src/mermaid/register.ts`. Do not add the bundle to the repository.
+
 Do not add the herdr hook to `settings.json`. After it copies the files, `bun run sync` runs
 `herdr integration install claude`, which adds the hook and its script.
 
