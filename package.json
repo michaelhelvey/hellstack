@@ -21,6 +21,7 @@
     "lint": "rs lint",
     "test": "bun test --pass-with-no-tests --path-ignore-patterns='packages/skills/skills/**'",
     "test:pi": "bun test packages/pi/tests && rs check --type-check",
+    "pi:update": "bun packages/pi/scripts/update.ts && bun run test:pi",
     "prepare": "rs hooks",
     "complexity": "uvx lizard -w -i0 -Tnloc=20 -Tcyclomatic_complexity=4 -Tparameter_count=4 -x \"./packages/skills/*\" .",
     "validate": "bun run format && bun run --parallel check test complexity"

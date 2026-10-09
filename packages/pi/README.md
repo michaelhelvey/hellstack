@@ -46,11 +46,14 @@ The tests in `tests/e2e` start the installed `pi` with this package, a fake mode
 agent folder. They do not use your settings, your credentials, or a real model. Set `PI_BIN` to test
 a different pi binary.
 
-After `pi update`, run this at the repository root:
+Update pi with this command at the repository root, not with `pi update`:
 
 ```sh
-bun run test:pi
+bun run pi:update
 ```
 
-If a devDependency test fails, install the pi version that it shows, then run `bun run test:pi`
-again. The type check then finds API changes, and the other tests find changes in behavior.
+It runs `pi update`, sets the pi devDependencies to the new pi version, and runs the pi tests. The
+type check then finds API changes, and the other tests find changes in behavior. Arguments go to
+`pi update`.
+
+If you ran `pi update` directly, the devDependency tests fail. Run `bun run pi:update` to fix them.
