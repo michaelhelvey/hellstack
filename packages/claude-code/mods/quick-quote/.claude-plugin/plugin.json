@@ -1,0 +1,5 @@
+{
+  "name": "quick-quote",
+  "version": "0.1.0",
+  "description": "Type > at the start of a prompt line to quote a paragraph from the last reply."
+}

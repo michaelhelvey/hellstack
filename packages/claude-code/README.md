@@ -26,6 +26,15 @@ same as pi (it uses the same library, `grok-mermaid`). When a diagram is wider t
 the library cannot draw it, the reply shows the source. The sync bundles the hooks module from
 `src/mermaid/register.ts`. Do not add the bundle to the repository.
 
+## Quick quote
+
+`bun run sync` writes a mod to `~/.claude/mods/quick-quote`. At the start of a prompt line, type `>`
+to see the paragraphs of the last reply in the typeahead. Type `>retry` to show only the paragraphs
+that contain "retry". Use `+` between search words (`>retry+cache`), because a space ends the
+search. Select a row to write the paragraph as a Markdown blockquote. The cursor goes to an empty
+line below it. Each list item is one row. A code block or a table is one row. The typeahead does not
+show in a code fence or in shell mode. This is a port of `opencode-quick-quote`.
+
 Do not add the herdr hook to `settings.json`. After it copies the files, `bun run sync` runs
 `herdr integration install claude`, which adds the hook and its script.
 

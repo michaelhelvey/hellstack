@@ -9,6 +9,7 @@ import {
 
 import { gatewayIntegration } from "./src/gateway.ts";
 import { buildMermaidModule } from "./src/mermaid/build.ts";
+import { buildQuickQuoteModule } from "./src/quick-quote/build.ts";
 import { buildSpinnerModule } from "./src/spinner/build.ts";
 
 const herdr: Integration = {
@@ -24,6 +25,7 @@ interface Mod {
 
 const mods: Mod[] = [
   { name: "mermaid", build: buildMermaidModule },
+  { name: "quick-quote", build: buildQuickQuoteModule },
   { name: "spinner", build: buildSpinnerModule },
 ];
 
