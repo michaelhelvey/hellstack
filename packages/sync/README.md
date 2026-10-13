@@ -22,6 +22,10 @@ The file is not in the repository. When it does not exist, the sync stops. Write
 to it for a machine with no layers. When you remove a layer, the next sync removes the files that
 only that layer added.
 
+A layer can also have a private directory, `~/.config/hellstack/layers/<name>/`. Use it for files
+that you do not want in this repository, for example work skills. Manifests find it with
+`layerDir(roots.config, name)`.
+
 ## Manifests
 
 The sync loads `hellstack.sync.ts` from the root of each package in `packages/`, in name order. The
@@ -48,6 +52,7 @@ export default defineSync(async ({ packageDir, roots, layers }) => ({
 | `fileEntry`        | Copies one file. A transform can change its text.                           |
 | `configEntries`    | Copies each file in a directory. A transform can change a file at its path. |
 | `skillEntries`     | Copies each skill directory to each skill target.                           |
+| `layerDir`         | Returns the private directory of a layer.                                   |
 | `setJsonValue`     | Sets a value in JSON or JSONC text. It keeps the comments.                  |
 | `appendJsonValues` | Adds values to an array in JSON or JSONC text. It keeps the comments.       |
 

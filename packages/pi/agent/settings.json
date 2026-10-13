@@ -1,8 +1,8 @@
 {
-  "lastChangelogVersion": "1.1.0",
+  "lastChangelogVersion": "1.2.0",
   "theme": "system",
   "hideThinkingBlock": true,
-  "packages": [],
+  "packages": ["npm:pi-subagents"],
   "enabledModels": [
     "openai-codex/gpt-5.6-luna",
     "openai-codex/gpt-5.6-sol",

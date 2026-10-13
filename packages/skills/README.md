@@ -24,6 +24,12 @@ A synced skill has no `node_modules`. A script that needs packages at run time m
 itself (see `skills/tldraw/scripts/lib/deps.ts`). Add the same packages as `devDependencies` of this
 package for type checking.
 
+## Add a private layer skill
+
+For a skill that must not be in this repository, put it in
+`~/.config/hellstack/layers/<layer>/skills/<skill-name>/`. The sync copies it only when the layer is
+on. A layer skill cannot have the same name as a skill in `skills/`.
+
 ## Add a skill from skills.sh
 
 Run these commands from the repository root:

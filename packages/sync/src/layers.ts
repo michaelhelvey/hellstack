@@ -12,6 +12,14 @@ export function layersPath(configDir: string): string {
   return join(configDir, "layers.json");
 }
 
+/**
+ * Returns the private directory of a layer in the hellstack config directory, for example
+ * `~/.config/hellstack/layers/t4`. It holds layer files that are not in the repository.
+ */
+export function layerDir(configDir: string, layer: string): string {
+  return join(configDir, "layers", layer);
+}
+
 /** Parses a comma-separated list of layer names, for example `t4,herdr`. */
 export function parseLayerList(value: string): Layers {
   return new Set(

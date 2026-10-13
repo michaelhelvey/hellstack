@@ -8,7 +8,7 @@ import {
 } from "@hellstack/sync";
 
 /** The pi packages that the `t4` layer adds to `settings.json`. */
-export const t4Packages = ["npm:@transport4/aig-plugin-pi"];
+export const t4Packages = ["npm:@transport4/aig-plugin-pi", "npm:pi-claude-bridge"];
 
 /**
  * The models that the `t4` layer turns on in `settings.json`. They replace the `openai-codex` models
