@@ -26,8 +26,9 @@ Use `pi config` to turn off one extension or theme.
 load these from a package. `bun run sync` copies them to `~/.pi/agent`. `AGENTS.md` is in
 `@hellstack/global`.
 
-`agent/settings.json` uses the `openai-codex` models. The `t4` layer adds the AI gateway plugin and
-uses the `t4` models (see `hellstack.sync.ts`).
+The `t4` layer adds the AI gateway plugin (see `hellstack.sync.ts`). The sync does not set models.
+It keeps `defaultProvider`, `defaultModel`, `defaultThinkingLevel`, and `enabledModels` from the
+current `settings.json` on each machine.
 
 ## Configuration
 
