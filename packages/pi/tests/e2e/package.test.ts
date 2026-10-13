@@ -18,6 +18,17 @@ afterEach(async () => {
   await sandbox.dispose();
 });
 
+const EXPECTED_TOOLS = [
+  "create_goal",
+  "get_goal",
+  "todo",
+  "update_goal",
+  "web_fetch",
+  "bash",
+  "subagent_start",
+  "subagent_wait",
+];
+
 const CommandsSchema = z.object({ commands: z.array(z.object({ name: z.string() })) });
 
 test("pi loads the package with no errors or warnings, and gives its tools to the model", async () => {
@@ -30,12 +41,9 @@ test("pi loads the package with no errors or warnings, and gives its tools to th
   expect(commands).toContain("btw");
   expect(commands).toContain("goal");
   expect(commands).toContain("todos");
+  expect(commands).toContain("agents");
   const tools = sandbox.model.requests[0]?.tools.map((t) => t.function.name) ?? [];
-  expect(
-    ["create_goal", "get_goal", "todo", "update_goal", "web_fetch", "bash"].filter(
-      (name) => !tools.includes(name),
-    ),
-  ).toEqual([]);
+  expect(EXPECTED_TOOLS.filter((name) => !tools.includes(name))).toEqual([]);
   expect(tools.filter((name) => name === "bash")).toHaveLength(1);
   expect(await pi.stop()).toBe("");
 });

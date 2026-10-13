@@ -2,15 +2,29 @@
 
 Personal extensions and themes for [pi](https://pi.dev).
 
-| Extension       | What it does                                                                                                                               |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `btw`           | Opens a side conversation for focused questions, with optional summary injection into the main chat.                                       |
-| `goal`          | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                              |
-| `todo`          | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                              |
-| `uv`            | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                     |
-| `web-fetch`     | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                           |
-| `herdr-prompts` | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs. |
-| `whimsical`     | Shows a random working message on each turn.                                                                                               |
+| Extension       | What it does                                                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `btw`           | Opens a side conversation for focused questions, with optional summary injection into the main chat.                                                          |
+| `goal`          | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                                 |
+| `todo`          | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                                 |
+| `uv`            | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                        |
+| `web-fetch`     | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                              |
+| `herdr-prompts` | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                    |
+| `herdr-agents`  | Runs subagents as pi agents in herdr panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below. |
+| `whimsical`     | Shows a random working message on each turn.                                                                                                                  |
+
+## Subagents
+
+`herdr-agents` works only when pi runs in a herdr pane. Outside herdr, its tools and `/agents` show
+an error.
+
+- The subagents go in the current workspace, in tabs named `<project>-<group>-<n>`, for example
+  `hellstack-review-1`. The model sets the group when it starts a subagent. A tab holds at most 8
+  subagents.
+- Each subagent is `pi --model <model>` in its own pane. Subagents do not get the subagent tools.
+- The parent keeps its subagents in memory only. When you quit pi or change the session, pi stops
+  the subagents. After `/reload`, or when the parent process stops, the subagents continue to run
+  without a parent.
 
 ## Install
 
