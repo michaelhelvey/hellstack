@@ -23,6 +23,11 @@ export interface SubagentSpec {
    * provider puts subagents of the same group together.
    */
   group?: string | undefined;
+  /**
+   * Keeps the subagent open after it finishes its work, so that the parent agent can send
+   * follow-up messages. The default is false: the subagent closes when it is done.
+   */
+  keepOpen?: boolean | undefined;
 }
 
 /** The session of a subagent, for example the path of a pi session file. */
@@ -100,6 +105,13 @@ export interface SubagentProvider {
 
 /** The states in which a subagent can get input. `wait` uses them when `until` is not set. */
 export const SETTLED_STATUSES: readonly SubagentStatus[] = ["idle", "done", "blocked"];
+
+/** Returns true for a subagent that is done and that closes, because it is not kept open. */
+export function closesWhenDone(agent: Subagent | undefined): agent is Subagent {
+  const done = agent?.status === "done" || agent?.status === "idle";
+
+  return done && agent.keepOpen !== true;
+}
 
 /** Makes a unique subagent id from a title, for example `code-reviewer` or `code-reviewer-2`. */
 export function subagentId(title: string, taken: ReadonlySet<string>): string {

@@ -22,6 +22,9 @@ an error.
   `hellstack-review-1`. The model sets the group when it starts a subagent. A tab holds at most 8
   subagents.
 - Each subagent is `pi --model <model>` in its own pane. Subagents do not get the subagent tools.
+- When a subagent finishes, the parent gets its last reply in a message, and the subagent closes.
+  The model can start a subagent with `keep_open` to send follow-up messages to it later. A blocked
+  subagent stays open.
 - The parent keeps its subagents in memory only. When you quit pi or change the session, pi stops
   the subagents. After `/reload`, or when the parent process stops, the subagents continue to run
   without a parent.

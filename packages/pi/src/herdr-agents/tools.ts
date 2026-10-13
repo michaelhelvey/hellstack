@@ -1,7 +1,13 @@
 import { defineTool, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
-import type { Subagent, SubagentMessage, SubagentProvider } from "./provider.ts";
+import type { AwaitedAgents } from "./notify.ts";
+import {
+  closesWhenDone,
+  type Subagent,
+  type SubagentMessage,
+  type SubagentProvider,
+} from "./provider.ts";
 
 /** Returns the provider, or throws an error that tells the model why there is no provider. */
 export type ProviderGetter = () => SubagentProvider;
@@ -23,7 +29,10 @@ function describeMessage(message: SubagentMessage): string {
   return `### ${who}\n\n${message.text}`;
 }
 
-async function lastReply(provider: SubagentProvider, agent: Subagent): Promise<string> {
+async function lastReply(
+  provider: Pick<SubagentProvider, "read">,
+  agent: Subagent,
+): Promise<string> {
   const readout = await provider.read(agent.id).catch(() => undefined);
 
   if (readout === undefined) return "\n\nThe subagent stopped.";
@@ -31,6 +40,16 @@ async function lastReply(provider: SubagentProvider, agent: Subagent): Promise<s
   const reply = messages.findLast((message) => message.from === "subagent");
 
   return reply ? `\n\n${reply.text}` : "";
+}
+
+/** Formats a subagent and its last reply as a Markdown section. */
+export async function agentReport(
+  provider: Pick<SubagentProvider, "read">,
+  agent: Subagent,
+): Promise<string> {
+  const closing = closesWhenDone(agent) ? "\n\nThe subagent is done, so it closes now." : "";
+
+  return `## ${describeAgent(agent)}${await lastReply(provider, agent)}${closing}`;
 }
 
 function currentModel(model: { provider: string; id: string } | undefined): string {
@@ -52,6 +71,12 @@ const StartParams = Type.Object({
   model: Type.Optional(
     Type.String({ description: "The model as `provider/model`. The default is your model." }),
   ),
+  keep_open: Type.Optional(
+    Type.Boolean({
+      description:
+        "Keep the subagent open after it is done, so that you can send follow-up messages. The default is false: the subagent closes when it is done.",
+    }),
+  ),
 });
 
 function startTool(getProvider: ProviderGetter) {
@@ -61,12 +86,14 @@ function startTool(getProvider: ProviderGetter) {
     description:
       "Start a pi subagent in a herdr pane and give it a task. Returns at once, while the subagent works. Use subagent_wait to get its result.",
     promptGuidelines: [
-      "Subagents stay open after their work, so that you can send follow-up messages. Stop each subagent with subagent_stop when you do not need it anymore.",
+      "When a subagent stops work, you get a message with its status and last reply, so you do not have to wait or poll. Use subagent_wait only when you cannot continue without the result.",
+      "A subagent closes when it is done, after you get its last reply. Set keep_open only when you plan to send follow-up messages, and stop that subagent with subagent_stop when you do not need it anymore.",
     ],
     parameters: StartParams,
     async execute(_id, params, _signal, _update, ctx) {
-      const model = params.model ?? currentModel(ctx.model);
-      const agent = await getProvider().start({ ...params, model, cwd: ctx.cwd });
+      const { keep_open: keepOpen, ...spec } = params;
+      const model = spec.model ?? currentModel(ctx.model);
+      const agent = await getProvider().start({ ...spec, model, keepOpen, cwd: ctx.cwd });
 
       return text(`Started ${describeAgent(agent)}`);
     },
@@ -94,7 +121,7 @@ function sendTool(getProvider: ProviderGetter) {
   });
 }
 
-function waitTool(getProvider: ProviderGetter) {
+function waitTool(getProvider: ProviderGetter, awaited: AwaitedAgents) {
   return defineTool({
     name: "subagent_wait",
     label: "Wait for subagents",
@@ -108,15 +135,13 @@ function waitTool(getProvider: ProviderGetter) {
       const provider = getProvider();
       const timeoutMs = params.timeout_seconds ? params.timeout_seconds * 1000 : undefined;
 
-      const agents = await Promise.all(
-        params.ids.map((id) => provider.wait(id, { timeoutMs, signal })),
-      );
+      const parts = await awaited.during(params.ids, async () => {
+        const agents = await Promise.all(
+          params.ids.map((id) => provider.wait(id, { timeoutMs, signal })),
+        );
 
-      const parts = await Promise.all(
-        agents.map(
-          async (agent) => `## ${describeAgent(agent)}${await lastReply(provider, agent)}`,
-        ),
-      );
+        return Promise.all(agents.map((agent) => agentReport(provider, agent)));
+      });
 
       return text(parts.join("\n\n"));
     },
@@ -178,8 +203,14 @@ function stopTool(getProvider: ProviderGetter) {
 }
 
 /** Adds the subagent tools. */
-export function registerSubagentTools(pi: ExtensionAPI, getProvider: ProviderGetter): void {
-  for (const make of [startTool, sendTool, waitTool, readTool, listTool, stopTool]) {
+export function registerSubagentTools(
+  pi: ExtensionAPI,
+  getProvider: ProviderGetter,
+  awaited: AwaitedAgents,
+): void {
+  for (const make of [startTool, sendTool, readTool, listTool, stopTool]) {
     pi.registerTool(make(getProvider));
   }
+
+  pi.registerTool(waitTool(getProvider, awaited));
 }

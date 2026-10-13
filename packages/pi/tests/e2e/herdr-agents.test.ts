@@ -16,6 +16,10 @@ afterEach(async () => {
   herdr = undefined;
 });
 
+async function modelRequests(count: number): Promise<void> {
+  for (let i = 0; i < 100 && sandbox.model.requests.length < count; i++) await Bun.sleep(50);
+}
+
 test("/agents shows an error when pi does not run in herdr", async () => {
   sandbox = await PiSandbox.create();
   const pi = sandbox.startTui();
@@ -63,4 +67,25 @@ test("the subagent tools fail with a clear error outside herdr", async () => {
   await pi.prompt("review the code with a subagent");
 
   expect(JSON.stringify(sandbox.model.requests[1]?.messages.at(-1))).toContain(NOT_IN_HERDR);
+});
+
+test("the parent agent wakes up when a subagent finishes its work, and the subagent closes", async () => {
+  herdr = await FakeHerdr.start();
+  sandbox = await PiSandbox.create({ env: herdr.env });
+  const start = { title: "Reviewer", task: "Review the code", group: "review" };
+  sandbox.model.reply(
+    { toolCalls: [{ name: "subagent_start", arguments: start }] },
+    { text: "Started." },
+    { text: "The reviewer is done." },
+  );
+  const pi = await sandbox.startRpc();
+  await pi.prompt("review the code with a subagent");
+  const paneId = String(herdr.requestsOf("agent.start")[0]?.params.pane_id);
+  herdr.setStatus(paneId, "done");
+
+  await modelRequests(3);
+  expect(JSON.stringify(sandbox.model.requests[2]?.messages.at(-1))).toContain(
+    "## reviewer: done (Reviewer, fake/fake-1)",
+  );
+  expect(herdr.requestsOf("pane.close").map((r) => r.params.pane_id)).toEqual([paneId]);
 });

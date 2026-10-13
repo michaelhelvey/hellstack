@@ -2,6 +2,7 @@ import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-c
 
 import { HerdrClient, herdrEnv } from "./herdr/client.ts";
 import { HerdrSubagentProvider, SUBAGENT_ENV } from "./herdr/provider.ts";
+import { AwaitedAgents, CompletionNotifier, REPORT_MESSAGE_TYPE } from "./notify.ts";
 import { describeAgent, registerSubagentTools } from "./tools.ts";
 import { AgentsWidget } from "./ui/widget.ts";
 
@@ -41,7 +42,14 @@ async function command(
 export default function herdrAgents(pi: ExtensionAPI): void {
   if (process.env[SUBAGENT_ENV] === "1") return;
   const env = herdrEnv();
+  const awaited = new AwaitedAgents();
   let provider: HerdrSubagentProvider | undefined;
+  let notifier: CompletionNotifier | undefined;
+
+  function report(content: string): void {
+    const message = { customType: REPORT_MESSAGE_TYPE, content, display: true };
+    pi.sendMessage(message, { triggerTurn: true, deliverAs: "followUp" });
+  }
 
   pi.on("session_start", (_event, ctx) => {
     if (env === undefined) return;
@@ -53,6 +61,7 @@ export default function herdrAgents(pi: ExtensionAPI): void {
     });
 
     provider = current;
+    notifier = new CompletionNotifier({ provider: current, awaited, send: report });
 
     if (ctx.hasUI) {
       ctx.ui.setWidget(
@@ -63,16 +72,23 @@ export default function herdrAgents(pi: ExtensionAPI): void {
   });
 
   pi.on("session_shutdown", async (event) => {
+    notifier?.dispose();
+    notifier = undefined;
+
     if (event.reason === "reload") provider?.release();
     else await provider?.dispose();
     provider = undefined;
   });
 
-  registerSubagentTools(pi, () => {
-    if (provider === undefined) throw new Error(NOT_IN_HERDR);
+  registerSubagentTools(
+    pi,
+    () => {
+      if (provider === undefined) throw new Error(NOT_IN_HERDR);
 
-    return provider;
-  });
+      return provider;
+    },
+    awaited,
+  );
 
   pi.registerCommand("agents", {
     description: "List the subagents. `stop [id|all]` stops them",
