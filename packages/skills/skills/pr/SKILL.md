@@ -79,6 +79,8 @@ The pull request body must follow the following format:
 - All text must be written using ASD-STE100 Simplified Technical English. It should be simple,
   straightforward, and jargon free. Say exactly what you mean, in the active voice, without abstract
   bullshit.
+- Modify the above rule to keep the rules given by your current output style (e.g. "Chinchilla
+  Mode")
 - Keep it short, even if the PR is big. If I want to get an AI agent to walk me through the PR in a
   verbose way, I have plenty installed on my computer already, I don't need the PR description for
   that. I need to be able to see what this PR does and why in less than 30 seconds.

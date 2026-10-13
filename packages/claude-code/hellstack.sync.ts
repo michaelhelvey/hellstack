@@ -7,7 +7,7 @@ import {
   setJsonValue,
 } from "@hellstack/sync";
 
-import { gatewayIntegration } from "./src/gateway.ts";
+import { type GatewayPlan, gatewayPlan } from "./src/gateway.ts";
 import { buildMermaidModule } from "./src/mermaid/build.ts";
 import { buildQuickQuoteModule } from "./src/quick-quote/build.ts";
 import { buildSpinnerModule } from "./src/spinner/build.ts";
@@ -47,6 +47,15 @@ async function modEntries(packageDir: string, mod: Mod, modDir: string): Promise
   return [...(await configEntries(join(packageDir, "mods", mod.name), modDir)), module];
 }
 
+/** Adds the gateway variables of `gateway` to the `settings.json` text. */
+function setGatewayEnv(text: string, gateway: GatewayPlan | undefined): string {
+  if (gateway === undefined || !("env" in gateway)) return text;
+  return Object.entries(gateway.env).reduce(
+    (next, [name, value]) => setJsonValue(next, ["env", name], value),
+    text,
+  );
+}
+
 /**
  * Copies `config/` to the Claude Code config directory, writes the mods, and installs the herdr
  * integration. `settings.json` loads the mods with `CLAUDE_CODE_PLUGIN_DIRS`. The `t4` layer also
@@ -54,16 +63,21 @@ async function modEntries(packageDir: string, mod: Mod, modDir: string): Promise
  */
 export default defineSync(async ({ packageDir, roots, layers }) => {
   const dirs = mods.map((mod) => modDir(roots.claude, mod));
-  const gateway = layers.has("t4") ? await gatewayIntegration(roots.home) : undefined;
+  const settingsPath = join(roots.claude, "settings.json");
+  const gateway = layers.has("t4") ? await gatewayPlan(roots.home, settingsPath) : undefined;
   const config = await configEntries(join(packageDir, "config"), roots.claude, {
     "settings.json": (text) =>
-      setJsonValue(text, ["env", "CLAUDE_CODE_PLUGIN_DIRS"], dirs.join(delimiter)),
+      setGatewayEnv(
+        setJsonValue(text, ["env", "CLAUDE_CODE_PLUGIN_DIRS"], dirs.join(delimiter)),
+        gateway,
+      ),
   });
   const modFiles = await Promise.all(
     mods.map((mod) => modEntries(packageDir, mod, modDir(roots.claude, mod))),
   );
   return {
     entries: [...config, ...modFiles.flat()],
-    integrations: gateway === undefined ? [herdr] : [herdr, gateway],
+    integrations:
+      gateway !== undefined && "integration" in gateway ? [herdr, gateway.integration] : [herdr],
   };
 });

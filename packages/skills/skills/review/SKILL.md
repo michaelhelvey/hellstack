@@ -33,6 +33,11 @@ that comes after this skill.
 
 Start the report with one short line that gives the level, for example `medium effort review`.
 
+## Sub-Agents
+
+If you have the ability to spawn a sub-agent, always run the review in a sub-agent. Do not run it
+yourself.
+
 ## Phase 0 — Get the diff
 
 Do this at all levels.
