@@ -12,6 +12,22 @@ skills/
     scripts/      # optional
 ```
 
+## My Philosophy of Skills
+
+In my opinion, skills have two possible uses:
+
+1. A "token cache" to store research that you don't want to the agent to have to learn how to do
+   again. For example, I have a skill for jira tasks so that the agent doesn't have to re-learn how
+   my particular company's jira boards work every time I ask it to do something. It doesn't _need_
+   the skill, but it saves some turns.
+2. A pre-defined prompt library. There are certain prompts that I run over and over again (e.g.
+   architect), and so I find them useful to just save.
+
+There's a reason why I have `disable-model-invocation: true` on almost every skill. I want to invoke
+it explicitly to make the model do something, I don't really have any interest in trying to
+implicitly skew model behavior. The models are too smart and changing too fast for this to be
+useful.
+
 ## Add a manual skill
 
 Make a new directory in `skills/`. The skills.sh commands do not change manual skills.

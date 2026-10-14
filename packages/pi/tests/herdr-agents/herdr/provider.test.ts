@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import path from "node:path";
 
+import { SKILLS_ENV } from "../../../src/shared/skills-env.ts";
 import { HerdrClient } from "../../../src/herdr-agents/herdr/client.ts";
 import { MAX_AGENTS_PER_TAB } from "../../../src/herdr-agents/herdr/layout.ts";
 import { HerdrSubagentProvider, SUBAGENT_ENV } from "../../../src/herdr-agents/herdr/provider.ts";
@@ -67,6 +68,21 @@ test("start makes a tab, starts pi with the model, and gives it the task", async
   expect(herdr.requestsOf("agent.prompt")[0]?.params).toMatchObject({
     target: "reviewer",
     text: "Review the code",
+  });
+});
+
+test("start gives the unlocked skills of the parent to the subagent", async () => {
+  process.env[SKILLS_ENV] = "jira,pr";
+
+  try {
+    await provider.start(SPEC);
+  } finally {
+    delete process.env[SKILLS_ENV];
+  }
+
+  expect(herdr.requestsOf("tab.create")[0]?.params["env"]).toEqual({
+    [SUBAGENT_ENV]: "1",
+    [SKILLS_ENV]: "jira,pr",
   });
 });
 

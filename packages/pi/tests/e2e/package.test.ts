@@ -38,7 +38,6 @@ test("pi loads the package with no errors or warnings, and gives its tools to th
   await pi.prompt("hello");
 
   const commands = CommandsSchema.parse(data).commands.map((c) => c.name);
-  expect(commands).toContain("btw");
   expect(commands).toContain("goal");
   expect(commands).toContain("todos");
   expect(commands).toContain("agents");

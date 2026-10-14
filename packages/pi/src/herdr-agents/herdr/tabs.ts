@@ -20,8 +20,8 @@ export interface TabPlannerOptions {
   workspaceId: string;
   /** The name of the project, for example the base name of the working folder. */
   project: string;
-  /** The environment variables for the shells of the new panes. */
-  env: Record<string, string>;
+  /** Returns the environment variables for the shells of the new panes. */
+  env: () => Record<string, string>;
 }
 
 interface OwnTab {
@@ -103,7 +103,8 @@ export class TabPlanner {
   }
 
   async #create(group: string, cwd: string): Promise<Placement> {
-    const { client, workspaceId, project, env } = this.#options;
+    const { client, workspaceId, project } = this.#options;
+    const env = this.#options.env();
     const { tabs } = await client.call("tab.list", { workspace_id: workspaceId }, TabListSchema);
     const label = tabLabel(project, group, new Set(tabs.map((tab) => tab.label)));
     const params = { workspace_id: workspaceId, label, cwd, env, focus: false };
@@ -114,7 +115,8 @@ export class TabPlanner {
   }
 
   async #split(tabId: string, own: OwnTab, cwd: string): Promise<Placement> {
-    const { client, env } = this.#options;
+    const { client } = this.#options;
+    const env = this.#options.env();
     const [first] = own.panes;
     const { layout } = await client.call("pane.layout", { pane_id: first }, LayoutSchema);
     const choice = chooseSplit(layout.panes, own.panes);

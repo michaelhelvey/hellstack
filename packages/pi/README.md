@@ -4,7 +4,6 @@ Personal extensions and themes for [pi](https://pi.dev).
 
 | Extension       | What it does                                                                                                                                                  |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `btw`           | Opens a side conversation for focused questions, with optional summary injection into the main chat.                                                          |
 | `goal`          | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                                 |
 | `todo`          | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                                 |
 | `uv`            | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                        |
@@ -12,6 +11,7 @@ Personal extensions and themes for [pi](https://pi.dev).
 | `herdr-prompts` | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                    |
 | `herdr-agents`  | Runs subagents as pi agents in herdr panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below. |
 | `whimsical`     | Shows a random working message on each turn.                                                                                                                  |
+| `smart-skills`  | Lets a skill that you start load the hidden skills in its `metadata.uses`. See below.                                                                         |
 
 ## Subagents
 
@@ -29,6 +29,28 @@ an error.
 - The parent keeps its subagents in memory only. When you quit pi or change the session, pi stops
   the subagents. After `/reload`, or when the parent process stops, the subagents continue to run
   without a parent.
+
+## Smart skills
+
+`smart-skills` lets you keep `disable-model-invocation: true` on all skills, and still run workflows
+of more than one skill. List the skills that a skill can load in its frontmatter:
+
+```yaml
+---
+name: one-on-one-prep
+description: ...
+disable-model-invocation: true
+metadata:
+  uses: [jira, chrome-devtools-cli]
+---
+```
+
+- When you start a skill with `/skill:name`, the extension unlocks it and the skills in its `uses`,
+  and the skills in their `uses`. The model sees the unlocked skills in its system prompt.
+- Skills stay unlocked until the session ends. If you go back with `/tree` to a point before you
+  started the skill, they lock again.
+- Subagents from `herdr-agents` get the unlocked skills of the parent when they start.
+- The model cannot unlock skills itself. Only `/skill:name` from you unlocks skills.
 
 ## Install
 
