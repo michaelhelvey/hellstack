@@ -6,6 +6,7 @@ description:
   pages. Use when the user asks about JIRA tickets, tasks, epics, sprints, boards, time tracking,
   ops tasks, weekly or individual KPIs, quarterly rocks, or Confluence pages, specs, PRDs, and wiki
   links (<site>.atlassian.net/wiki/...).
+disable-model-invocation: true
 ---
 
 All paths below are relative to the directory of this skill.

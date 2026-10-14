@@ -5,6 +5,7 @@ description:
   Rippling from the team template, collects the user's work from GitHub and JIRA since the last 1:1,
   and writes a short Wins/Progress list into the doc. Use when the user says "/one-on-one-prep",
   "prep my 1:1", or asks for a list of their recent work for a 1:1.
+disable-model-invocation: true
 ---
 
 All paths below are relative to the directory of this skill.

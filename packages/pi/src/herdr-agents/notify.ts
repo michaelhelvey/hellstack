@@ -86,8 +86,8 @@ function finishedWork(event: SubagentEvent): boolean {
  * Tells the parent agent when a subagent stops work. A subagent that changes from `working` to
  * `done`, `idle`, or `blocked` gets a report with its last reply. The notifier collects the
  * reports for a short time and sends them as one message. After the parent agent has the last
- * reply, from a report or from `subagent_wait`, the notifier closes a done subagent, unless it
- * was started with `keepOpen`.
+ * reply, from a report or from `subagent_wait`, the notifier closes a done subagent. A message
+ * to it resumes it.
  */
 export class CompletionNotifier {
   readonly #options: NotifierOptions;

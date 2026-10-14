@@ -49,6 +49,8 @@ export interface HerdrProviderOptions {
 
 interface Entry {
   agent: Subagent;
+  /** The herdr name of the agent. It is the id, unless another herdr agent had the id. */
+  name: string;
   placement: Placement;
   watch: HerdrSubscriptionHandle;
   /** The text of the last subagent message that the provider sent as an event. */
@@ -102,13 +104,16 @@ type Settings = Required<Pick<HerdrProviderOptions, "startTimeoutMs" | "pollMs" 
 
 /**
  * Runs each subagent as a pi agent in a herdr pane. It keeps its state in memory only. When the
- * parent agent stops without `dispose`, the subagents continue to run without a parent.
+ * parent agent stops without `dispose`, the subagents continue to run without a parent. A stopped
+ * subagent can resume: a message to it starts pi again in a new pane, with the same session file.
  */
 export class HerdrSubagentProvider implements SubagentProvider {
   readonly #options: Settings;
   readonly #client: HerdrApi;
   readonly #tabs: TabPlanner;
   readonly #entries = new Map<string, Entry>();
+  /** The closed subagents that have a session file, so that a message can resume them. */
+  readonly #closed = new Map<string, Subagent>();
   readonly #listeners = new Set<SubagentListener>();
   #queue: Promise<unknown> = Promise.resolve();
   #closedWatch: HerdrSubscriptionHandle | undefined;
@@ -126,15 +131,8 @@ export class HerdrSubagentProvider implements SubagentProvider {
   }
 
   async start(spec: SubagentSpec): Promise<Subagent> {
-    this.#watchClosed();
-    const entry = await this.#serial(() => this.#register(spec));
-
-    try {
-      await this.#launch(entry, spec);
-    } catch (error) {
-      await this.#remove(entry.agent.id, true);
-      throw error;
-    }
+    const entry = await this.#open(spec, undefined, ["--model", spec.model]);
+    await this.#prompt(entry, spec.task);
 
     return entry.agent;
   }
@@ -143,34 +141,38 @@ export class HerdrSubagentProvider implements SubagentProvider {
     return [...this.#entries.values()].map((entry) => entry.agent);
   }
 
+  closed(): readonly Subagent[] {
+    return [...this.#closed.values()];
+  }
+
   get(id: string): Subagent | undefined {
     return this.#entries.get(id)?.agent;
   }
 
+  /** Sends a message to a subagent. When the subagent is closed, it resumes it first. */
   async send(id: string, text: string): Promise<void> {
-    this.#require(id);
-    const wait = { until: ACTIVE_STATUSES, timeout_ms: ACTIVITY_TIMEOUT_MS };
-
-    const stalled = await this.#client
-      .call("agent.prompt", { target: id, text, wait }, AnySchema)
-      .then(() => false, isStall);
-
-    if (stalled) await this.#submitAgain(id);
-    this.#setStatus(id, "working");
+    const entry = this.#entries.get(id) ?? (await this.#resume(id));
+    await this.#prompt(entry, text);
   }
 
   async read(id: string): Promise<SubagentReadout> {
-    const { agent } = this.#require(id);
+    const agent = this.#entries.get(id)?.agent ?? this.#closed.get(id);
+
+    if (agent === undefined) throw new Error(`No subagent has the id ${id}`);
     const session = agent.session;
     const messages = session?.kind === "path" ? await readSessionMessages(session.value) : [];
 
     return { agent, messages };
   }
 
+  /** Waits for a live subagent. A closed subagent is done, so the wait returns at once. */
   wait(id: string, options?: SubagentWaitOptions): Promise<Subagent> {
-    return waitForStatus(this, id, options);
+    const closed = this.#entries.has(id) ? undefined : this.#closed.get(id);
+
+    return closed ? Promise.resolve(closed) : waitForStatus(this, id, options);
   }
 
+  /** Stops a subagent and closes its pane. A message can resume it later. */
   async stop(id: string): Promise<void> {
     this.#require(id);
     await this.#remove(id, true);
@@ -194,6 +196,7 @@ export class HerdrSubagentProvider implements SubagentProvider {
   release(): void {
     for (const entry of this.#entries.values()) entry.watch.close();
     this.#entries.clear();
+    this.#closed.clear();
     this.#closedWatch?.close();
     this.#closedWatch = undefined;
     this.#listeners.clear();
@@ -218,10 +221,41 @@ export class HerdrSubagentProvider implements SubagentProvider {
     for (const listener of this.#listeners) listener(event);
   }
 
-  async #register(spec: SubagentSpec): Promise<Entry> {
+  async #resume(id: string): Promise<Entry> {
+    const agent = this.#closed.get(id);
+
+    if (agent === undefined) throw new Error(`No subagent has the id ${id}`);
+
+    if (agent.session?.kind !== "path") {
+      throw new Error(`Subagent ${id} is closed and has no session file to resume`);
+    }
+
+    this.#closed.delete(id);
+
+    return this.#open(agent, id, ["--model", agent.model, "--session", agent.session.value]);
+  }
+
+  /** Makes a pane and starts pi in it with the arguments. With an id, it resumes that subagent. */
+  async #open(spec: SubagentSpec, id: string | undefined, args: string[]): Promise<Entry> {
+    this.#watchClosed();
+    const entry = await this.#serial(() => this.#register(spec, id));
+
+    try {
+      await this.#launch(entry, args);
+    } catch (error) {
+      await this.#remove(entry.agent.id, true);
+      throw error;
+    }
+
+    return entry;
+  }
+
+  async #register(spec: SubagentSpec, resumeId: string | undefined): Promise<Entry> {
     const { agents } = await this.#client.call("agent.list", {}, AgentListSchema);
-    const taken = new Set([...agents.flatMap((a) => a.name ?? []), ...this.#entries.keys()]);
-    const id = subagentId(spec.title, taken);
+    const names = new Set([...agents.flatMap((a) => a.name ?? []), ...this.#names()]);
+    const ids = new Set([...names, ...this.#entries.keys(), ...this.#closed.keys()]);
+    const id = resumeId ?? subagentId(spec.title, ids);
+    const name = subagentId(id, names);
     const placement = await this.#tabs.place(slug(spec.group ?? "", "work"), this.#cwd(spec));
     const now = this.#options.now();
 
@@ -238,33 +272,47 @@ export class HerdrSubagentProvider implements SubagentProvider {
       (event) => this.#onEvent(id, event),
     );
 
-    const entry = { agent, placement, watch };
+    const entry = { agent, name, placement, watch };
     this.#entries.set(id, entry);
     this.#emit({ type: "started", agent });
 
     return entry;
   }
 
+  #names(): string[] {
+    return [...this.#entries.values()].map((entry) => entry.name);
+  }
+
   #cwd(spec: SubagentSpec): string {
     return spec.cwd ?? this.#options.cwd;
   }
 
-  async #launch(entry: Entry, spec: SubagentSpec): Promise<void> {
+  async #launch(entry: Entry, args: string[]): Promise<void> {
     const deadline = this.#options.now() + this.#options.startTimeoutMs;
-    await this.#startAgent(entry, spec, deadline);
-    await this.#waitReady(entry.agent.id, deadline);
-    await this.send(entry.agent.id, spec.task);
+    await this.#startAgent(entry, args, deadline);
+    await this.#waitReady(entry, deadline);
+  }
+
+  async #prompt(entry: Entry, text: string): Promise<void> {
+    const wait = { until: ACTIVE_STATUSES, timeout_ms: ACTIVITY_TIMEOUT_MS };
+
+    const stalled = await this.#client
+      .call("agent.prompt", { target: entry.name, text, wait }, AnySchema)
+      .then(() => false, isStall);
+
+    if (stalled) await this.#submitAgain(entry.name);
+    this.#setStatus(entry.agent.id, "working");
   }
 
   /**
    * Presses Enter until the agent starts a turn. Pi keeps the text in its editor when it gets Enter
    * before its startup is complete, so the first Enter of a prompt can have no effect.
    */
-  async #submitAgain(id: string): Promise<void> {
-    const wait = { target: id, until: ACTIVE_STATUSES, timeout_ms: ENTER_TIMEOUT_MS };
+  async #submitAgain(name: string): Promise<void> {
+    const wait = { target: name, until: ACTIVE_STATUSES, timeout_ms: ENTER_TIMEOUT_MS };
 
     for (let attempt = 0; attempt < ENTER_ATTEMPTS; attempt++) {
-      await this.#client.call("agent.send_keys", { target: id, keys: ["enter"] }, AnySchema);
+      await this.#client.call("agent.send_keys", { target: name, keys: ["enter"] }, AnySchema);
 
       const active = await this.#client
         .call("agent.wait", wait, AnySchema)
@@ -273,16 +321,11 @@ export class HerdrSubagentProvider implements SubagentProvider {
       if (active) return;
     }
 
-    throw new Error(`Subagent ${id} did not start to work on the message`);
+    throw new Error(`Subagent ${name} did not start to work on the message`);
   }
 
-  async #startAgent(entry: Entry, spec: SubagentSpec, deadline: number): Promise<void> {
-    const params = {
-      name: entry.agent.id,
-      kind: "pi",
-      pane_id: entry.placement.paneId,
-      args: ["--model", spec.model],
-    };
+  async #startAgent(entry: Entry, args: string[], deadline: number): Promise<void> {
+    const params = { name: entry.name, kind: "pi", pane_id: entry.placement.paneId, args };
 
     await this.#retryWhileBusy(() => this.#client.call("agent.start", params, AnySchema), deadline);
   }
@@ -307,9 +350,12 @@ export class HerdrSubagentProvider implements SubagentProvider {
     return true;
   }
 
-  async #waitReady(id: string, deadline: number): Promise<void> {
+  async #waitReady(entry: Entry, deadline: number): Promise<void> {
+    const { id } = entry.agent;
+
     for (;;) {
-      const { agent } = await this.#client.call("agent.get", { target: id }, AgentInfoSchema);
+      const target = { target: entry.name };
+      const { agent } = await this.#client.call("agent.get", target, AgentInfoSchema);
 
       if (agent.agent_session) this.#update(id, { session: agent.agent_session });
 
@@ -366,12 +412,18 @@ export class HerdrSubagentProvider implements SubagentProvider {
     }
   }
 
-  /** Forgets a subagent and emits `stopped`. With `close`, it also closes the pane. */
+  /**
+   * Forgets a subagent and emits `stopped`. With `close`, it also closes the pane, and keeps the
+   * subagent as closed, so that a message can resume it. A subagent whose pane the user closed
+   * does not resume.
+   */
   async #remove(id: string, close: boolean): Promise<void> {
     const entry = this.#entries.get(id);
 
     if (entry === undefined) return;
     this.#entries.delete(id);
+
+    if (close && entry.agent.session?.kind === "path") this.#closed.set(id, entry.agent);
     entry.watch.close();
     const emptyTab = this.#tabs.release(entry.placement.paneId);
     this.#emit({ type: "stopped", agent: entry.agent });

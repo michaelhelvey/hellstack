@@ -5,6 +5,7 @@ description:
   as tldraw ".tldr" files, with PNG or SVG exports. Positions the nodes automatically. Use when
   asked to draw, sketch, or diagram something, to make a diagram image, or to export or open an
   existing .tldr file.
+disable-model-invocation: true
 ---
 
 Write a JSON spec of nodes and edges. One command positions the nodes, draws them in the real tldraw

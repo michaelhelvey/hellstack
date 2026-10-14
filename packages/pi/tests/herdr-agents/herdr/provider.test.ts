@@ -168,3 +168,66 @@ test("dispose stops all subagents", async () => {
   expect(herdr.requestsOf("pane.close")).toHaveLength(2);
   expect(herdr.tabs()).toEqual([]);
 });
+
+async function closedWithSession(): Promise<string> {
+  herdr.sessionPath = path.join(herdr.dir, "session.jsonl");
+  await Bun.write(herdr.sessionPath, "");
+  const { id } = await provider.start(SPEC);
+  await provider.stop(id);
+
+  return id;
+}
+
+test("a message to a stopped subagent resumes its session in a new pane", async () => {
+  const id = await closedWithSession();
+  expect(provider.closed().map((agent) => agent.id)).toEqual([id]);
+  expect((await provider.wait(id)).id).toBe(id);
+
+  await provider.send(id, "Now check the tests");
+
+  expect(herdr.requestsOf("agent.start")[1]?.params).toMatchObject({
+    name: id,
+    args: ["--model", SPEC.model, "--session", herdr.sessionPath],
+  });
+  expect(herdr.requestsOf("agent.prompt").at(-1)?.params).toMatchObject({
+    target: id,
+    text: "Now check the tests",
+  });
+  expect(provider.get(id)?.status).toBe("working");
+  expect(provider.closed()).toEqual([]);
+  expect(herdr.tabs().map((tab) => tab.label)).toEqual(["hellstack-code-review-1"]);
+});
+
+test("a resumed subagent keeps its id when another herdr agent has its name", async () => {
+  const id = await closedWithSession();
+  herdr.existingAgents = [id];
+
+  await provider.send(id, "Continue");
+
+  expect(provider.get(id)).toBeDefined();
+  expect(herdr.requestsOf("agent.start")[1]?.params.name).toBe(`${id}-2`);
+  expect(herdr.requestsOf("agent.prompt").at(-1)?.params.target).toBe(`${id}-2`);
+});
+
+test("a new subagent does not take the id of a closed subagent", async () => {
+  await closedWithSession();
+  expect((await provider.start(SPEC)).id).toBe("reviewer-2");
+});
+
+test("a subagent whose pane the user closed does not resume", async () => {
+  herdr.sessionPath = path.join(herdr.dir, "session.jsonl");
+  const { id } = await provider.start(SPEC);
+  herdr.closePane(paneOf(id));
+  await until(() => provider.get(id) === undefined);
+
+  expect(provider.closed()).toEqual([]);
+  expect(await provider.send(id, "Continue").catch((e: unknown) => String(e))).toContain(
+    "No subagent has the id reviewer",
+  );
+});
+
+test("a stopped subagent without a session file does not resume", async () => {
+  const { id } = await provider.start(SPEC);
+  await provider.stop(id);
+  expect(provider.closed()).toEqual([]);
+});

@@ -23,11 +23,6 @@ export interface SubagentSpec {
    * provider puts subagents of the same group together.
    */
   group?: string | undefined;
-  /**
-   * Keeps the subagent open after it finishes its work, so that the parent agent can send
-   * follow-up messages. The default is false: the subagent closes when it is done.
-   */
-  keepOpen?: boolean | undefined;
 }
 
 /** The session of a subagent, for example the path of a pi session file. */
@@ -87,11 +82,13 @@ export interface SubagentProvider {
   start(spec: SubagentSpec): Promise<Subagent>;
   /** Returns the live subagents, in start order. */
   list(): readonly Subagent[];
+  /** Returns the closed subagents that a message can resume. */
+  closed(): readonly Subagent[];
   /** Returns one live subagent, or `undefined` if it does not exist. */
   get(id: string): Subagent | undefined;
-  /** Sends a message from the parent agent to a subagent. */
+  /** Sends a message from the parent agent to a subagent. It resumes a closed subagent. */
   send(id: string, text: string): Promise<void>;
-  /** Reads the state and the messages of a subagent. */
+  /** Reads the state and the messages of a live or a closed subagent. */
   read(id: string): Promise<SubagentReadout>;
   /** Waits until a subagent is in one of the states. Returns the subagent at that time. */
   wait(id: string, options?: SubagentWaitOptions): Promise<Subagent>;
@@ -106,11 +103,9 @@ export interface SubagentProvider {
 /** The states in which a subagent can get input. `wait` uses them when `until` is not set. */
 export const SETTLED_STATUSES: readonly SubagentStatus[] = ["idle", "done", "blocked"];
 
-/** Returns true for a subagent that is done and that closes, because it is not kept open. */
+/** Returns true for a subagent that is done. The extension closes done subagents. */
 export function closesWhenDone(agent: Subagent | undefined): agent is Subagent {
-  const done = agent?.status === "done" || agent?.status === "idle";
-
-  return done && agent.keepOpen !== true;
+  return agent?.status === "done" || agent?.status === "idle";
 }
 
 /** Makes a unique subagent id from a title, for example `code-reviewer` or `code-reviewer-2`. */

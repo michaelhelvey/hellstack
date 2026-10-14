@@ -48,14 +48,8 @@ afterEach(() => {
   stopped.length = 0;
 });
 
-function change(
-  id: string,
-  previous: SubagentStatus,
-  status: SubagentStatus,
-  keepOpen = false,
-): void {
+function change(id: string, previous: SubagentStatus, status: SubagentStatus): void {
   const agent: Subagent = {
-    keepOpen,
     id,
     title: id.toUpperCase(),
     model: "fake/model",
@@ -131,13 +125,12 @@ test("a done subagent closes after its report, and the report says so", async ()
   await Bun.sleep(30);
 
   expect(stopped).toEqual(["a"]);
-  expect(sent[0]).toContain("A reply\n\nThe subagent is done, so it closes now.");
+  expect(sent[0]).toContain("A reply\n\nThe subagent is done, so it closes.");
 });
 
-test("a blocked subagent and a subagent that is kept open do not close", async () => {
+test("a blocked subagent does not close", async () => {
   start();
   change("a", "working", "blocked");
-  change("b", "working", "done", true);
   await Bun.sleep(30);
 
   expect(stopped).toEqual([]);

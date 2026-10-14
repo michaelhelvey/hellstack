@@ -47,7 +47,9 @@ export async function agentReport(
   provider: Pick<SubagentProvider, "read">,
   agent: Subagent,
 ): Promise<string> {
-  const closing = closesWhenDone(agent) ? "\n\nThe subagent is done, so it closes now." : "";
+  const closing = closesWhenDone(agent)
+    ? "\n\nThe subagent is done, so it closes. Send it a message to resume it with its full history."
+    : "";
 
   return `## ${describeAgent(agent)}${await lastReply(provider, agent)}${closing}`;
 }
@@ -71,12 +73,6 @@ const StartParams = Type.Object({
   model: Type.Optional(
     Type.String({ description: "The model as `provider/model`. The default is your model." }),
   ),
-  keep_open: Type.Optional(
-    Type.Boolean({
-      description:
-        "Keep the subagent open after it is done, so that you can send follow-up messages. The default is false: the subagent closes when it is done.",
-    }),
-  ),
 });
 
 function startTool(getProvider: ProviderGetter) {
@@ -87,13 +83,12 @@ function startTool(getProvider: ProviderGetter) {
       "Start a pi subagent in a herdr pane and give it a task. Returns at once, while the subagent works. Use subagent_wait to get its result.",
     promptGuidelines: [
       "When a subagent stops work, you get a message with its status and last reply, so you do not have to wait or poll. Use subagent_wait only when you cannot continue without the result.",
-      "A subagent closes when it is done, after you get its last reply. Set keep_open only when you plan to send follow-up messages, and stop that subagent with subagent_stop when you do not need it anymore.",
+      "A subagent closes when it is done, after you get its last reply. To answer its question or give it more work, send it a message with subagent_send. That resumes it in a new pane with its full history.",
     ],
     parameters: StartParams,
     async execute(_id, params, _signal, _update, ctx) {
-      const { keep_open: keepOpen, ...spec } = params;
-      const model = spec.model ?? currentModel(ctx.model);
-      const agent = await getProvider().start({ ...spec, model, keepOpen, cwd: ctx.cwd });
+      const model = params.model ?? currentModel(ctx.model);
+      const agent = await getProvider().start({ ...params, model, cwd: ctx.cwd });
 
       return text(`Started ${describeAgent(agent)}`);
     },
@@ -111,7 +106,7 @@ function sendTool(getProvider: ProviderGetter) {
     name: "subagent_send",
     label: "Message subagent",
     description:
-      "Send a message to a subagent, for example an answer or a follow-up task. Fails when the subagent waits at an approval dialog.",
+      "Send a message to a subagent, for example an answer or a follow-up task. When the subagent is closed, this resumes it in a new pane with its full history. Fails when the subagent waits at an approval dialog.",
     parameters: Type.Object({ ...IdParams.properties, message: Type.String() }),
     async execute(_id, params) {
       await getProvider().send(params.id, params.message);
@@ -171,18 +166,24 @@ function readTool(getProvider: ProviderGetter) {
   });
 }
 
+function listText(provider: SubagentProvider): string {
+  const live = provider.list().map(describeAgent);
+  const closed = provider.closed().map((agent) => `${agent.id}: closed (${agent.title})`);
+
+  if (live.length + closed.length === 0) return "No subagents.";
+
+  return [...live, ...closed].join("\n");
+}
+
 function listTool(getProvider: ProviderGetter) {
   return defineTool({
     name: "subagent_list",
     label: "List subagents",
-    description: "List your subagents and their status.",
+    description:
+      "List your subagents and their status, and the closed subagents that a message can resume.",
     parameters: Type.Object({}),
     execute() {
-      const agents = getProvider().list();
-
-      return Promise.resolve(
-        text(agents.length === 0 ? "No subagents." : agents.map(describeAgent).join("\n")),
-      );
+      return Promise.resolve(text(listText(getProvider())));
     },
   });
 }
@@ -191,7 +192,8 @@ function stopTool(getProvider: ProviderGetter) {
   return defineTool({
     name: "subagent_stop",
     label: "Stop subagents",
-    description: "Stop subagents and close their herdr panes.",
+    description:
+      "Stop subagents and close their herdr panes. A message with subagent_send resumes a stopped subagent.",
     parameters: IdsParams,
     async execute(_id, params) {
       const provider = getProvider();

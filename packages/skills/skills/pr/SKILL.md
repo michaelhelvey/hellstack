@@ -1,7 +1,6 @@
 ---
 name: pr
 description: Use when the user asks you to make a pull request
-disable-model-invocation: false
 ---
 
 **Goal**: Create a pull request to `main` from the current branch with a title and description that

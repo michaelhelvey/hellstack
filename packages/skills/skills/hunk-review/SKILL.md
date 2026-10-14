@@ -6,6 +6,7 @@ description:
   attention marks on character ranges. Use when the user has a Hunk session running or wants to
   review diffs interactively.  If the user says "see my comments" or similar this is probably what
   they're talking about
+disable-model-invocation: true
 ---
 
 # Hunk Review
