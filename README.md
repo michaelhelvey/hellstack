@@ -5,7 +5,7 @@
   <p>
     Pi stuff is shamelessly modeled and borrowed from <a
     href="https://github.com/mitsuhiko/agent-stuff">agent-stuff</a>; skills come from several
-    open-source projects.
+    open-source projects (particularly a lot of inspiration from  <a href="https://x.com/poteto">poteto's</a> pstack.
   </p>
 </div>
 

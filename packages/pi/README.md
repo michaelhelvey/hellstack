@@ -11,7 +11,6 @@ Personal extensions and themes for [pi](https://pi.dev).
 | `herdr-prompts`  | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                    |
 | `herdr-agents`   | Runs subagents as pi agents in herdr panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below. |
 | `whimsical`      | Shows a random working message on each turn.                                                                                                                  |
-| `smart-skills`   | Lets a skill that you start load the hidden skills in its `metadata.uses`. See below.                                                                         |
 | `quick-quote`    | Type `>` at the start of a line to quote a paragraph of the last reply. See below.                                                                            |
 | `skill-commands` | Start a skill with `/name` anywhere in the prompt, not only with `/skill:name` at the start. See below.                                                       |
 
@@ -31,29 +30,6 @@ an error.
 - The parent keeps its subagents in memory only. When you quit pi or change the session, pi stops
   the subagents. After `/reload`, or when the parent process stops, the subagents continue to run
   without a parent.
-
-## Smart skills
-
-`smart-skills` lets you keep `disable-model-invocation: true` on all skills, and still run workflows
-of more than one skill. List the skills that a skill can load in its frontmatter:
-
-```yaml
----
-name: one-on-one-prep
-description: ...
-disable-model-invocation: true
-metadata:
-  uses: [jira, chrome-devtools-cli]
----
-```
-
-- When you start a skill with `/name` or `/skill:name`, the extension unlocks it and the skills in
-  its `uses`, and the skills in their `uses`. The model sees the unlocked skills in its system
-  prompt.
-- Skills stay unlocked until the session ends. If you go back with `/tree` to a point before you
-  started the skill, they lock again.
-- Subagents from `herdr-agents` get the unlocked skills of the parent when they start.
-- The model cannot unlock skills itself. Only `/name` or `/skill:name` from you unlocks skills.
 
 ## Quick quote
 

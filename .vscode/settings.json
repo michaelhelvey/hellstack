@@ -33,6 +33,7 @@
   "js/ts.experimental.useTsgo": true,
   "debug.javascript.codelens.npmScripts": "never",
   "files.associations": {
-    ".md": "markdown"
+    "*.md": "markdown",
+    "**/SKILL.md": "markdown"
   }
 }

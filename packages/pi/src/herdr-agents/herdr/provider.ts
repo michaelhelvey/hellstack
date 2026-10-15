@@ -3,7 +3,6 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import { z } from "zod";
 
-import { readSkillsEnv, SKILLS_ENV } from "../../shared/skills-env.ts";
 import {
   SETTLED_STATUSES,
   type Subagent,
@@ -34,14 +33,9 @@ import { type HerdrApi, type Placement, TabPlanner } from "./tabs.ts";
  */
 export const SUBAGENT_ENV = "HELLSTACK_SUBAGENT";
 
-/**
- * Returns the environment variables for a new subagent pane: `SUBAGENT_ENV`, and the unlocked
- * skills of the parent, so that the subagent has the same skills.
- */
+/** Returns the environment variables for a new subagent pane. */
 export function subagentEnv(): Record<string, string> {
-  const skills = readSkillsEnv();
-
-  return { [SUBAGENT_ENV]: "1", ...(skills.length > 0 && { [SKILLS_ENV]: skills.join(",") }) };
+  return { [SUBAGENT_ENV]: "1" };
 }
 
 /** Options for the herdr provider. */

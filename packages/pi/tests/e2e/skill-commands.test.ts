@@ -8,17 +8,15 @@ setDefaultTimeout(30_000);
 
 let sandbox: PiSandbox;
 
-async function writeSkill(name: string, uses: string[] = []): Promise<void> {
-  const metadata = uses.length > 0 ? `metadata:\n  uses: [${uses.join(", ")}]\n` : "";
-  const frontmatter = `name: ${name}\ndescription: The ${name} skill.\n${metadata}`;
+async function writeSkill(name: string): Promise<void> {
+  const frontmatter = `name: ${name}\ndescription: The ${name} skill.\n`;
   const file = path.join(sandbox.agentDir, "skills", name, "SKILL.md");
   await Bun.write(file, `---\n${frontmatter}disable-model-invocation: true\n---\n\nDo ${name}.\n`);
 }
 
 beforeEach(async () => {
   sandbox = await PiSandbox.create();
-  await writeSkill("jira", ["browser"]);
-  await writeSkill("browser");
+  await writeSkill("jira");
   await writeSkill("other");
 });
 
@@ -34,7 +32,7 @@ function skillBlocks(prompt: string): string[] {
   return [...prompt.matchAll(/<skill name=\\"([\w-]+)\\"/g)].map((match) => match[1] ?? "");
 }
 
-test("/name anywhere in the prompt starts the skill, and unlocks the skills that it uses", async () => {
+test("/name anywhere in the prompt starts the skill", async () => {
   const pi = await sandbox.startRpc();
 
   await pi.prompt("first /other, then /jira, not /missing");
@@ -44,8 +42,6 @@ test("/name anywhere in the prompt starts the skill, and unlocks the skills that
   expect(skillBlocks(prompt)).toEqual(["other", "jira"]);
   expect(prompt).toContain("Do jira.");
   expect(prompt).toContain("</skill>\\n\\nfirst /other, then /jira, not /missing");
-  const system = JSON.stringify(request?.messages[0]?.content);
-  expect(system).toContain("<name>browser</name>");
 });
 
 test("/skill:name still starts the skill", async () => {
