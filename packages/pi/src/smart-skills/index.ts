@@ -1,17 +1,16 @@
 /**
- * Lets a skill that the user starts with `/skill:name` load the skills that it lists in
+ * Lets a skill that the user starts with `/name` or `/skill:name` load the skills that it lists in
  * `metadata.uses`, also if they have `disable-model-invocation: true`.
  */
 
 import type { ExtensionAPI, ExtensionContext, Skill } from "@earendil-works/pi-coding-agent";
 import { z } from "zod";
 
+import { skillRefs } from "../shared/skill-refs.ts";
 import { readSkillsEnv, writeSkillsEnv } from "../shared/skills-env.ts";
 import { resolveUses } from "./uses.ts";
 
 const ENTRY_TYPE = "smart-skills";
-
-const SKILL_COMMAND = /^\/skill:(\S+)/;
 
 const EntrySchema = z.object({
   type: z.literal("custom"),
@@ -40,9 +39,7 @@ class SmartSkills {
   }
 
   start(text: string): void {
-    const name = SKILL_COMMAND.exec(text)?.[1];
-
-    if (name !== undefined) this.#started.add(name);
+    for (const name of skillRefs(text)) this.#started.add(name);
   }
 
   async apply(skills: Skill[]): Promise<void> {
@@ -65,7 +62,7 @@ class SmartSkills {
 
 /**
  * Unlocks a skill and the skills in its `metadata.uses` (also through other skills) when the user
- * starts it with `/skill:name`. Unlocked skills show in the system prompt until the session ends.
+ * starts it with `/name` or `/skill:name`. Unlocked skills show in the system prompt until the session ends.
  */
 export default function smartSkills(pi: ExtensionAPI): void {
   const state = new SmartSkills(pi);

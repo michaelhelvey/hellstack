@@ -1,5 +1,5 @@
 ---
-name: principle-determinism
+name: principle-build-the-lever
 description:
   "Apply to any non-trivial work, not just bulk work: edits, migrations, analyses, checks. Build the
   tool that does it or proves it (codemod, script, generator, or a skill your subagents follow)

@@ -137,3 +137,8 @@ discussion point.
 
 You may use one of these, you may use several, it is unlikely you will use all of them. Use your
 judgement and don't overwhelm the user.
+
+## mermaid
+
+If you are in the `pi` harness, pi struggles with overly side (LR) mermaid diagrams. Prefer
+top-down, or LR diagrams that aren't too wide.

@@ -2,16 +2,18 @@
 
 Personal extensions and themes for [pi](https://pi.dev).
 
-| Extension       | What it does                                                                                                                                                  |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `goal`          | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                                 |
-| `todo`          | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                                 |
-| `uv`            | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                        |
-| `web-fetch`     | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                              |
-| `herdr-prompts` | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                    |
-| `herdr-agents`  | Runs subagents as pi agents in herdr panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below. |
-| `whimsical`     | Shows a random working message on each turn.                                                                                                                  |
-| `smart-skills`  | Lets a skill that you start load the hidden skills in its `metadata.uses`. See below.                                                                         |
+| Extension        | What it does                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `goal`           | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                                 |
+| `todo`           | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                                 |
+| `uv`             | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                        |
+| `web-fetch`      | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                              |
+| `herdr-prompts`  | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                    |
+| `herdr-agents`   | Runs subagents as pi agents in herdr panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below. |
+| `whimsical`      | Shows a random working message on each turn.                                                                                                                  |
+| `smart-skills`   | Lets a skill that you start load the hidden skills in its `metadata.uses`. See below.                                                                         |
+| `quick-quote`    | Type `>` at the start of a line to quote a paragraph of the last reply. See below.                                                                            |
+| `skill-commands` | Start a skill with `/name` anywhere in the prompt, not only with `/skill:name` at the start. See below.                                                       |
 
 ## Subagents
 
@@ -45,12 +47,47 @@ metadata:
 ---
 ```
 
-- When you start a skill with `/skill:name`, the extension unlocks it and the skills in its `uses`,
-  and the skills in their `uses`. The model sees the unlocked skills in its system prompt.
+- When you start a skill with `/name` or `/skill:name`, the extension unlocks it and the skills in
+  its `uses`, and the skills in their `uses`. The model sees the unlocked skills in its system
+  prompt.
 - Skills stay unlocked until the session ends. If you go back with `/tree` to a point before you
   started the skill, they lock again.
 - Subagents from `herdr-agents` get the unlocked skills of the parent when they start.
-- The model cannot unlock skills itself. Only `/skill:name` from you unlocks skills.
+- The model cannot unlock skills itself. Only `/name` or `/skill:name` from you unlocks skills.
+
+## Quick quote
+
+Type `>` at the start of a line in the editor. A picker shows the paragraphs, list items, and code
+blocks of the last assistant replies. Type words after `>` to filter them, for example
+`> worktree prune`.
+
+| Key                        | Action                                    |
+| -------------------------- | ----------------------------------------- |
+| `↑` `↓`, `ctrl+p` `ctrl+n` | Move the selection.                       |
+| `enter`, `tab`             | Insert the selection as a Markdown quote. |
+| `esc`                      | Close the picker. The text stays.         |
+
+You can also click a row.
+
+## Skill commands
+
+Type `/name` to start the skill `name`. The token can be anywhere in the prompt, and one prompt can
+start more than one skill:
+
+```text
+fix the flaky test with /debugging, then open a PR with /pr
+```
+
+- The extension adds the text of each skill before your prompt, as `/skill:name` does.
+- The editor shows the skills when you type `/` in the prompt. `tab` or `enter` completes the name.
+- At the start of the prompt, the menu shows `/name` in place of `/skill:name`. `/skill:name` still
+  works.
+- A command or a prompt template with the same name as a skill runs in place of the skill.
+
+## Editor
+
+`quick-quote` and `skill-commands` use one shared editor. If another extension replaces the editor,
+these features stop.
 
 ## Install
 
