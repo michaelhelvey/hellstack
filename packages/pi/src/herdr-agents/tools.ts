@@ -54,10 +54,46 @@ export async function agentReport(
   return `## ${describeAgent(agent)}${await lastReply(provider, agent)}${closing}`;
 }
 
-function currentModel(model: { provider: string; id: string } | undefined): string {
+type ModelRef = { provider: string; id: string };
+
+/** The part of the model registry that `resolveModel` uses. */
+export type ModelLookup<M extends ModelRef = ModelRef> = {
+  find(provider: string, modelId: string): M | undefined;
+  hasConfiguredAuth(model: M): boolean;
+};
+
+function currentModel(model: ModelRef | undefined): string {
   if (model === undefined) throw new Error("Give a model as `provider/model`. You have no model.");
 
   return `${model.provider}/${model.id}`;
+}
+
+function splitModel(model: string): ModelRef | undefined {
+  const slash = model.indexOf("/");
+
+  if (slash <= 0) return undefined;
+
+  return { provider: model.slice(0, slash), id: model.slice(slash + 1) };
+}
+
+/**
+ * Returns the subagent model as `provider/model`. Without a requested model, it is the current
+ * model. Throws when the registry does not have the requested model, or the model has no auth, so
+ * that the subagent does not start and then fail.
+ */
+export function resolveModel<M extends ModelRef>(
+  requested: string | undefined,
+  current: ModelRef | undefined,
+  registry: ModelLookup<M>,
+): string {
+  if (requested === undefined) return currentModel(current);
+  const ref = splitModel(requested);
+  const found = ref && registry.find(ref.provider, ref.id);
+
+  if (found && registry.hasConfiguredAuth(found)) return requested;
+  const hint = current ? ` Omit model to use your model, \`${currentModel(current)}\`.` : "";
+
+  throw new Error(`The model \`${requested}\` is unknown or has no auth.${hint}`);
 }
 
 const StartParams = Type.Object({
@@ -71,7 +107,10 @@ const StartParams = Type.Object({
       "One or two words that describe your work, for example `review`. The herdr tab name uses it. Use the same group for related subagents.",
   }),
   model: Type.Optional(
-    Type.String({ description: "The model as `provider/model`. The default is your model." }),
+    Type.String({
+      description:
+        "The model as `provider/model`. The default is your model. Give a model only when the user asks for a different model.",
+    }),
   ),
 });
 
@@ -87,7 +126,7 @@ function startTool(getProvider: ProviderGetter) {
     ],
     parameters: StartParams,
     async execute(_id, params, _signal, _update, ctx) {
-      const model = params.model ?? currentModel(ctx.model);
+      const model = resolveModel(params.model, ctx.model, ctx.modelRegistry);
       const agent = await getProvider().start({ ...params, model, cwd: ctx.cwd });
 
       return text(`Started ${describeAgent(agent)}`);
