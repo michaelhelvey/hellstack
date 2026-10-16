@@ -1,0 +1,14 @@
+{
+  "name": "@hellstack/pstack",
+  "version": "0.0.0",
+  "description": "Vendors pstack as a git submodule, and patches it for pi.",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@hellstack/sync": "workspace:*",
+    "zod": "catalog:"
+  }
+}

@@ -16,6 +16,7 @@
     ]
   },
   "dependencies": {
+    "@hellstack/pstack": "workspace:*",
     "@hellstack/sync": "workspace:*",
     "marked": "18.0.11",
     "zod": "catalog:"

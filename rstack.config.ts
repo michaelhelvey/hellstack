@@ -5,6 +5,8 @@ import { globSync } from "node:fs";
 import { define } from "rstack";
 
 define.lint(({ js, ts }) => [
+  // The pstack override files run in pi, next to the upstream pstack modules, so no project has them.
+  { ignores: ["packages/pstack/vendor/**", "packages/pstack/overrides/**"] },
   js.configs.recommended,
   ts.configs.recommendedTypeChecked,
   {
@@ -19,6 +21,7 @@ define.fmt({
   singleQuote: false,
   proseWrap: "always",
   printWidth: 100,
+  ignorePatterns: ["packages/pstack/vendor/**"],
 });
 
 define.staged({

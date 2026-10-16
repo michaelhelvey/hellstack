@@ -19,11 +19,11 @@
     "check": "rs check --type-check",
     "format": "rs fmt",
     "lint": "rs lint",
-    "test": "bun test --pass-with-no-tests --path-ignore-patterns='packages/skills/skills/**'",
+    "test": "bun test --pass-with-no-tests --path-ignore-patterns='packages/skills/skills/**' --path-ignore-patterns='packages/pstack/vendor/**'",
     "test:pi": "bun test packages/pi/tests && rs check --type-check",
     "pi:update": "bun packages/pi/scripts/update.ts && bun run test:pi",
     "prepare": "rs hooks",
-    "complexity": "uvx lizard -w -i0 -Tnloc=20 -Tcyclomatic_complexity=4 -Tparameter_count=4 -x \"./packages/skills/*\" .",
+    "complexity": "uvx lizard -w -i0 -Tnloc=20 -Tcyclomatic_complexity=4 -Tparameter_count=4 -x \"./packages/skills/*\" -x \"./packages/pstack/vendor/*\" .",
     "validate": "bun run format && bun run --parallel check test complexity"
   },
   "devDependencies": {

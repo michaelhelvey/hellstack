@@ -15,6 +15,7 @@ You need [bun](https://bun.sh). [uv](https://docs.astral.sh/uv/) runs the comple
 [herdr](https://herdr.dev) is optional.
 
 ```sh
+git submodule update --init
 bun install
 mkdir -p ~/.config/hellstack && echo '{ "layers": [] }' > ~/.config/hellstack/layers.json
 bun run sync --dry-run  # show what the sync changes
@@ -45,6 +46,7 @@ This is a bun workspace. Each package in `packages/` holds one part of the setup
 | [`claude-code`](packages/claude-code/README.md) | Claude Code settings.                                         |
 | [`opencode`](packages/opencode/README.md)       | opencode config and local plugins, including a herdr plugin.  |
 | [`pi`](packages/pi/README.md)                   | pi extensions, themes, and agent settings.                    |
+| [`pstack`](packages/pstack/README.md)           | pstack as a git submodule, and the patches for pi.            |
 | [`skills`](packages/skills/README.md)           | The skills for all harnesses, and the commands for skills.sh. |
 | [`sync`](packages/sync/README.md)               | The `bun run sync` command.                                   |
 

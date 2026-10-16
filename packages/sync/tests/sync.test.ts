@@ -66,6 +66,14 @@ test("the sync removes a target that it wrote before and that is not an entry no
   expect(await readdir(join(roots.claude, "skills"))).toEqual([]);
 });
 
+test("the sync keeps the files of a new entry in the directory of a removed entry", async () => {
+  await run([skillEntry()]);
+  const target = join(roots.claude, "skills", "demo", "SKILL.md");
+  expect(kinds(await run([fileEntry(target, "# demo\n")]))).toEqual(["remove", "create"]);
+  expect(await readdir(join(roots.claude, "skills", "demo"))).toEqual(["SKILL.md"]);
+  expect((await run([fileEntry(target, "# demo\n")])).actions).toEqual([]);
+});
+
 test("the sync backs up a local edit before it overwrites it", async () => {
   const target = join(roots.pi, "settings.json");
   await run([fileEntry(target, "{}\n")]);

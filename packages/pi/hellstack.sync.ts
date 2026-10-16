@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 
+import { pstackTarget } from "@hellstack/pstack";
 import {
   appendJsonValues,
   configEntries,
@@ -30,6 +31,8 @@ const machineModelSettings = z
 export interface PiSettingsOptions {
   layers: Layers;
   packageDir: string;
+  /** The directory of the patched pstack pi package. */
+  pstackDir: string;
   /** The text of the current `settings.json` on this machine, if it exists. */
   current?: string | undefined;
 }
@@ -53,14 +56,15 @@ function keepModelSettings(text: string, current: string | undefined): string {
 
 /**
  * Changes the text of `settings.json` for the layers. Pi does not load packages from the agent
- * directory, so it also adds this package to `packages`. It keeps the model settings of the
- * current file.
+ * directory, so it also adds this package and the pstack package to `packages`. It keeps the model
+ * settings of the current file.
  */
 export function piSettings(text: string, options: PiSettingsOptions): string {
   const layered = options.layers.has("t4")
     ? appendJsonValues(text, ["packages"], t4Packages)
     : text;
-  const withPackage = appendJsonValues(layered, ["packages"], [options.packageDir]);
+  const packages = [options.packageDir, options.pstackDir];
+  const withPackage = appendJsonValues(layered, ["packages"], packages);
   return keepModelSettings(withPackage, options.current);
 }
 
@@ -73,7 +77,8 @@ export default defineSync(async ({ packageDir, roots, layers }) => {
   const current = await readCurrent(join(roots.pi, "settings.json"));
   return {
     entries: await configEntries(join(packageDir, "agent"), roots.pi, {
-      "settings.json": (text) => piSettings(text, { layers, packageDir, current }),
+      "settings.json": (text) =>
+        piSettings(text, { layers, packageDir, pstackDir: pstackTarget(roots), current }),
     }),
     integrations: [{ name: "herdr (pi)", command: ["herdr", "integration", "install", "pi"] }],
   };

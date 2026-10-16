@@ -1,12 +1,6 @@
 {
   "version": 1,
   "skills": {
-    "create-verification-skill": {
-      "source": "backnotprop/pstack",
-      "sourceType": "github",
-      "skillPath": "skills/create-verification-skill/SKILL.md",
-      "computedHash": "7a2959a102c4d346a53e2d62ed393fe495a3df2a90841476cc1815d544b1ec05"
-    },
     "herdr": {
       "source": "herdrdev/herdr",
       "sourceType": "github",
@@ -19,12 +13,6 @@
       "sourceType": "github",
       "skillPath": "packages/hunk/skills/hunk-review/SKILL.md",
       "computedHash": "45ab66c42e9586bc6b43a66a04a812c1520a1328a279c9f88660ca525c52f47a"
-    },
-    "maintain-verification-skill": {
-      "source": "backnotprop/pstack",
-      "sourceType": "github",
-      "skillPath": "skills/maintain-verification-skill/SKILL.md",
-      "computedHash": "273ceda1dc53a0f13b4c695b6bbd01217325cd348b6f7995e07d0b8196162b75"
     },
     "sentry-cli": {
       "source": "cli.sentry.dev",

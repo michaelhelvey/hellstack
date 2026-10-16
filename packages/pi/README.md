@@ -67,9 +67,10 @@ these features stop.
 
 ## Install
 
-Run `bun install` at the repository root, then `bun run sync`. The sync adds this package to
-`packages` in `~/.pi/agent/settings.json`. Pi loads the source files directly, so changes apply
-after `/reload` or a restart.
+Run `bun install` at the repository root, then `bun run sync`. The sync adds this package and the
+patched pstack package ([`@hellstack/pstack`](../pstack/README.md)) to `packages` in
+`~/.pi/agent/settings.json`. Pi loads the source files directly, so changes apply after `/reload` or
+a restart.
 
 Use `pi config` to turn off one extension or theme.
 

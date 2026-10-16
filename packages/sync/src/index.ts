@@ -4,3 +4,4 @@ export type { Integration } from "./integrations.ts";
 export { appendJsonValues, setJsonValue } from "./json.ts";
 export { type Layers, layerDir } from "./layers.ts";
 export type { Roots } from "./roots.ts";
+export { type FileData, listFiles, readFileData } from "./tree.ts";

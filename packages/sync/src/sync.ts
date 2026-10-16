@@ -40,7 +40,22 @@ async function entryHash(entry: Entry): Promise<string | undefined> {
   return entry.kind === "file" ? hashFile(entry.file) : hashPath(entry.source);
 }
 
-async function writeAction(entry: Entry, manifest: Manifest): Promise<Action | undefined> {
+function overlaps(a: string, b: string): boolean {
+  return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
+}
+
+async function writeAction(
+  entry: Entry,
+  manifest: Manifest,
+  stale: string[],
+): Promise<Action | undefined> {
+  if (stale.some((target) => overlaps(target, entry.target))) {
+    return { kind: "create", target: entry.target, entry, backup: false };
+  }
+  return changeAction(entry, manifest);
+}
+
+async function changeAction(entry: Entry, manifest: Manifest): Promise<Action | undefined> {
   const current = await hashPath(entry.target);
   if (current === (await entryHash(entry))) return undefined;
   const kind = current === undefined ? "create" : "update";
@@ -56,14 +71,15 @@ async function removeAction(target: string, manifest: Manifest): Promise<Action 
 
 /**
  * Compares the entries with the harness directories. It makes a `remove` action for each target
- * that the last sync wrote and that is not an entry now.
+ * that the last sync wrote and that is not an entry now. The removes come first, so that a remove
+ * does not delete an entry in or around the removed path. The sync writes such an entry again.
  */
 export async function planActions(entries: Entry[], manifest: Manifest): Promise<SyncResult> {
   const targets = new Set(entries.map((entry) => entry.target));
   const stale = Object.keys(manifest).filter((target) => !targets.has(target));
-  const writes = await Promise.all(entries.map((entry) => writeAction(entry, manifest)));
+  const writes = await Promise.all(entries.map((entry) => writeAction(entry, manifest, stale)));
   const removes = await Promise.all(stale.map((target) => removeAction(target, manifest)));
-  const actions = [...writes, ...removes].filter((action) => action !== undefined);
+  const actions = [...removes, ...writes].filter((action) => action !== undefined);
   return { actions, unchanged: entries.length - writes.filter(Boolean).length };
 }
 
