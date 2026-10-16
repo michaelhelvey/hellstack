@@ -1,6 +1,7 @@
 # @hellstack/skills
 
-The single source of truth for my agent skills. Claude Code, opencode, and pi use these skills.
+All my agent skills, pstack included. This package is a pi package, so pi loads the skills from
+here. `bun run amp:publish` copies them to Amp.
 
 Each skill is a directory in `skills/` with a `SKILL.md` file:
 
@@ -34,17 +35,31 @@ Make a new directory in `skills/`. The skills.sh commands do not change manual s
 
 Write skill scripts in TypeScript for `bun`. Add the skill directory to `include` in
 `tsconfig.json`, so that `bun run check` type-checks the scripts. Put their tests in `tests/`, not
-in the skill directory, because the skill directory is copied to each harness.
+in the skill directory, because the skill directory is copied to Amp.
 
-A synced skill has no `node_modules`. A script that needs packages at run time must install them
+A skill in Amp has no `node_modules`. A script that needs packages at run time must install them
 itself (see `skills/tldraw/scripts/lib/deps.ts`). Add the same packages as `devDependencies` of this
 package for type checking.
 
-## Add a private layer skill
+## Add a private skill
 
-For a skill that must not be in this repository, put it in
-`~/.config/hellstack/layers/<layer>/skills/<skill-name>/`. The sync copies it only when the layer is
-on. A layer skill cannot have the same name as a skill in `skills/`.
+For a skill that must not be in this repository, put it in `~/.pi/agent/skills/<skill-name>/`. Pi
+loads it on that machine only.
+
+## pstack
+
+The pstack skills, and some skills of cursor-team-kit and thermos, come from
+[cursor/plugins](https://github.com/cursor/plugins). They are rewritten so that they work in pi and
+Amp. `upstream.json` lists them and the upstream commit. To update them, tell an agent "update
+pstack". The `update-pstack` project skill (`.agents/skills/update-pstack`) uses these commands:
+
+```sh
+bun run pstack diff                    # the upstream changes since the commit in upstream.json
+bun run pstack add <skill> <path...>   # copy a new upstream skill
+bun run pstack bump                    # set upstream.json to the upstream HEAD
+```
+
+`tests/house-style.test.ts` fails on Cursor and Claude Code words in these skills.
 
 ## Add a skill from skills.sh
 
@@ -61,7 +76,7 @@ For example: `bun run skills:add herdrdev/herdr herdr`.
 
 `skills-lock.json` records the source of each skills.sh skill. Commit it with the skill files.
 
-The lint, format, and test commands do not examine skills.sh skills, because they are third-party
-code. `rstack.config.ts` reads the list of these skills from `skills-lock.json`.
+The lint and format commands do not change skills.sh and pstack skills, so that updates apply
+cleanly. `rstack.config.ts` reads the list from `skills-lock.json` and `upstream.json`.
 
 Do not run `bunx skills add` or `bunx skills update` directly. They write to other directories.

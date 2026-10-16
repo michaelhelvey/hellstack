@@ -81,8 +81,7 @@ deep enough. Prefer a simpler, more general change to the mechanism below. Name 
 
 Find the agent instruction files that apply to the changed code:
 
-- User-level files that exist, for example `~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`,
-  and `~/.pi/agent/AGENTS.md`.
+- The user-level instructions in your system prompt.
 - `AGENTS.md`, `CLAUDE.md`, and `CLAUDE.local.md` at the repository root.
 - `AGENTS.md`, `CLAUDE.md`, and `CLAUDE.local.md` in each directory that contains a changed file,
   and in the parent directories of that directory. A file in a directory applies only to the files

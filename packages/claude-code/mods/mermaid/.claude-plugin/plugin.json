@@ -1,5 +1,0 @@
-{
-  "name": "mermaid",
-  "version": "0.1.0",
-  "description": "Draws Mermaid code blocks in assistant replies as Unicode diagrams."
-}

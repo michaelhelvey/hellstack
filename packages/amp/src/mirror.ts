@@ -1,6 +1,6 @@
 import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { Tree } from "@hellstack/pstack";
+import type { Tree } from "./build.ts";
 import { z } from "zod";
 
 /**

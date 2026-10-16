@@ -1,0 +1,10 @@
+{
+  "name": "@hellstack/prompts",
+  "version": "0.0.0",
+  "description": "The text that every harness adds to the system prompt.",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./index.ts"
+  }
+}

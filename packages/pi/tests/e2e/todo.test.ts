@@ -66,11 +66,10 @@ test("list shows open and assigned todos, and list-all also shows closed todos",
   await todos.write("0000000b", { title: "Mine", assigned_to_session: "other-session" });
   await todos.write("0000000c", { title: "Done", status: "closed" });
   const pi = await sandbox.startRpc();
-  sandbox.model.callTools(
-    { name: "todo", arguments: { action: "list" } },
-    { name: "todo", arguments: { action: "list-all" } },
-  );
-  const [list, listAll] = (await pi.prompt("list")).toolResults().map((r) => r.text);
+  sandbox.model.callTools({ name: "todo", arguments: { action: "list" } });
+  const [list] = (await pi.prompt("list")).toolResults().map((r) => r.text);
+  sandbox.model.callTools({ name: "todo", arguments: { action: "list-all" } });
+  const [listAll] = (await pi.prompt("list all")).toolResults().map((r) => r.text);
 
   expect(list).toContain("TODO-0000000a");
   expect(list).toContain("TODO-0000000b");

@@ -24,14 +24,9 @@ import {
   type HerdrSubscriptionHandle,
 } from "./client.ts";
 import { slug } from "./layout.ts";
+import { SUBAGENT_ENV } from "../../shared/subagent.ts";
 import { readSessionMessages } from "./session.ts";
 import { type HerdrApi, type Placement, TabPlanner } from "./tabs.ts";
-
-/**
- * The environment variable that marks a subagent. The provider sets it in each subagent pane, and
- * the extension does not add its tools when it is set.
- */
-export const SUBAGENT_ENV = "HELLSTACK_SUBAGENT";
 
 /** Returns the environment variables for a new subagent pane. */
 export function subagentEnv(): Record<string, string> {

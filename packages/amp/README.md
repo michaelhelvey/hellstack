@@ -1,15 +1,13 @@
 # @hellstack/amp
 
-Publishes hellstack to Amp orbs and Puck. Amp loads the personal skills and plugins repositories
-everywhere you use Amp, so this package writes to those repositories, not to `~/.config/amp`.
+Publishes hellstack to Amp. Amp loads your personal skills and plugins repositories in every thread
+and orb, so this package writes to those repositories.
 
-| What                     | Where in Amp                      | Source                                                                     |
-| ------------------------ | --------------------------------- | -------------------------------------------------------------------------- |
-| pstack, patched for Amp  | personal skills (`user-skills`)   | `ampPatches` in [`@hellstack/pstack`](../pstack/README.md#amp)             |
-| personal skills for orbs | personal skills (`user-skills`)   | `personalSkillPatches` in `src/skills.ts`                                  |
-| the chinchilla modes     | personal plugins (`user-plugins`) | `plugin/hellstack/`, with the chinchilla style of `@hellstack/claude-code` |
-| orb secrets              | personal secrets                  | `secretSpecs` in `src/secrets.ts`                                          |
-| Puck instructions        | Settings → Puck (by hand)         | `puck.md`                                                                  |
+| What            | Where in Amp                      | Source                                                                             |
+| --------------- | --------------------------------- | ---------------------------------------------------------------------------------- |
+| The skills      | personal skills (`user-skills`)   | [`@hellstack/skills`](../skills/README.md), except `localSkills` in `src/build.ts` |
+| The plugin      | personal plugins (`user-plugins`) | `plugin/hellstack/` and [`@hellstack/prompts`](../prompts/README.md)               |
+| The orb secrets | personal secrets                  | `secretSpecs` in `src/secrets.ts`                                                  |
 
 ## Publish
 
@@ -19,19 +17,22 @@ bun run amp:publish             # commit, then ask before each push
 ```
 
 The command keeps checkouts in `~/.cache/hellstack/amp/`. It changes only the files that it wrote
-before (`.hellstack-managed.json`), so skills that Amp adds to the repositories stay. A push
-publishes the change. New threads load it.
+before (`.hellstack-managed.json`), so skills that Amp adds to the repositories stay. New threads
+get the change.
 
-## The chinchilla modes
+## The plugin
 
-The plugin adds `chinchilla-low`, `chinchilla-medium`, `chinchilla-high`, and `chinchilla-ultra`.
-Each mode is the built-in mode with the chinchilla voice and the pstack routing rule added to its
-prompt. Put them on your dial in **Settings → Mode Dial → Build Dial**.
+The plugin adds the instructions, the chinchilla voice, pstack, and the Amp notes for pstack
+(`plugin/hellstack/pstack-amp.md`) to the first prompt of each thread, in every mode. Later prompts
+get a short reminder. Plugins cannot change the system prompt of a built-in mode, so the text goes
+in a hidden message.
 
-Tune Modes does not change a plugin mode, so each mode pins its main agent, Oracle, and subagent
-models in `chinchillaModes` in `plugin/hellstack/index.ts`. When you change a pin in Tune Modes,
-change it there too. Each pinned model must be in the model mapping of a provider connection
-(`amp config model-providers list --workspace --json`), or Amp serves it with Amp credits.
+`pstack-amp.md` also has the pstack models sheet. It maps each pstack role to a built-in mode or to
+the oracle, so the models are the ones that you set in Tune Modes. A test fails when a skill names a
+role that the sheet does not have.
+
+Plugins do not load in Puck. Paste [`chinchilla.md`](../prompts/chinchilla.md) into **Settings →
+Puck → Custom instructions**.
 
 ## Secrets
 
@@ -43,8 +44,3 @@ bun run amp:secrets --set   # copy the values from this shell to your Amp secret
 `--set` reads each value from the local environment variables in `secretSpecs`. A value that is not
 in this shell stays as it is in Amp. Orbs that are running get new values after
 `amp orb restart-processes`.
-
-## Puck
-
-Plugins do not load in Puck, and Amp has no command for Puck's custom instructions. Copy `puck.md`
-into **Settings → Puck → Custom instructions** by hand.

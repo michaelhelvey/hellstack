@@ -1,0 +1,19 @@
+step	decision	why	evidence	result
+1	Delete packages claude-code, opencode, sync, pstack (submodule + patch engine)	User only uses pi and Amp; patching/vendoring is the pain	packages/ now: amp pi prompts skills	done
+2	pi loads packages/pi and packages/skills straight from the repo (pi packages)	No copy step, edits apply on /reload, nothing to drift	real pi --mode rpc: 86 commands, empty stderr	done
+3	Chinchilla in pi via a system prompt section, not Claude Code outputStyle	Old setup only worked through pi-claude-bridge reading ~/.claude/settings.json	e2e prompts.test.ts asserts the chinchilla section	done
+4	Chinchilla in Amp via agent.start hidden message, delete the 4 pinned chinchilla-* modes and the pin checker	Plugins cannot edit built-in mode prompts; modes duplicated Tune Modes pins and left built-in modes voiceless	amp build.test.ts promptText test; dry-run publish builds	done
+5	Integrate pstack from cursor/plugins (not pstack-claude) as owned skills in house style	User wants upstream cursor/plugins, no translation layer	upstream.json at 182f2ce; house-style.test.ts green	done
+6	No translation docs; each harness injects a short "pstack in <harness>" note + a models sheet	Harness facts live with the harness integration, skills name capabilities only	packages/pi/src/prompts/pstack-pi.md, packages/amp/plugin/hellstack/amp.md	done
+7	Fan out house-style rewrite to 3 opus subagents gated by house-style.test.ts	~170 Cursor-isms in 16 skills; test is the contract	gate failed 16 skills before, 0 after; diffs reviewed	done
+8	Keep ask_user_question and /loop+schedule_wakeup as slim pi extensions; drop the pstack agent runner, one-shot, path-skills	herdr-agents already supplies subagents; skills need ask + wakeups	unit tests + e2e package.test.ts	done
+9	Drop layers; email from git config, machine-only packages via pi install, private skills in ~/.pi/agent/skills	Layers existed for t4 email/packages/skills only	install.test.ts mergeSettings keeps machine packages	done
+10	pstack-models sheet stays machine-local, now plain role lines with provider/model ids	Providers differ per machine; aliases were a second mapping layer	~/.pi/agent/pstack-models.md rewritten, backup in ~/.local/state/hellstack/backups/simplify	done
+11	bun test --parallel	32s -> ~13s; fixed one order-dependent todo e2e test	3/3 parallel runs green	done
+12	Ship upstream MIT LICENSE inside each upstream skill	Copies of MIT code need the notice, also in the Amp skills repo	61 LICENSE files, tracked in upstream.json	done
+13	Independent review: opus (quality) + gpt-6.1-sol (bugs)	Required review gate; both flagged the installer deleting skills by name	reviewer reports	fixed: migration now manifest + sha256 verified, one time (old-sync.ts + tests)
+14	Restore the sealed-run guard on schedule_wakeup stop	Port dropped it; a stale iteration could cancel the replacement loop	tests/loop/scheduler.test.ts repro	fixed
+15	pstack add extracts at upstream HEAD	New upstream skills do not exist at the old locked commit	reviewer repro	fixed
+16	Split shared instructions.md from pi-only tool rules; Amp now gets instructions too	Same behavior in both harnesses	built plugin run under bun: 8209 chars with all parts	done
+17	Published to Amp user-skills and user-plugins	Full autonomy granted; git-revertible	amp plugins list: hellstack events agent.start; chinchilla-* modes gone	done
+18	Live Amp thread check	Proves voice in a real built-in mode	amp -x: 429 Go usage limit exceeded on low and medium	NOT VERIFIED

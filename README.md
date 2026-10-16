@@ -1,72 +1,61 @@
 <div align="center">
   <img src="./assets/mascot.png" alt="The hellstack mascot: a small demon mouse" width="320" />
   <h1>hellstack</h1>
-  <p>Stuff for working with clankers: plugins, skills, and more.</p>
-  <p>
-    Pi stuff is shamelessly modeled and borrowed from <a
-    href="https://github.com/mitsuhiko/agent-stuff">agent-stuff</a>; skills come from several
-    open-source projects (particularly a lot of inspiration from  <a href="https://x.com/poteto">poteto's</a> pstack.
-  </p>
+  <p>My agent setup: <a href="https://pi.dev">pi</a> on my machines, <a href="https://ampcode.com">Amp</a> in orbs, <a href="https://github.com/cursor/plugins/tree/main/pstack">pstack</a> everywhere, and a chinchilla who talks to me.</p>
 </div>
 
 ## Get started
 
-You need [bun](https://bun.sh). [uv](https://docs.astral.sh/uv/) runs the complexity check, and
-[herdr](https://herdr.dev) is optional.
+You need [bun](https://bun.sh) and [pi](https://pi.dev). [herdr](https://herdr.dev) gives pi its
+subagents, and the [Amp CLI](https://ampcode.com) is for publishing to Amp.
 
 ```sh
-git submodule update --init
 bun install
-mkdir -p ~/.config/hellstack && echo '{ "layers": [] }' > ~/.config/hellstack/layers.json
-bun run sync --dry-run  # show what the sync changes
-bun run sync            # copy everything to Claude Code, opencode, and pi
+bun run sync
 ```
 
-The sync copies files. It does not make links. After you change a file in this repository, run
-`bun run sync` again. See [`packages/sync`](packages/sync/README.md) for the targets, the manifest,
-and the backups.
+`bun run sync` points pi at this repository, then publishes the skills and the plugin to Amp. It
+asks before it pushes to Amp.
 
-Each machine has a set of _layers_ in `~/.config/hellstack/layers.json`, for example
-`{ "layers": ["t4"] }` on my work computer and `{ "layers": [] }` on my personal one. The repository
-holds the base config. Each package has a `hellstack.sync.ts` manifest that tells the sync what to
-copy and how each layer changes it (for example, `t4` adds the work plugins and models). See
-[`packages/sync`](packages/sync/README.md#layers).
+Pi loads everything from this repository. After you change a file, type `/reload` in pi. Run
+`bun run sync` again only to publish to Amp.
 
-If you're not me, edit `packages/global/AGENTS.md` and the base config files for your setup. Then
-find `layers.has("t4")` in the `hellstack.sync.ts` files, and remove those parts or change them to
-your own layers.
+## What you get
 
-## Structure
+- **Chinchilla mode.** Every agent, in pi and in every Amp mode, talks like a chinchilla.
+- **pstack.** poteto's skills and playbooks, rewritten to work the same in pi and Amp. Agents route
+  real work through `poteto-mode` without being told.
+- **My skills.** jira, pr, review, tldraw, and more, next to pstack.
+- **pi extensions.** Subagents in herdr panes, todos, goals, `/loop`, quick quotes, and more.
 
-This is a bun workspace. Each package in `packages/` holds one part of the setup:
+## Packages
 
-| Package                                         | What it holds                                                 |
-| ----------------------------------------------- | ------------------------------------------------------------- |
-| [`amp`](packages/amp/README.md)                 | Publishes skills, modes, and secrets to Amp orbs and Puck.    |
-| [`global`](packages/global/README.md)           | `AGENTS.md`, the global instructions for all harnesses.       |
-| [`claude-code`](packages/claude-code/README.md) | Claude Code settings.                                         |
-| [`opencode`](packages/opencode/README.md)       | opencode config and local plugins, including a herdr plugin.  |
-| [`pi`](packages/pi/README.md)                   | pi extensions, themes, and agent settings.                    |
-| [`pstack`](packages/pstack/README.md)           | pstack as a git submodule, and the patches for pi and Amp.    |
-| [`skills`](packages/skills/README.md)           | The skills for all harnesses, and the commands for skills.sh. |
-| [`sync`](packages/sync/README.md)               | The `bun run sync` command.                                   |
-
-In each harness package, `config/` or `agent/` has the same layout as the harness directory.
+| Package                                 | What it holds                                                       |
+| --------------------------------------- | ------------------------------------------------------------------- |
+| [`skills`](packages/skills/README.md)   | All the skills, pstack included. A pi package, and the Amp skills.  |
+| [`pi`](packages/pi/README.md)           | The pi extensions. A pi package.                                    |
+| [`amp`](packages/amp/README.md)         | The Amp plugin, and the commands that publish to Amp.               |
+| [`prompts`](packages/prompts/README.md) | The text that every harness adds: instructions, chinchilla, pstack. |
 
 ## Commands
 
-Run these from the repository root:
+| Command                               | What it does                                                        |
+| ------------------------------------- | ------------------------------------------------------------------- |
+| `bun run sync`                        | Point pi at this repository, and publish to Amp.                    |
+| `bun run amp:publish --dry-run`       | Show what Amp would get.                                            |
+| `bun run amp:secrets [--set]`         | Show the Amp orb secrets, or set them from this shell.              |
+| `bun run pstack diff`                 | Show the upstream pstack changes. Or tell an agent "update pstack". |
+| `bun run skills:add <source> <skill>` | Install a skill from skills.sh.                                     |
+| `bun run validate`                    | Format, lint, type-check, test, and check complexity.               |
 
-| Command                               | What it does                                                       |
-| ------------------------------------- | ------------------------------------------------------------------ |
-| `bun run sync [--dry-run] [--layers]` | Copy everything to the harness directories.                        |
-| `bun run amp:publish [--dry-run]`     | Publish the skills and the chinchilla modes to Amp.                |
-| `bun run amp:secrets [--set]`         | Show the Amp orb secrets, or set them from this shell.             |
-| `bun run skills:add <source> <skill>` | Install a skill from skills.sh.                                    |
-| `bun run skills:update [skill...]`    | Update skills from skills.sh.                                      |
-| `bun run skills:remove <skill...>`    | Remove skills from skills.sh.                                      |
-| `bun run validate`                    | Format, then lint, type-check, test, and run the complexity check. |
-| `bun run test:pi`                     | Test the pi extensions against the installed pi, and type-check.   |
+## One machine only
+
+- Packages: `pi install npm:<package>`. `bun run sync` keeps them.
+- Skills: put them in `~/.pi/agent/skills/`.
+- Models for pstack subagents: `~/.pi/agent/pstack-models.md` (see
+  [`packages/pi`](packages/pi/README.md#pstack-models)).
+
+If you're not me, edit [`packages/prompts/instructions.md`](packages/prompts/instructions.md) first.
 
 ## what's with the name?
 

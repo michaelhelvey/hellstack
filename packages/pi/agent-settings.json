@@ -1,0 +1,6 @@
+{
+  "theme": "system",
+  "hideThinkingBlock": true,
+  "packages": ["npm:@ff-labs/pi-fff"],
+  "defaultTools": ["+codemode"]
+}

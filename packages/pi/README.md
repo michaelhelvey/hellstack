@@ -1,18 +1,35 @@
 # @hellstack/pi
 
-Personal extensions and themes for [pi](https://pi.dev).
+Personal extensions for [pi](https://pi.dev).
 
-| Extension        | What it does                                                                                                                                                  |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `goal`           | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                                 |
-| `todo`           | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                                 |
-| `uv`             | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                        |
-| `web-fetch`      | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                              |
-| `herdr-prompts`  | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                    |
-| `herdr-agents`   | Runs subagents as pi agents in herdr panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below. |
-| `whimsical`      | Shows a random working message on each turn.                                                                                                                  |
-| `quick-quote`    | Type `>` at the start of a line to quote a paragraph of the last reply. See below.                                                                            |
-| `skill-commands` | Start a skill with `/name` anywhere in the prompt, not only with `/skill:name` at the start. See below.                                                       |
+| Extension        | What it does                                                                                                                                                                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prompts`        | Adds [`@hellstack/prompts`](../prompts/README.md) (instructions, the chinchilla voice, pstack) to the system prompt, with the pi notes (`src/prompts/*.md`) and the pstack models sheet. |
+| `ask`            | Adds the `ask_user_question` tool: questions with fixed choices in a dialog.                                                                                                             |
+| `loop`           | Adds `/loop [interval] <prompt>` and the `schedule_wakeup` tool. Without an interval, the agent schedules each next run itself. `/loop stop` ends it.                                    |
+| `goal`           | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                                                            |
+| `todo`           | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                                                            |
+| `uv`             | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                                                   |
+| `web-fetch`      | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                                                         |
+| `herdr-prompts`  | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                                               |
+| `herdr-agents`   | Runs subagents as pi agents in herdr panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below.                            |
+| `whimsical`      | Shows a random working message on each turn.                                                                                                                                             |
+| `quick-quote`    | Type `>` at the start of a line to quote a paragraph of the last reply. See below.                                                                                                       |
+| `skill-commands` | Start a skill with `/name` anywhere in the prompt, not only with `/skill:name` at the start. See below.                                                                                  |
+
+## pstack models
+
+The pstack skills pick the model of a subagent by role, for example `arena runners`. Write the
+models of this machine in `~/.pi/agent/pstack-models.md`, as `provider/model`. A panel gets one
+subagent for each model. Without the file, every role runs on the session model. The roles are in
+the Amp sheet, [`pstack-amp.md`](../amp/plugin/hellstack/pstack-amp.md).
+
+```markdown
+- strongest judgment: claude-bridge/claude-fable-5-1
+- feature, refactoring, bug-fix, perf-issue, hillclimb: claude-bridge/claude-opus-5-5
+- arena runners, architect runners, interrogate reviewers: claude-bridge/claude-opus-5-5,
+  github-copilot/gpt-6.1-sol
+```
 
 ## Subagents
 
@@ -67,22 +84,13 @@ these features stop.
 
 ## Install
 
-Run `bun install` at the repository root, then `bun run sync`. The sync adds this package and the
-patched pstack package ([`@hellstack/pstack`](../pstack/README.md)) to `packages` in
-`~/.pi/agent/settings.json`. Pi loads the source files directly, so changes apply after `/reload` or
-a restart.
+`bun run sync` at the repository root adds this package and
+[`@hellstack/skills`](../skills/README.md) to `packages` in `~/.pi/agent/settings.json`, with the
+settings in `agent-settings.json`. It keeps the other settings and packages of the machine. Pi loads
+the files from this repository, so a change applies after `/reload`.
 
-Use `pi config` to turn off one extension or theme.
-
-## Agent files
-
-`agent/` holds files for the pi agent folder (`~/.pi/agent`), such as `settings.json`. Pi does not
-load these from a package. `bun run sync` copies them to `~/.pi/agent`. `AGENTS.md` is in
-`@hellstack/global`.
-
-The `t4` layer adds the AI gateway plugin (see `hellstack.sync.ts`). The sync does not set models.
-It keeps `defaultProvider`, `defaultModel`, `defaultThinkingLevel`, and `enabledModels` from the
-current `settings.json` on each machine.
+Use `pi config` to turn off one extension. Install packages that only one machine needs with
+`pi install`.
 
 ## Configuration
 

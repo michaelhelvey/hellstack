@@ -1,47 +1,50 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { buildAmpPstack, type Tree } from "@hellstack/pstack";
-import { type FileData, listFiles, readFileData } from "@hellstack/sync";
+import { promptNames, promptPath } from "@hellstack/prompts";
 
-import { buildPersonalSkills } from "./skills.ts";
+import { instructionFiles } from "../plugin/hellstack/index.ts";
 
-/** The directories of the other packages that the Amp build reads, from the `packages` directory. */
-export interface Sources {
-  pstack: string;
-  skills: string;
-  claudeCode: string;
-  amp: string;
+/** The content and the mode of one file. */
+export interface FileData {
+  content: Uint8Array;
+  mode: number;
 }
 
-/** Returns the source directories of the Amp build in the `packages` directory. */
-export function sourcesIn(packagesDir: string): Sources {
-  return {
-    pstack: join(packagesDir, "pstack"),
-    skills: join(packagesDir, "skills", "skills"),
-    claudeCode: join(packagesDir, "claude-code"),
-    amp: join(packagesDir, "amp"),
-  };
-}
+/** Files by their path in a repository. */
+export type Tree = Map<string, FileData>;
 
 /** The name of the plugin in the Amp personal plugins repository. */
 export const pluginName = "hellstack";
 
-const encoder = new TextEncoder();
-
 /**
- * Makes the tree of the Amp personal skills repository: the patched pstack skills, then the
- * personal skills. It throws an error when two skills have the same name.
+ * The skills that need the user's machine: a desktop app, a signed-in browser, or a terminal
+ * multiplexer. Amp does not get them.
  */
-export async function buildSkillsRepo(sources: Sources): Promise<Tree> {
-  const [pstack, personal] = await Promise.all([
-    buildAmpPstack(sources.pstack),
-    buildPersonalSkills(sources.skills),
-  ]);
-  const pstackSkills = new Set([...pstack.keys()].map(skillOf));
-  const both = [...new Set([...personal.keys()].map(skillOf))].filter((s) => pstackSkills.has(s));
-  if (both.length > 0)
-    throw new Error(`pstack and the personal skills both have: ${both.join(", ")}`);
-  return new Map([...pstack, ...personal]);
+export const localSkills = [
+  "chrome-devtools-cli",
+  "cleanup-macos",
+  "herdr",
+  "hunk-review",
+  "one-on-one-prep",
+];
+
+const packagesDir = join(import.meta.dir, "..", "..");
+
+/** The directory of all the skills. */
+export const skillsDir = join(packagesDir, "skills", "skills");
+
+const ignored = /(^|\/)(node_modules|\.DS_Store)(\/|$)/;
+
+async function readTree(dir: string, prefix: string): Promise<Tree> {
+  const paths = await readdir(dir, { recursive: true });
+  const tree: Tree = new Map();
+  for (const path of paths.filter((path) => !ignored.test(path))) {
+    const info = await stat(join(dir, path));
+    if (info.isFile()) {
+      tree.set(join(prefix, path), { content: await readFile(join(dir, path)), mode: info.mode });
+    }
+  }
+  return tree;
 }
 
 /** Returns the top-level directory of a path, which is the skill name in a skills repository. */
@@ -49,24 +52,22 @@ export function skillOf(path: string): string {
   return path.split("/")[0]!;
 }
 
-function withoutFrontmatter(text: string): string {
-  return text.replace(/^---\n[\s\S]*?\n---\n+/, "");
+/** Makes the tree of the Amp personal skills repository: every skill except `localSkills`. */
+export async function buildSkillsRepo(): Promise<Tree> {
+  const tree = await readTree(skillsDir, "");
+  return new Map([...tree].filter(([path]) => !localSkills.includes(skillOf(path))));
 }
 
 /**
- * Makes the tree of the Amp personal plugins repository. The plugin gets the chinchilla output style
- * of Claude Code without its frontmatter.
+ * Makes the tree of the Amp personal plugins repository: the plugin, and the files of
+ * `@hellstack/prompts` that the plugin reads.
  */
-export async function buildPluginsRepo(sources: Sources): Promise<Tree> {
-  const pluginDir = join(sources.amp, "plugin", pluginName);
-  const paths = await listFiles(pluginDir);
-  const files = await Promise.all(paths.map((path) => readFileData(join(pluginDir, path))));
-  const tree: Tree = new Map(paths.map((path, index) => [`${pluginName}/${path}`, files[index]!]));
-  const style = join(sources.claudeCode, "config", "output-styles", "chinchilla.md");
-  const chinchilla: FileData = {
-    content: encoder.encode(withoutFrontmatter(await readFile(style, "utf8"))),
-    mode: 0o644,
-  };
-  tree.set(`${pluginName}/chinchilla.md`, chinchilla);
+export async function buildPluginsRepo(): Promise<Tree> {
+  const tree = await readTree(join(import.meta.dir, "..", "plugin", pluginName), pluginName);
+  const shared = promptNames.filter((name) => instructionFiles.includes(`${name}.md`));
+  for (const name of shared) {
+    const content = await readFile(promptPath(name));
+    tree.set(`${pluginName}/${name}.md`, { content, mode: 0o644 });
+  }
   return tree;
 }

@@ -1,13 +1,11 @@
 {
   "extends": "../../tsconfig.json",
   "include": [
-    "hellstack.sync.ts",
     "src",
     "tests",
     "skills/tldraw/**/*.ts",
     "skills/whitespace/**/*.ts",
     "skills/jira/**/*.ts",
-    "skills/cleanup-macos/**/*.ts",
-    "skills/ask-michael/**/*.ts"
+    "skills/cleanup-macos/**/*.ts"
   ]
 }

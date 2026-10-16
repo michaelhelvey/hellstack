@@ -10,10 +10,10 @@ disable-model-invocation: true
 When you are working with a 3rd party library or tool, and that tool does not include the source in
 the current working directory (e.g. the published NPM package contains only bundled code, the tool
 is a CLI, etc), clone the code from the remote forge into `~/dev/thirdparty/<tool-name>` in order to
-more fully understand it.
+more fully understand it. In an Amp orb, use `~/thirdparty/<tool-name>`.
 
-1. If the tool is already present in `~/dev/thirdparty`, do not reclone it. Ensure that it is on the
-   main branch and fetch latest.
+1. If the tool is already present in the `thirdparty` directory, do not reclone it. Ensure that it
+   is on the main branch and fetch latest.
 2. Always use `--depth 1` when cloning to avoid bloating the version control system with diffs that
    we will never inspect.
 3. If you install project dependencies, or build the project (e.g. creating a Rust target

@@ -1,12 +1,23 @@
 // Configuration guide: https://rstack.rs/config
 // Rstack is used for linting, formatting, and git hooks only. Bun runs,
 // tests, and resolves all TypeScript directly -- there is no build step.
-import { globSync } from "node:fs";
+import { globSync, readFileSync } from "node:fs";
 import { define } from "rstack";
+import { z } from "zod";
+
+// Skills from skills.sh and from pstack stay as close to upstream as possible, so that updates
+// apply cleanly. Lint and format do not touch them.
+function skillNames(file: string): string[] {
+  const schema = z.object({ skills: z.record(z.string(), z.unknown()) });
+  return Object.keys(schema.parse(JSON.parse(readFileSync(file, "utf8"))).skills);
+}
+
+const thirdParty = ["upstream.json", "skills-lock.json"]
+  .flatMap((file) => skillNames(`packages/skills/${file}`))
+  .map((name) => `packages/skills/skills/${name}/**`);
 
 define.lint(({ js, ts }) => [
-  // The pstack override files run in pi, next to the upstream pstack modules, so no project has them.
-  { ignores: ["packages/pstack/vendor/**", "packages/pstack/overrides/**"] },
+  { ignores: thirdParty },
   js.configs.recommended,
   ts.configs.recommendedTypeChecked,
   {
@@ -21,7 +32,7 @@ define.fmt({
   singleQuote: false,
   proseWrap: "always",
   printWidth: 100,
-  ignorePatterns: ["packages/pstack/vendor/**"],
+  ignorePatterns: thirdParty,
 });
 
 define.staged({

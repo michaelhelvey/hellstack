@@ -19,6 +19,8 @@ afterEach(async () => {
 });
 
 const EXPECTED_TOOLS = [
+  "ask_user_question",
+  "schedule_wakeup",
   "create_goal",
   "get_goal",
   "todo",
@@ -41,6 +43,8 @@ test("pi loads the package with no errors or warnings, and gives its tools to th
   expect(commands).toContain("goal");
   expect(commands).toContain("todos");
   expect(commands).toContain("agents");
+  expect(commands).toContain("loop");
+  expect(commands).toContain("skill:poteto-mode");
   const tools = sandbox.model.requests[0]?.tools.map((t) => t.function.name) ?? [];
   expect(EXPECTED_TOOLS.filter((name) => !tools.includes(name))).toEqual([]);
   expect(tools.filter((name) => name === "bash")).toHaveLength(1);

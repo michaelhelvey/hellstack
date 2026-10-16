@@ -1,7 +1,8 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 
 import { HerdrClient, herdrEnv } from "./herdr/client.ts";
-import { HerdrSubagentProvider, SUBAGENT_ENV } from "./herdr/provider.ts";
+import { SUBAGENT_ENV } from "../shared/subagent.ts";
+import { HerdrSubagentProvider } from "./herdr/provider.ts";
 import { AwaitedAgents, CompletionNotifier, REPORT_MESSAGE_TYPE } from "./notify.ts";
 import { describeAgent, registerSubagentTools } from "./tools.ts";
 import { AgentsWidget } from "./ui/widget.ts";

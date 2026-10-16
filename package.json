@@ -12,26 +12,26 @@
     }
   },
   "scripts": {
+    "sync": "bun packages/pi/scripts/install.ts && bun packages/amp/src/cli.ts publish",
+    "amp:publish": "bun packages/amp/src/cli.ts publish",
+    "amp:secrets": "bun packages/amp/src/cli.ts secrets",
+    "pstack": "bun packages/skills/src/upstream.ts",
     "skills:add": "bun packages/skills/src/cli.ts add",
     "skills:update": "bun packages/skills/src/cli.ts update",
     "skills:remove": "bun packages/skills/src/cli.ts remove",
-    "sync": "bun packages/sync/src/cli.ts",
-    "amp:publish": "bun packages/amp/src/cli.ts publish",
-    "amp:secrets": "bun packages/amp/src/cli.ts secrets",
+    "pi:update": "bun packages/pi/scripts/update.ts && bun test packages/pi/tests",
     "check": "rs check --type-check",
     "format": "rs fmt",
     "lint": "rs lint",
-    "test": "bun test --pass-with-no-tests --path-ignore-patterns='packages/skills/skills/**' --path-ignore-patterns='packages/pstack/vendor/**'",
-    "test:pi": "bun test packages/pi/tests && rs check --type-check",
-    "pi:update": "bun packages/pi/scripts/update.ts && bun run test:pi",
-    "prepare": "rs hooks",
-    "complexity": "uvx lizard -w -i0 -Tnloc=20 -Tcyclomatic_complexity=4 -Tparameter_count=4 -x \"./packages/skills/*\" -x \"./packages/pstack/vendor/*\" .",
-    "validate": "bun run format && bun run --parallel check test complexity"
+    "test": "bun test --parallel --path-ignore-patterns='packages/skills/skills/**'",
+    "complexity": "uvx lizard -w -i0 -Tnloc=20 -Tcyclomatic_complexity=4 -Tparameter_count=4 -x \"./packages/skills/skills/*\" -x \"./packages/skills/tests/*\" -x \"*/node_modules/*\" .",
+    "validate": "bun run format && bun run --parallel check test complexity",
+    "prepare": "rs hooks"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "rstack": "^0.8.0",
-    "typescript": "^7.0.2"
-  },
-  "dependencies": {}
+    "typescript": "^7.0.2",
+    "zod": "catalog:"
+  }
 }

@@ -13,6 +13,9 @@ export const PI_BIN = process.env.PI_BIN ?? "pi";
 /** The folder of the `@hellstack/pi` package. */
 export const PACKAGE_DIR = path.resolve(import.meta.dir, "../../..");
 
+/** The folder of the `@hellstack/skills` package, which pi also loads. */
+export const SKILLS_DIR = path.resolve(PACKAGE_DIR, "../skills");
+
 /** Options for a pi sandbox. */
 export interface SandboxOptions {
   /** More extension files to load with `-e`, for example a probe extension. */
@@ -53,7 +56,7 @@ async function writeAgentDir(agentDir: string, model: FakeModel): Promise<void> 
   );
   await Bun.write(
     path.join(agentDir, "settings.json"),
-    JSON.stringify({ packages: [PACKAGE_DIR], quietStartup: true }),
+    JSON.stringify({ packages: [PACKAGE_DIR, SKILLS_DIR], quietStartup: true }),
   );
 }
 

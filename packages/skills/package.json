@@ -1,14 +1,18 @@
 {
   "name": "@hellstack/skills",
   "version": "0.0.0",
-  "description": "Personal agent skills for Claude Code, opencode, and pi.",
+  "description": "All my agent skills, pstack included. A pi package, and the source of the Amp skills.",
   "type": "module",
   "private": true,
-  "files": [
-    "skills"
+  "keywords": [
+    "pi-package"
   ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
   "dependencies": {
-    "@hellstack/sync": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

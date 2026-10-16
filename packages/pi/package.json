@@ -1,7 +1,7 @@
 {
   "name": "@hellstack/pi",
   "version": "0.0.0",
-  "description": "Personal pi extensions and themes.",
+  "description": "Personal pi extensions.",
   "type": "module",
   "private": true,
   "keywords": [
@@ -10,16 +10,12 @@
   "pi": {
     "extensions": [
       "./src/*/index.ts"
-    ],
-    "themes": [
-      "./themes/*.json"
     ]
   },
   "dependencies": {
-    "@hellstack/pstack": "workspace:*",
-    "@hellstack/sync": "workspace:*",
     "marked": "18.0.11",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@hellstack/prompts": "workspace:*"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

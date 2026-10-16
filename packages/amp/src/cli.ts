@@ -1,11 +1,8 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { Tree } from "@hellstack/pstack";
-
-import { buildPluginsRepo, buildSkillsRepo, type Sources, sourcesIn } from "./build.ts";
+import { buildPluginsRepo, buildSkillsRepo, type Tree } from "./build.ts";
 import { checkout, commitAndPush, discard, type RepoKind, run, stageAll } from "./git.ts";
 import { mirror } from "./mirror.ts";
-import { pinProblems, readModelEfforts } from "./pins.ts";
 import {
   localValue,
   type SecretSpec,
@@ -20,7 +17,7 @@ const usage = `Usage:
 
 interface Repo {
   kind: RepoKind;
-  build: (sources: Sources) => Promise<Tree>;
+  build: () => Promise<Tree>;
 }
 
 const repos: Repo[] = [
@@ -45,10 +42,10 @@ function shouldPush(repository: string, flags: Set<string>): boolean {
   return prompt(`Push these changes to ${repository}? This publishes them. [y/N]`) === "y";
 }
 
-async function publishRepo(repo: Repo, sources: Sources, flags: Set<string>): Promise<void> {
+async function publishRepo(repo: Repo, flags: Set<string>): Promise<void> {
   const name = `user-${repo.kind}`;
   const dir = join(cacheDir, name);
-  const tree = await repo.build(sources);
+  const tree = await repo.build();
   await checkout(repo.kind, dir);
   await mirror(dir, tree);
   const status = await stageAll(dir);
@@ -59,16 +56,9 @@ async function publishRepo(repo: Repo, sources: Sources, flags: Set<string>): Pr
   console.log(`pushed ${name}`);
 }
 
-async function checkPins(): Promise<void> {
-  const problems = pinProblems(await readModelEfforts());
-  if (problems.length > 0)
-    throw new Error(`fix the pins in chinchillaModes:\n${problems.join("\n")}`);
-}
-
 async function publish(flags: Set<string>): Promise<void> {
-  await checkPins();
-  const sources = sourcesIn(join(repoRoot, "packages"));
-  for (const repo of repos) await publishRepo(repo, sources, flags);
+  if (Bun.which("amp") === null) return console.log("amp is not installed, so Amp gets nothing.");
+  for (const repo of repos) await publishRepo(repo, flags);
 }
 
 function secretLine(spec: SecretSpec, inShell: boolean, inAmp: boolean): string {
