@@ -10,6 +10,18 @@
         "typescript": "^7.0.2",
       },
     },
+    "packages/amp": {
+      "name": "@hellstack/amp",
+      "version": "0.0.0",
+      "dependencies": {
+        "@hellstack/pstack": "workspace:*",
+        "@hellstack/sync": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@ampcode/plugin": "^0.0.0-20261016001627-gab25fd2",
+      },
+    },
     "packages/claude-code": {
       "name": "@hellstack/claude-code",
       "version": "0.0.0",
@@ -95,6 +107,8 @@
   },
   "packages": {
     "@ai-sdk/provider": ["@ai-sdk/provider@3.0.8", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-oGMAgGoQdBXbZqNG0Ze56CHjDZ1IDYOwGYxYjO5KLSlz5HiNQ9udIXsPZ61VWaHGZ5XW/jyjmr6t2xz2jGVwbQ=="],
+
+    "@ampcode/plugin": ["@ampcode/plugin@0.0.0-20261016001627-gab25fd2", "", {}, "sha512-EM6a6D1GUtL5vKecBoX2d/2YkS1j1Jjuv8nbuaFA8wie0fSSEsD91N7meFiKV05cIKhg83bOILz47fF8l09b/g=="],
 
     "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.129.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-MH7LB20kNpGLUpPTe2OG5XvL/KhX8HUO9XyBaFjgFk6TLS4Xjt0VPIuMKywe7POKKPslX+QxSlVok9e+8kG5Nw=="],
 
@@ -191,6 +205,8 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
 
     "@google/genai": ["@google/genai@2.21.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-+PDtco2/Z0ONdzCGekCoCT+O1VJS9xJQNN4XzQpXG/t3El/SWWMkCWlFRO1KmivOHPa4Q0VjUYu1HBKCZ/v33Q=="],
+
+    "@hellstack/amp": ["@hellstack/amp@workspace:packages/amp"],
 
     "@hellstack/claude-code": ["@hellstack/claude-code@workspace:packages/claude-code"],
 

@@ -16,6 +16,8 @@
     "skills:update": "bun packages/skills/src/cli.ts update",
     "skills:remove": "bun packages/skills/src/cli.ts remove",
     "sync": "bun packages/sync/src/cli.ts",
+    "amp:publish": "bun packages/amp/src/cli.ts publish",
+    "amp:secrets": "bun packages/amp/src/cli.ts secrets",
     "check": "rs check --type-check",
     "format": "rs fmt",
     "lint": "rs lint",

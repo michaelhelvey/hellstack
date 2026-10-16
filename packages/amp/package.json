@@ -1,0 +1,15 @@
+{
+  "name": "@hellstack/amp",
+  "version": "0.0.0",
+  "description": "Publishes pstack, personal skills, and the chinchilla modes plugin to Amp.",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@hellstack/pstack": "workspace:*",
+    "@hellstack/sync": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ampcode/plugin": "^0.0.0-20261016001627-gab25fd2"
+  }
+}

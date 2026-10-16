@@ -12,12 +12,16 @@ export {
   type PatchSet,
   patchTree,
   removeLine,
+  removeSection,
+  replaceLine,
   replaceOnce,
   replaceSection,
   type Tree,
   upstreamHash,
 } from "./patch.ts";
 export { pstackPatches } from "./patches.ts";
+export { ampPatches } from "./amp-patches.ts";
+export { ampOverridesPath, buildAmpPstack } from "./amp.ts";
 
 /** The path of the pstack submodule, relative to this package. */
 export const vendorPath = join("vendor", "pstack-claude");

@@ -42,11 +42,12 @@ This is a bun workspace. Each package in `packages/` holds one part of the setup
 
 | Package                                         | What it holds                                                 |
 | ----------------------------------------------- | ------------------------------------------------------------- |
+| [`amp`](packages/amp/README.md)                 | Publishes skills, modes, and secrets to Amp orbs and Puck.    |
 | [`global`](packages/global/README.md)           | `AGENTS.md`, the global instructions for all harnesses.       |
 | [`claude-code`](packages/claude-code/README.md) | Claude Code settings.                                         |
 | [`opencode`](packages/opencode/README.md)       | opencode config and local plugins, including a herdr plugin.  |
 | [`pi`](packages/pi/README.md)                   | pi extensions, themes, and agent settings.                    |
-| [`pstack`](packages/pstack/README.md)           | pstack as a git submodule, and the patches for pi.            |
+| [`pstack`](packages/pstack/README.md)           | pstack as a git submodule, and the patches for pi and Amp.    |
 | [`skills`](packages/skills/README.md)           | The skills for all harnesses, and the commands for skills.sh. |
 | [`sync`](packages/sync/README.md)               | The `bun run sync` command.                                   |
 
@@ -59,6 +60,8 @@ Run these from the repository root:
 | Command                               | What it does                                                       |
 | ------------------------------------- | ------------------------------------------------------------------ |
 | `bun run sync [--dry-run] [--layers]` | Copy everything to the harness directories.                        |
+| `bun run amp:publish [--dry-run]`     | Publish the skills and the chinchilla modes to Amp.                |
+| `bun run amp:secrets [--set]`         | Show the Amp orb secrets, or set them from this shell.             |
 | `bun run skills:add <source> <skill>` | Install a skill from skills.sh.                                    |
 | `bun run skills:update [skill...]`    | Update skills from skills.sh.                                      |
 | `bun run skills:remove <skill...>`    | Remove skills from skills.sh.                                      |

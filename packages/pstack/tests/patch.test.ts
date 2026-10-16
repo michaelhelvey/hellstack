@@ -7,6 +7,8 @@ import {
   type PatchSet,
   patchTree,
   removeLine,
+  removeSection,
+  replaceLine,
   replaceOnce,
   replaceSection,
   type Tree,
@@ -82,6 +84,17 @@ describe("edits", () => {
       "## A\n\nkeep\n\n## B\n\nnew\n\n",
     );
   });
+
+  test("replaceLine replaces the one line that contains the text", () => {
+    expect(replaceLine("two", "2")("one\ntwo words\nthree\n")).toBe("one\n2\nthree\n");
+    expect(() => replaceLine("o", "x")("one\ntwo\n")).toThrow("found 2");
+  });
+
+  test("removeSection removes the heading and the body up to the next heading of the same level", () => {
+    const text = "# A\n\n## B\n\nold\n\n### C\n\nold\n\n## D\n\nkeep\n";
+    expect(removeSection("## B")(text)).toBe("# A\n\n## D\n\nkeep\n");
+    expect(removeSection("## D")(text)).toBe("# A\n\n## B\n\nold\n\n### C\n\nold\n\n");
+  });
 });
 
 describe("patchTree", () => {
@@ -138,6 +151,21 @@ describe("patchTree", () => {
     expect(await failure(patchTree(upstream, set, root))).toContain(
       "a.md: there is no file to edit",
     );
+  });
+
+  test("removes the dropLines lines from Markdown files only, before the edits", async () => {
+    const upstream = join(root, "upstream");
+    await writeFiles(upstream, { "a.md": "keep\nOn Codex, x\nend", "b.md": "On Codex, y" });
+    const set = patchSet({
+      include: ["a.md", "b.ts"],
+      dropLines: [/^On Codex,/],
+      edits: { "a.md": [replaceOnce("keep\nend", "done")] },
+    });
+    await writeFiles(upstream, { "b.ts": "On Codex, z" });
+    expect(texts(await patchTree(upstream, set, root))).toEqual({
+      "a.md": "done",
+      "b.ts": "On Codex, z",
+    });
   });
 
   test("throws with each file that has forbidden text", async () => {

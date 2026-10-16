@@ -20,6 +20,20 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# Install the jira-cli release binary in ~/.local/bin, for Linux machines without Homebrew or Go.
+install_release() {
+  local arch tmp
+  arch="$(uname -m)"
+  [ "$arch" = aarch64 ] && arch=arm64
+  tmp="$(mktemp -d)"
+  gh release download -R ankitpokhrel/jira-cli -D "$tmp" -p "jira_*_linux_${arch}.tar.gz"
+  tar -xzf "$tmp"/jira_*.tar.gz -C "$tmp"
+  mkdir -p "$HOME/.local/bin"
+  install -m 0755 "$(find "$tmp" -type f -name jira | head -n 1)" "$HOME/.local/bin/jira"
+  rm -rf "$tmp"
+  command -v jira >/dev/null || die "jira-cli is in ~/.local/bin, but ~/.local/bin is not on PATH"
+}
+
 install_cli() {
   if command -v jira >/dev/null; then
     jira version 2>/dev/null | grep -q GitCommit \
@@ -30,6 +44,8 @@ install_cli() {
     brew install jira-cli
   elif command -v go >/dev/null; then
     go install github.com/ankitpokhrel/jira-cli/cmd/jira@latest
+  elif [ "$(uname -s)" = Linux ] && command -v gh >/dev/null; then
+    install_release
   else
     die "install jira-cli: https://github.com/ankitpokhrel/jira-cli#installation"
   fi

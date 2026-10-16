@@ -30,6 +30,11 @@ export interface PatchSet {
   edits: Record<string, Edit[]>;
   /** Text that no file in the patched tree can contain. */
   forbidden: RegExp[];
+  /**
+   * Lines to remove from every Markdown file, for example the lines that point to a runtime that
+   * the patched tree is not for. The lines go before the edits apply.
+   */
+  dropLines?: RegExp[];
 }
 
 const decoder = new TextDecoder();
@@ -57,15 +62,26 @@ export function replaceOnce(find: string, replace: string): Edit {
   };
 }
 
+function expectOneLine(lines: string[], part: string): void {
+  const found = lines.filter((line) => line.includes(part)).length;
+  if (found !== 1) throw new Error(`expected 1 line with ${JSON.stringify(part)}, found ${found}`);
+}
+
 /** Makes an edit that removes the line that contains `part`. One line must contain it. */
 export function removeLine(part: string): Edit {
   return (text) => {
     const lines = text.split("\n");
-    const matches = lines.filter((line) => line.includes(part));
-    if (matches.length !== 1) {
-      throw new Error(`expected 1 line with ${JSON.stringify(part)}, found ${matches.length}`);
-    }
+    expectOneLine(lines, part);
     return lines.filter((line) => !line.includes(part)).join("\n");
+  };
+}
+
+/** Makes an edit that replaces the line that contains `part` with `line`. One line must contain it. */
+export function replaceLine(part: string, line: string): Edit {
+  return (text) => {
+    const lines = text.split("\n");
+    expectOneLine(lines, part);
+    return lines.map((next) => (next.includes(part) ? line : next)).join("\n");
   };
 }
 
@@ -74,14 +90,31 @@ export function removeLine(part: string): Edit {
  * for example `## Comments`. The body ends at the next heading of the same or a higher level.
  */
 export function replaceSection(heading: string, body: string): Edit {
-  const level = heading.indexOf(" ");
   return (text) => {
-    expectOnce(text, `\n${heading}\n`);
-    const start = text.indexOf(`\n${heading}\n`) + heading.length + 2;
-    const next = new RegExp(`\\n#{1,${level}} `).exec(text.slice(start));
-    const end = next === null ? text.length : start + next.index + 1;
-    return `${text.slice(0, start)}\n${body.trim()}\n\n${text.slice(end)}`;
+    const { start, end } = findSection(text, heading);
+    const bodyStart = start + heading.length + 1;
+    return `${text.slice(0, bodyStart)}\n${body.trim()}\n\n${text.slice(end)}`;
   };
+}
+
+/** Makes an edit that removes a Markdown section, its heading included. */
+export function removeSection(heading: string): Edit {
+  return (text) => {
+    const { start, end } = findSection(text, heading);
+    return text.slice(0, start) + text.slice(end);
+  };
+}
+
+/**
+ * Finds a Markdown section. `start` is the index of its heading line, and `end` is the index of the
+ * next heading of the same or a higher level, or the end of the text.
+ */
+function findSection(text: string, heading: string): { start: number; end: number } {
+  expectOnce(text, `\n${heading}\n`);
+  const start = text.indexOf(`\n${heading}\n`) + 1;
+  const bodyStart = start + heading.length + 1;
+  const next = new RegExp(`\\n#{1,${heading.indexOf(" ")}} `).exec(text.slice(bodyStart));
+  return { start, end: next === null ? text.length : bodyStart + next.index + 1 };
 }
 
 function isUnder(path: string, prefixes: string[]): boolean {
@@ -115,6 +148,15 @@ function editFile(file: FileData, edits: Edit[]): FileData {
   return { ...file, content: encoder.encode(text) };
 }
 
+function dropMatchingLines(tree: Tree, patterns: RegExp[]): void {
+  const markdown = [...tree].filter(([path]) => path.endsWith(".md"));
+  for (const [path, file] of markdown) {
+    const lines = decoder.decode(file.content).split("\n");
+    const kept = lines.filter((line) => !patterns.some((pattern) => pattern.test(line)));
+    tree.set(path, { ...file, content: encoder.encode(kept.join("\n")) });
+  }
+}
+
 function applyEdits(tree: Tree, set: PatchSet): void {
   for (const [path, edits] of Object.entries(set.edits)) {
     const file = tree.get(path);
@@ -142,6 +184,7 @@ export function findForbidden(tree: Tree, forbidden: RegExp[]): string[] {
 export async function patchTree(dir: string, set: PatchSet, overridesDir: string): Promise<Tree> {
   const tree = await readTree(dir, set.include, set.drop);
   await applyOverrides(tree, set, overridesDir);
+  dropMatchingLines(tree, set.dropLines ?? []);
   applyEdits(tree, set);
   const found = findForbidden(tree, set.forbidden);
   if (found.length > 0)
