@@ -1,0 +1,10 @@
+{
+  "name": "@hellstack/gateway",
+  "version": "0.0.0",
+  "description": "Sets up the work AI gateway for Claude Code on this machine.",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "zod": "catalog:"
+  }
+}

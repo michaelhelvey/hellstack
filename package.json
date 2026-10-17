@@ -12,7 +12,8 @@
     }
   },
   "scripts": {
-    "sync": "bun packages/pi/scripts/install.ts && bun packages/amp/src/cli.ts publish",
+    "sync": "bun packages/pi/scripts/install.ts && bun packages/gateway/src/cli.ts && bun packages/amp/src/cli.ts publish",
+    "gateway:claude": "bun packages/gateway/src/cli.ts",
     "amp:publish": "bun packages/amp/src/cli.ts publish",
     "amp:secrets": "bun packages/amp/src/cli.ts secrets",
     "pstack": "bun packages/skills/src/upstream.ts",

@@ -14,8 +14,8 @@ bun install
 bun run sync
 ```
 
-`bun run sync` points pi at this repository, then publishes the skills and the plugin to Amp. It
-asks before it pushes to Amp.
+`bun run sync` points pi at this repository, sets up the work AI gateway for Claude Code, then
+publishes the skills and the plugin to Amp. It asks before it pushes to Amp.
 
 Pi loads everything from this repository. After you change a file, type `/reload` in pi. Run
 `bun run sync` again only to publish to Amp.
@@ -36,17 +36,19 @@ Pi loads everything from this repository. After you change a file, type `/reload
 | [`pi`](packages/pi/README.md)           | The pi extensions. A pi package.                                    |
 | [`amp`](packages/amp/README.md)         | The Amp plugin, and the commands that publish to Amp.               |
 | [`prompts`](packages/prompts/README.md) | The text that every harness adds: instructions, chinchilla, pstack. |
+| [`gateway`](packages/gateway/README.md) | Sets up the work AI gateway for Claude Code.                        |
 
 ## Commands
 
-| Command                               | What it does                                                        |
-| ------------------------------------- | ------------------------------------------------------------------- |
-| `bun run sync`                        | Point pi at this repository, and publish to Amp.                    |
-| `bun run amp:publish --dry-run`       | Show what Amp would get.                                            |
-| `bun run amp:secrets [--set]`         | Show the Amp orb secrets, or set them from this shell.              |
-| `bun run pstack diff`                 | Show the upstream pstack changes. Or tell an agent "update pstack". |
-| `bun run skills:add <source> <skill>` | Install a skill from skills.sh.                                     |
-| `bun run validate`                    | Format, lint, type-check, test, and check complexity.               |
+| Command                               | What it does                                                              |
+| ------------------------------------- | ------------------------------------------------------------------------- |
+| `bun run sync`                        | Point pi at this repository, set up the work gateway, and publish to Amp. |
+| `bun run gateway:claude`              | Set up the work AI gateway for Claude Code.                               |
+| `bun run amp:publish --dry-run`       | Show what Amp would get.                                                  |
+| `bun run amp:secrets [--set]`         | Show the Amp orb secrets, or set them from this shell.                    |
+| `bun run pstack diff`                 | Show the upstream pstack changes. Or tell an agent "update pstack".       |
+| `bun run skills:add <source> <skill>` | Install a skill from skills.sh.                                           |
+| `bun run validate`                    | Format, lint, type-check, test, and check complexity.                     |
 
 ## One machine only
 

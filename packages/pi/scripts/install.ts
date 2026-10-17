@@ -1,11 +1,9 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
 import { z } from "zod";
-
-import { removeOldSync } from "./old-sync.ts";
 
 const PACKAGES_DIR = path.resolve(import.meta.dir, "../..");
 
@@ -68,13 +66,6 @@ function envDir(name: string, fallback: string[]): string {
 
 async function main(): Promise<void> {
   const agentDir = envDir("PI_CODING_AGENT_DIR", [".pi", "agent"]);
-  const state = envDir("XDG_STATE_HOME", [".local", "state"]);
-  const kept = await removeOldSync(path.join(state, "hellstack", "manifest.json"), {
-    agentDir,
-    skillDirs: [path.join(agentDir, "skills"), path.join(homedir(), ".claude", "skills")],
-    repoSkills: readdirSync(path.join(PACKAGES_DIR, "skills", "skills")),
-  });
-  for (const file of kept) console.log(`kept ${file}: you changed it after the old sync wrote it`);
   await writeSettings(agentDir);
   installHerdr();
   console.log(`pi: ${path.join(agentDir, "settings.json")} loads ${REPO_PACKAGES.join(" and ")}`);
