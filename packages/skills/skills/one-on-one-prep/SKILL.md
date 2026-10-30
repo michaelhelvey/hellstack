@@ -31,7 +31,8 @@ skill or in the repository.
 Use the browser tool that you have. Use one of these, in this order:
 
 1. Claude in Chrome (`mcp__claude-in-chrome__*`). Load the `claude-in-chrome` skill first.
-2. The `chrome-devtools-cli` skill, connected to the user's Chrome with `--autoConnect`.
+2. The `chrome-devtools` MCP server (`tools.mcp__chrome_devtools__*` in codemode). It is connected
+   to the user's Chrome.
 
 The user must be signed in to Rippling in Chrome. Do not sign in for the user. If Rippling shows a
 sign-in page, stop and ask the user to sign in.

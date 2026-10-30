@@ -7,9 +7,13 @@
   "keywords": [
     "pi-package"
   ],
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "pi": {
     "skills": [
-      "./skills"
+      "./skills",
+      "!skills/herdr"
     ]
   },
   "dependencies": {

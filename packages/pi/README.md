@@ -2,20 +2,23 @@
 
 Personal extensions for [pi](https://pi.dev).
 
-| Extension        | What it does                                                                                                                                                         |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `prompts`        | Adds [`@hellstack/prompts`](../prompts/README.md) (instructions, the chinchilla voice) to the system prompt, with the pi notes (`src/prompts/pi.md`).                |
-| `ask`            | Adds the `ask_user_question` tool: questions with fixed choices in a dialog.                                                                                         |
-| `loop`           | Adds `/loop [interval] <prompt>` and the `schedule_wakeup` tool. Without an interval, the agent schedules each next run itself. `/loop stop` ends it.                |
-| `goal`           | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                                        |
-| `todo`           | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                                        |
-| `uv`             | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                               |
-| `web-fetch`      | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                                     |
-| `herdr-prompts`  | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                           |
-| `herdr-agents`   | Runs subagents as pi agents in herdr or Rex panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below. |
-| `whimsical`      | Shows a random working message on each turn.                                                                                                                         |
-| `quick-quote`    | Type `>` at the start of a line to quote a paragraph of the last reply. See below.                                                                                   |
-| `skill-commands` | Start a skill with `/name` anywhere in the prompt, not only with `/skill:name` at the start. See below.                                                              |
+| Extension         | What it does                                                                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prompts`         | Adds [`@hellstack/prompts`](../prompts/README.md) (instructions, the chinchilla voice) to the system prompt, with the pi notes (`src/prompts/pi.md`).                |
+| `ask`             | Adds the `ask_user_question` tool: questions with fixed choices in a dialog.                                                                                         |
+| `loop`            | Adds `/loop [interval] <prompt>` and the `schedule_wakeup` tool. Without an interval, the agent schedules each next run itself. `/loop stop` ends it.                |
+| `goal`            | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                                        |
+| `todo`            | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                                        |
+| `uv`              | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                               |
+| `web-fetch`       | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                                     |
+| `chrome-devtools` | Adds the `chrome-devtools` MCP server for codemode scripts. It controls your own Chrome session. See below.                                                          |
+| `sentry`          | Adds the remote Sentry MCP server for codemode scripts. Sign in once with `/mcp login sentry`.                                                                       |
+| `herdr-prompts`   | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                           |
+| `herdr-skill`     | Loads the `herdr` skill from [`@hellstack/skills`](../skills/README.md) only when pi runs in a herdr pane (`HERDR_ENV=1`).                                           |
+| `herdr-agents`    | Runs subagents as pi agents in herdr or Rex panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below. |
+| `whimsical`       | Shows a random working message on each turn.                                                                                                                         |
+| `quick-quote`     | Type `>` at the start of a line to quote a paragraph of the last reply. See below.                                                                                   |
+| `skill-commands`  | Start a skill with `/name` anywhere in the prompt, not only with `/skill:name` at the start. See below.                                                              |
 
 ## Subagents
 
@@ -34,6 +37,22 @@ error. In Rex, pi reports the state of each subagent itself, so Rex needs no int
 - The parent keeps its subagents in memory only. When you quit pi or change the session, pi stops
   the subagents. After `/reload`, or when the parent process stops, the subagents continue to run
   without a parent.
+
+## Chrome DevTools
+
+`chrome-devtools` runs
+[`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp) with `--autoConnect`.
+It always connects to the Chrome that you use, with your tabs and sign-ins. It never starts a
+different browser.
+
+1. Use Chrome 144 or later.
+2. Open `chrome://inspect/#remote-debugging` and turn on remote debugging.
+3. On macOS, give your terminal Full Disk Access. The server reads `DevToolsActivePort` from the
+   Chrome profile folder, and macOS blocks this read for apps without access to the data of other
+   apps.
+
+Chrome asks you to allow each new connection. Scripts call the tools as
+`tools.mcp__chrome_devtools__<tool>`, for example `tools.mcp__chrome_devtools__list_pages({})`.
 
 ## Quick quote
 

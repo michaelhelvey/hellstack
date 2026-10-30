@@ -12,6 +12,10 @@ skills/
     scripts/      # optional
 ```
 
+The package manifest does not load `skills/herdr`. The `herdr-skill` extension of
+[`@hellstack/pi`](../pi/README.md) loads it only in a herdr pane. Other code gets the folder of a
+skill with `skillDir(name)` from `@hellstack/skills`.
+
 ## My Philosophy of Skills
 
 In my opinion, skills have two possible uses:
