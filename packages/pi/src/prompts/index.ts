@@ -17,6 +17,8 @@ export interface PromptContext {
   subagent: boolean;
   /** The text of the pstack models sheet, if this machine has one. */
   sheet: string | undefined;
+  /** True when pi loads the pstack skills. Without them, the prompt has no pstack section. */
+  pstack: boolean;
 }
 
 function readLocal(file: string): string {
@@ -26,9 +28,13 @@ function readLocal(file: string): string {
 /** Returns the system prompt sections of hellstack, by name. */
 export function promptSections(context: PromptContext): Record<string, string> {
   const mandate = context.subagent ? [] : [readPrompt("pstack")];
-  return {
+  const sections = {
     instructions: [readPrompt("instructions"), readLocal("pi.md")].join("\n"),
     chinchilla: readPrompt("chinchilla"),
+  };
+  if (!context.pstack) return sections;
+  return {
+    ...sections,
     pstack: [...mandate, readLocal("pstack-pi.md"), context.sheet ?? noSheet].join("\n"),
   };
 }
@@ -47,7 +53,12 @@ function readSheet(): string | undefined {
  */
 export default function prompts(pi: ExtensionAPI): void {
   pi.on("before_agent_start", (event) => {
-    const context = { subagent: process.env[SUBAGENT_ENV] === "1", sheet: readSheet() };
+    const context = {
+      subagent: process.env[SUBAGENT_ENV] === "1",
+      sheet: readSheet(),
+      pstack:
+        event.systemPromptOptions.skills?.some((skill) => skill.name === "poteto-mode") ?? false,
+    };
     Object.assign(event.systemPromptOptions.sections, promptSections(context));
   });
 }

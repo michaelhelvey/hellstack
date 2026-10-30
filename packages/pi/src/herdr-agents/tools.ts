@@ -104,7 +104,7 @@ const StartParams = Type.Object({
   }),
   group: Type.String({
     description:
-      "One or two words that describe your work, for example `review`. The herdr tab name uses it. Use the same group for related subagents.",
+      "One or two words that describe your work, for example `review`. The tab name uses it. Use the same group for related subagents.",
   }),
   model: Type.Optional(
     Type.String({
@@ -119,7 +119,7 @@ function startTool(getProvider: ProviderGetter) {
     name: "subagent_start",
     label: "Start subagent",
     description:
-      "Start a pi subagent in a herdr pane and give it a task. Returns at once, while the subagent works. Use subagent_wait to get its result.",
+      "Start a pi subagent in a herdr or Rex pane and give it a task. Returns at once, while the subagent works. Use subagent_wait to get its result.",
     promptGuidelines: [
       "When a subagent stops work, you get a message with its status and last reply, so you do not have to wait or poll. Use subagent_wait only when you cannot continue without the result.",
       "A subagent closes when it is done, after you get its last reply. To answer its question or give it more work, send it a message with subagent_send. That resumes it in a new pane with its full history.",
@@ -232,7 +232,7 @@ function stopTool(getProvider: ProviderGetter) {
     name: "subagent_stop",
     label: "Stop subagents",
     description:
-      "Stop subagents and close their herdr panes. A message with subagent_send resumes a stopped subagent.",
+      "Stop subagents and close their panes. A message with subagent_send resumes a stopped subagent.",
     parameters: IdsParams,
     async execute(_id, params) {
       const provider = getProvider();

@@ -16,7 +16,6 @@ List and view agent conversations
 List recent agent conversations
 
 **Flags:**
-
 - `-n, --limit <value> - Number of conversations (1-1000) - (default: "25")`
 - `-q, --query <value> - Search query`
 - `-t, --period <value> - Time range: "7d", "2024-01-01..2024-02-01", ">=2024-01-01" - (default: "7d")`
@@ -25,26 +24,26 @@ List recent agent conversations
 
 **JSON Fields** (use `--json --fields` to select specific fields):
 
-| Field            | Type           | Description |
-| ---------------- | -------------- | ----------- |
-| `conversationId` | string         |             |
-| `webUrl`         | string         |             |
-| `title`          | string \| null |             |
-| `flow`           | array          |             |
-| `errors`         | number         |             |
-| `llmCalls`       | number         |             |
-| `toolCalls`      | number         |             |
-| `totalTokens`    | number         |             |
-| `totalCost`      | number         |             |
-| `startTimestamp` | number         |             |
-| `endTimestamp`   | number         |             |
-| `traceCount`     | number         |             |
-| `traceIds`       | array          |             |
-| `firstInput`     | string \| null |             |
-| `lastOutput`     | string \| null |             |
-| `user`           | object \| null |             |
-| `toolNames`      | array          |             |
-| `toolErrors`     | number         |             |
+| Field | Type | Description |
+|-------|------|-------------|
+| `conversationId` | string |  |
+| `webUrl` | string |  |
+| `title` | string \| null |  |
+| `flow` | array |  |
+| `errors` | number |  |
+| `llmCalls` | number |  |
+| `toolCalls` | number |  |
+| `totalTokens` | number |  |
+| `totalCost` | number |  |
+| `startTimestamp` | number |  |
+| `endTimestamp` | number |  |
+| `traceCount` | number |  |
+| `traceIds` | array |  |
+| `firstInput` | string \| null |  |
+| `lastOutput` | string \| null |  |
+| `user` | object \| null |  |
+| `toolNames` | array |  |
+| `toolErrors` | number |  |
 
 **Examples:**
 
@@ -70,7 +69,6 @@ sentry agent-conversation list my-org -c next
 View an agent conversation transcript
 
 **Flags:**
-
 - `-f, --fresh - Bypass cache, re-detect projects, and fetch fresh data`
 
 **Examples:**

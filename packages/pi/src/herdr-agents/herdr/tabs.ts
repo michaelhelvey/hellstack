@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { HerdrClient } from "./client.ts";
-import { chooseSplit, MAX_AGENTS_PER_TAB, tabLabel } from "./layout.ts";
+import { chooseSplit, MAX_AGENTS_PER_TAB, tabLabel } from "../layout.ts";
 
 /** The part of the herdr client that the provider uses. Tests give a fake. */
 export type HerdrApi = Pick<HerdrClient, "call" | "subscribe">;

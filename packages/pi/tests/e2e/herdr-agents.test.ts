@@ -1,6 +1,6 @@
 import { afterEach, expect, setDefaultTimeout, test } from "bun:test";
 
-import { NOT_IN_HERDR } from "../../src/herdr-agents/index.ts";
+import { NO_PANES } from "../../src/herdr-agents/index.ts";
 import { FakeHerdr } from "../herdr-agents/fake-herdr.ts";
 import { PiSandbox } from "./harness/sandbox.ts";
 
@@ -20,13 +20,22 @@ async function modelRequests(count: number): Promise<void> {
   for (let i = 0; i < 100 && sandbox.model.requests.length < count; i++) await Bun.sleep(50);
 }
 
-test("/agents shows an error when pi does not run in herdr", async () => {
+test("/agents shows an error when pi does not run in herdr or Rex", async () => {
   sandbox = await PiSandbox.create();
   const pi = sandbox.startTui();
   await pi.waitFor("fake-1");
   await pi.submit("/agents");
 
-  await pi.waitFor("Subagents need herdr.");
+  await pi.waitFor("Subagents need herdr or Rex.");
+});
+
+test("/agents uses Rex when pi runs in a Rex terminal", async () => {
+  sandbox = await PiSandbox.create({ env: { REX_SESSION: "session:1", REX_BLOCK: "block:1" } });
+  const pi = sandbox.startTui();
+  await pi.waitFor("fake-1");
+  await pi.submit("/agents");
+
+  await pi.waitFor("No subagents.");
 });
 
 test("the model starts a subagent in herdr, and pi shows it above the editor", async () => {
@@ -58,7 +67,7 @@ test("a subagent does not get the subagent tools", async () => {
   expect(await pi.stop()).toBe("");
 });
 
-test("the subagent tools fail with a clear error outside herdr", async () => {
+test("the subagent tools fail with a clear error outside herdr and Rex", async () => {
   sandbox = await PiSandbox.create();
   const start = { title: "Reviewer", task: "Review the code", group: "review" };
   sandbox.model.reply({ toolCalls: [{ name: "subagent_start", arguments: start }] });
@@ -66,7 +75,7 @@ test("the subagent tools fail with a clear error outside herdr", async () => {
   const pi = await sandbox.startRpc();
   await pi.prompt("review the code with a subagent");
 
-  expect(JSON.stringify(sandbox.model.requests[1]?.messages.at(-1))).toContain(NOT_IN_HERDR);
+  expect(JSON.stringify(sandbox.model.requests[1]?.messages.at(-1))).toContain(NO_PANES);
 });
 
 test("the parent agent wakes up when a subagent finishes its work, and the subagent closes", async () => {

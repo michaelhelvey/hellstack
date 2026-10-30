@@ -29,6 +29,22 @@ it explicitly to make the model do something, I don't really have any interest i
 implicitly skew model behavior. The models are too smart and changing too fast for this to be
 useful.
 
+## Turn off a group of skills
+
+Turn off a group of skills in pi without removing it:
+
+```sh
+bun run skills:groups                  # show the groups and which are off
+bun run skills:disable pstack          # turn off all the pstack skills
+bun run skills:enable pstack           # turn them on again
+```
+
+All the skills of `upstream.json` (pstack, thermos, and cursor-team-kit) are in the `pstack` group.
+The skills.sh skills are in groups by source (for example `herdrdev/herdr`). Manual skills are not
+in a group. The commands write `-skills/<name>` filters to `~/.pi/agent/settings.json`, so the
+change stays after a restart and after `bun run sync`. Run `/reload` in pi to apply it. When
+`poteto-mode` is off, the pstack section is not in the system prompt. Amp is not changed.
+
 ## Add a manual skill
 
 Make a new directory in `skills/`. The skills.sh commands do not change manual skills.

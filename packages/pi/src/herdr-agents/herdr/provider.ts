@@ -23,9 +23,9 @@ import {
   type HerdrEvent,
   type HerdrSubscriptionHandle,
 } from "./client.ts";
-import { slug } from "./layout.ts";
+import { slug } from "../layout.ts";
 import { SUBAGENT_ENV } from "../../shared/subagent.ts";
-import { readSessionMessages } from "./session.ts";
+import { readSessionMessages } from "../session.ts";
 import { type HerdrApi, type Placement, TabPlanner } from "./tabs.ts";
 
 /** Returns the environment variables for a new subagent pane. */

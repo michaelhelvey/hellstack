@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { readSessionMessages } from "../../../src/herdr-agents/herdr/session.ts";
+import { readSessionMessages } from "../../src/herdr-agents/session.ts";
 
 let dir: string | undefined;
 

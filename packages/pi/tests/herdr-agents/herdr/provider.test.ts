@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import path from "node:path";
 
 import { HerdrClient } from "../../../src/herdr-agents/herdr/client.ts";
-import { MAX_AGENTS_PER_TAB } from "../../../src/herdr-agents/herdr/layout.ts";
+import { MAX_AGENTS_PER_TAB } from "../../../src/herdr-agents/layout.ts";
 import { HerdrSubagentProvider } from "../../../src/herdr-agents/herdr/provider.ts";
 import { SUBAGENT_ENV } from "../../../src/shared/subagent.ts";
 import type { SubagentEvent, SubagentSpec } from "../../../src/herdr-agents/provider.ts";

@@ -16,7 +16,6 @@ List valid Sentry platform identifiers
 List all valid Sentry platform identifiers
 
 **Flags:**
-
 - `-q, --search <value> - Filter platforms by substring`
 
 **Examples:**

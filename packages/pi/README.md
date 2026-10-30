@@ -12,7 +12,7 @@ Personal extensions for [pi](https://pi.dev).
 | `uv`             | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                                                   |
 | `web-fetch`      | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                                                         |
 | `herdr-prompts`  | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                                               |
-| `herdr-agents`   | Runs subagents as pi agents in herdr panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below.                            |
+| `herdr-agents`   | Runs subagents as pi agents in herdr or Rex panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below.                     |
 | `whimsical`      | Shows a random working message on each turn.                                                                                                                                             |
 | `quick-quote`    | Type `>` at the start of a line to quote a paragraph of the last reply. See below.                                                                                                       |
 | `skill-commands` | Start a skill with `/name` anywhere in the prompt, not only with `/skill:name` at the start. See below.                                                                                  |
@@ -33,12 +33,13 @@ the Amp sheet, [`pstack-amp.md`](../amp/plugin/hellstack/pstack-amp.md).
 
 ## Subagents
 
-`herdr-agents` works only when pi runs in a herdr pane. Outside herdr, its tools and `/agents` show
-an error.
+`herdr-agents` works when pi runs in a herdr pane or a Rex terminal. At startup, it finds which one
+from the environment (`HERDR_ENV` or `REX_SESSION`). Outside both, its tools and `/agents` show an
+error. In Rex, pi reports the state of each subagent itself, so Rex needs no integration.
 
-- The subagents go in the current workspace, in tabs named `<project>-<group>-<n>`, for example
-  `hellstack-review-1`. The model sets the group when it starts a subagent. A tab holds at most 8
-  subagents.
+- The subagents go in the current herdr workspace or Rex session, in tabs named
+  `<project>-<group>-<n>`, for example `hellstack-review-1`. The model sets the group when it starts
+  a subagent. A tab holds at most 8 subagents.
 - Each subagent is `pi --model <model>` in its own pane. Subagents do not get the subagent tools.
 - When a subagent finishes, the parent gets its last reply in a message, and the subagent closes. A
   blocked subagent stays open.

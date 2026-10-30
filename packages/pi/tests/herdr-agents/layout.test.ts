@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { chooseSplit, slug, tabLabel } from "../../../src/herdr-agents/herdr/layout.ts";
+import { chooseSplit, slug, tabLabel } from "../../src/herdr-agents/layout.ts";
 
 test.each([
   ["hellstack", "hellstack"],

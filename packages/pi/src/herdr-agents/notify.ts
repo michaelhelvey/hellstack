@@ -18,7 +18,7 @@ const FINISHED: Partial<Record<SubagentStatus, string>> = {
   done: "",
   idle: "",
   blocked:
-    "\n\nThe subagent waits at an approval or question dialog in its herdr pane. It cannot get messages until the dialog closes.",
+    "\n\nThe subagent waits at an approval or question dialog in its pane. It cannot get messages until the dialog closes.",
 };
 
 /**

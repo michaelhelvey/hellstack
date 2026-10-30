@@ -1,7 +1,7 @@
-/** The maximum number of subagents in one herdr tab. */
+/** The maximum number of subagents in one tab. */
 export const MAX_AGENTS_PER_TAB = 8;
 
-/** A pane and its size in terminal cells, from the herdr `pane.layout` result. */
+/** A pane and its size in terminal cells. */
 export interface PaneRect {
   pane_id: string;
   rect: { width: number; height: number };

@@ -1,34 +1,66 @@
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+  ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 
 import { HerdrClient, herdrEnv } from "./herdr/client.ts";
 import { SUBAGENT_ENV } from "../shared/subagent.ts";
 import { HerdrSubagentProvider } from "./herdr/provider.ts";
 import { AwaitedAgents, CompletionNotifier, REPORT_MESSAGE_TYPE } from "./notify.ts";
+import type { SubagentProvider } from "./provider.ts";
+import { RexClient, rexEnv } from "./rex/client.ts";
+import { RexSubagentProvider } from "./rex/provider.ts";
 import { describeAgent, registerSubagentTools } from "./tools.ts";
 import { AgentsWidget } from "./ui/widget.ts";
 
 const WIDGET_KEY = "herdr-agents";
 
-/** The error when pi does not run in a herdr pane. */
-export const NOT_IN_HERDR =
-  "Subagents need herdr. Start pi in a herdr pane to use subagents (HERDR_ENV is not set).";
+/** The error when pi does not run in a herdr pane or a Rex terminal. */
+export const NO_PANES =
+  "Subagents need herdr or Rex. Start pi in a herdr pane or a Rex terminal to use subagents (HERDR_ENV and REX_SESSION are not set).";
 
-async function stopAgents(provider: HerdrSubagentProvider, id: string): Promise<void> {
+/** A provider that can stop its event connections and leave its subagents to run. */
+type PaneProvider = SubagentProvider & { release(): void };
+
+/** Returns a provider for the terminal multiplexer that pi runs in, or `undefined` for none. */
+function paneProvider(ctx: ExtensionContext): PaneProvider | undefined {
+  const herdr = herdrEnv();
+
+  if (herdr) {
+    const client = new HerdrClient(herdr.socketPath);
+
+    return new HerdrSubagentProvider({ env: herdr, client, cwd: ctx.cwd });
+  }
+  const rex = rexEnv();
+
+  if (rex === undefined) return undefined;
+  const client = new RexClient(rex.sessionId);
+  const sessionDir =
+    ctx.sessionManager.getSessionDir() || path.join(tmpdir(), "hellstack-subagent-sessions");
+
+  return new RexSubagentProvider({ client, cwd: ctx.cwd, sessionDir });
+}
+
+async function stopAgents(provider: SubagentProvider, id: string): Promise<void> {
   const ids = id === "" || id === "all" ? provider.list().map((agent) => agent.id) : [id];
   await Promise.all(ids.map((agentId) => provider.stop(agentId)));
 }
 
-function listAgents(provider: HerdrSubagentProvider, ctx: ExtensionCommandContext): void {
+function listAgents(provider: SubagentProvider, ctx: ExtensionCommandContext): void {
   const lines = provider.list().map(describeAgent);
   ctx.ui.notify(lines.length === 0 ? "No subagents." : lines.join("\n"), "info");
 }
 
 async function command(
-  provider: HerdrSubagentProvider | undefined,
+  provider: SubagentProvider | undefined,
   args: string,
   ctx: ExtensionCommandContext,
 ): Promise<void> {
-  if (provider === undefined) return ctx.ui.notify(NOT_IN_HERDR, "error");
+  if (provider === undefined) return ctx.ui.notify(NO_PANES, "error");
   const [name = "", rest = ""] = args.trim().split(/\s+(.*)/s);
 
   if (name === "stop") await stopAgents(provider, rest.trim());
@@ -36,15 +68,14 @@ async function command(
 }
 
 /**
- * Runs subagents as pi agents in herdr panes, and shows them above the editor. Adds the
- * `subagent_*` tools and the `/agents` command. In a subagent, it does nothing, so that subagents
- * cannot start subagents.
+ * Runs subagents as pi agents in herdr panes or Rex terminals, and shows them above the editor.
+ * Adds the `subagent_*` tools and the `/agents` command. In a subagent, it does nothing, so that
+ * subagents cannot start subagents.
  */
 export default function herdrAgents(pi: ExtensionAPI): void {
   if (process.env[SUBAGENT_ENV] === "1") return;
-  const env = herdrEnv();
   const awaited = new AwaitedAgents();
-  let provider: HerdrSubagentProvider | undefined;
+  let provider: PaneProvider | undefined;
   let notifier: CompletionNotifier | undefined;
 
   function report(content: string): void {
@@ -53,14 +84,9 @@ export default function herdrAgents(pi: ExtensionAPI): void {
   }
 
   pi.on("session_start", (_event, ctx) => {
-    if (env === undefined) return;
+    const current = paneProvider(ctx);
 
-    const current = new HerdrSubagentProvider({
-      env,
-      client: new HerdrClient(env.socketPath),
-      cwd: ctx.cwd,
-    });
-
+    if (current === undefined) return;
     provider = current;
     notifier = new CompletionNotifier({ provider: current, awaited, send: report });
 
@@ -84,7 +110,7 @@ export default function herdrAgents(pi: ExtensionAPI): void {
   registerSubagentTools(
     pi,
     () => {
-      if (provider === undefined) throw new Error(NOT_IN_HERDR);
+      if (provider === undefined) throw new Error(NO_PANES);
 
       return provider;
     },

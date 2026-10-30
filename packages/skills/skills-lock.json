@@ -5,14 +5,14 @@
       "source": "herdrdev/herdr",
       "sourceType": "github",
       "skillPath": "skills/herdr/SKILL.md",
-      "computedHash": "66715d76e5947497431ec0db32f2693b9c916ad799c3f32b99e6174b4b9c607f"
+      "computedHash": "72177e911f55467de8737174072ec6bb08e30bbf62bceabcb69678e944398b18"
     },
     "hunk-review": {
       "source": "modem-dev/hunk",
       "ref": "main",
       "sourceType": "github",
-      "skillPath": "packages/hunk/skills/hunk-review/SKILL.md",
-      "computedHash": "45ab66c42e9586bc6b43a66a04a812c1520a1328a279c9f88660ca525c52f47a"
+      "skillPath": ".agents/skills/hunk-review/SKILL.md",
+      "computedHash": "f05e76083594852a8a174f1889b00c3bb3d45901dd69aa09e3ada3c1f2ac36a3"
     },
     "sentry-cli": {
       "source": "cli.sentry.dev",
