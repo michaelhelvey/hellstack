@@ -1,13 +1,12 @@
 # hellstack
 
-Skills, plugins, and tools for working with AI agents, for two harnesses: pi on my machines and Amp
-in orbs. Pi loads the `pi` and `skills` packages from this repository. `bun run amp:publish` copies
-the skills and the Amp plugin to Amp.
+Skills, extensions, and tools for working with AI agents in pi. Pi loads the `pi` and `skills`
+packages from this repository.
 
 ## Layout
 
-This is a bun workspace. Each part (the pi extensions, the skills, the Amp plugin, the prompts) is a
-package in `packages/<name>`.
+This is a bun workspace. Each part (the pi extensions, the skills, the prompts) is a package in
+`packages/<name>`.
 
 - Name packages `@hellstack/<name>`.
 - Each package has a `tsconfig.json` that extends `../../tsconfig.json` and sets its own `include`.
@@ -25,7 +24,7 @@ package in `packages/<name>`.
   (https://bun.sh/llms.txt). Do NOT use `rstest` as this will use Node.js as the test runtime and
   will break.
 - Pi runs its extensions with Node.js, not bun, so code in `packages/pi/src` must not use `Bun`
-  APIs. Amp runs its plugins with bun.
+  APIs.
 
 ## References
 
@@ -33,7 +32,6 @@ _These are the source code of various libraries and harnesses that you may find 
 work_
 
 - Pi source code is at ~/dev/thirdparty/pi
-- `amp plugins show-docs` prints the Amp plugin API.
 
 ## Rules
 
@@ -59,8 +57,6 @@ work_
   just use `uv init --script` to start then and then add whatever you need in the `dependencies`
   block of the comment header.
 - If you wanna use JS/TS for a script, use Typescript and Bun. Don't write `.mjs` files for node.
-- Skills from pstack follow the house style in `.agents/skills/update-pstack/SKILL.md`. Change them
-  only as much as you need to, so that upstream updates apply cleanly.
 - If I say something like "add npx skills add https://cli.sentry.dev", I never mean to actually use
   the `npx skills` CLI directly, I'm using it as short-hand to mean "use the skills:add stuff in
   this repo to install it into ./packages/skills", because the skills.sh website gives me the npx

@@ -1,7 +1,4 @@
-import type { z } from "zod";
-
-/** The zod namespace. The caller supplies it, because the script loads zod at run time. */
-export type Zod = typeof z;
+import { z } from "zod";
 
 /** The colors of tldraw. */
 export const COLORS = [
@@ -70,21 +67,21 @@ const ARROWHEADS = [
 /** The directions that the automatic layout can go in. */
 export const DIRECTIONS = ["right", "down", "left", "up"] as const;
 
-function styleSchemas(zod: Zod) {
-  const color = zod.enum(COLORS);
-  const dash = zod.enum(["draw", "solid", "dashed", "dotted"]);
-  const size = zod.enum(["s", "m", "l", "xl"]);
-  const font = zod.enum(["draw", "sans", "serif", "mono"]);
-  const align = zod.enum(["start", "middle", "end"]);
-  const shape = zod.preprocess(
+function styleSchemas() {
+  const color = z.enum(COLORS);
+  const dash = z.enum(["draw", "solid", "dashed", "dotted"]);
+  const size = z.enum(["s", "m", "l", "xl"]);
+  const font = z.enum(["draw", "sans", "serif", "mono"]);
+  const align = z.enum(["start", "middle", "end"]);
+  const shape = z.preprocess(
     (value) => (typeof value === "string" ? (SHAPE_ALIASES[value] ?? value) : value),
-    zod.enum([...GEOS, "note", "text"]),
+    z.enum([...GEOS, "note", "text"]),
   );
   const node = {
     shape: shape.optional(),
     color: color.optional(),
     labelColor: color.optional(),
-    fill: zod.enum(["none", "semi", "solid", "pattern", "fill", "lined-fill"]).optional(),
+    fill: z.enum(["none", "semi", "solid", "pattern", "fill", "lined-fill"]).optional(),
     dash: dash.optional(),
     size: size.optional(),
     font: font.optional(),
@@ -97,59 +94,59 @@ function styleSchemas(zod: Zod) {
     dash: dash.optional(),
     size: size.optional(),
     font: font.optional(),
-    route: zod.enum(["curved", "straight", "elbow"]).optional(),
-    arrowheadStart: zod.enum(ARROWHEADS).optional(),
-    arrowheadEnd: zod.enum(ARROWHEADS).optional(),
+    route: z.enum(["curved", "straight", "elbow"]).optional(),
+    arrowheadStart: z.enum(ARROWHEADS).optional(),
+    arrowheadEnd: z.enum(ARROWHEADS).optional(),
   };
   return { color, node, edge };
 }
 
-function baseSchema(zod: Zod) {
-  const style = styleSchemas(zod);
-  const node = zod.strictObject({
-    id: zod.string().min(1),
-    text: zod.string().default(""),
+function baseSchema() {
+  const style = styleSchemas();
+  const node = z.strictObject({
+    id: z.string().min(1),
+    text: z.string().default(""),
     ...style.node,
-    w: zod.number().positive().optional(),
-    h: zod.number().positive().optional(),
-    x: zod.number().optional(),
-    y: zod.number().optional(),
-    group: zod.string().optional(),
+    w: z.number().positive().optional(),
+    h: z.number().positive().optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    group: z.string().optional(),
   });
-  const edge = zod.strictObject({
-    from: zod.string(),
-    to: zod.string(),
-    text: zod.string().default(""),
+  const edge = z.strictObject({
+    from: z.string(),
+    to: z.string(),
+    text: z.string().default(""),
     ...style.edge,
-    bend: zod.number().optional(),
-    labelPosition: zod.number().min(0).max(1).optional(),
+    bend: z.number().optional(),
+    labelPosition: z.number().min(0).max(1).optional(),
   });
-  const group = zod.strictObject({
-    id: zod.string().min(1),
-    name: zod.string().optional(),
+  const group = z.strictObject({
+    id: z.string().min(1),
+    name: z.string().optional(),
     color: style.color.optional(),
-    group: zod.string().optional(),
+    group: z.string().optional(),
   });
-  return zod.strictObject({
-    $schema: zod.string().optional(),
-    title: zod.string().optional(),
-    layout: zod.enum(["auto", "manual"]).default("auto"),
-    direction: zod.enum(DIRECTIONS).default("right"),
-    spacing: zod
+  return z.strictObject({
+    $schema: z.string().optional(),
+    title: z.string().optional(),
+    layout: z.enum(["auto", "manual"]).default("auto"),
+    direction: z.enum(DIRECTIONS).default("right"),
+    spacing: z
       .strictObject({
-        nodes: zod.number().min(0).optional(),
-        layers: zod.number().min(0).optional(),
+        nodes: z.number().min(0).optional(),
+        layers: z.number().min(0).optional(),
       })
       .default({}),
-    defaults: zod
+    defaults: z
       .strictObject({
-        node: zod.strictObject(style.node).default({}),
-        edge: zod.strictObject(style.edge).default({}),
+        node: z.strictObject(style.node).default({}),
+        edge: z.strictObject(style.edge).default({}),
       })
       .default({ node: {}, edge: {} }),
-    nodes: zod.array(node).min(1),
-    edges: zod.array(edge).default([]),
-    groups: zod.array(group).default([]),
+    nodes: z.array(node).min(1),
+    edges: z.array(edge).default([]),
+    groups: z.array(group).default([]),
   });
 }
 
@@ -224,10 +221,8 @@ function checkReferences(spec: ParsedSpec, ctx: z.RefinementCtx): void {
   checkManualPositions(spec, issue);
 }
 
-/** Makes the zod schema for a diagram spec. */
-export function makeSpecSchema(zod: Zod) {
-  return baseSchema(zod).superRefine(checkReferences);
-}
+/** The zod schema for a diagram spec. */
+export const specSchema = baseSchema().superRefine(checkReferences);
 
 type ParsedNode = ParsedSpec["nodes"][number];
 type ParsedEdge = ParsedSpec["edges"][number];
@@ -328,8 +323,8 @@ export function resolveSpec(spec: ParsedSpec): Diagram {
 }
 
 /** Parses a spec. Throws an error with a readable list of the problems if the spec is not valid. */
-export function parseSpec(zod: Zod, json: unknown): Diagram {
-  const result = makeSpecSchema(zod).safeParse(json);
-  if (!result.success) throw new Error(zod.prettifyError(result.error));
+export function parseSpec(json: unknown): Diagram {
+  const result = specSchema.safeParse(json);
+  if (!result.success) throw new Error(z.prettifyError(result.error));
   return resolveSpec(result.data);
 }

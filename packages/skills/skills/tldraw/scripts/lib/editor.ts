@@ -3,8 +3,9 @@ import { readFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { extname, join, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import type { PuppeteerNode } from "puppeteer-core";
+import puppeteer from "puppeteer";
 import type { Editor, TLRichText, TLShapeId } from "tldraw";
 
 import type { DrawPlan, PlacedNode, Size } from "./layout.ts";
@@ -83,9 +84,14 @@ async function serveDirectory(dir: string): Promise<Server> {
   return server;
 }
 
+/** The directory of the tldraw app that tldraw-cli serves to its headless browser. */
+const tldrawAppDir = fileURLToPath(
+  new URL("dist/tldraw/", import.meta.resolve("@kitschpatrol/tldraw-cli/package.json")),
+);
+
 /** Opens the tldraw app that tldraw-cli contains, and adds the functions of `BrowserApi` to it. */
-export async function openEditor(puppeteer: PuppeteerNode, appDir: string): Promise<EditorSession> {
-  const server = await serveDirectory(appDir);
+export async function openEditor(): Promise<EditorSession> {
+  const server = await serveDirectory(tldrawAppDir);
   const browser = await puppeteer.launch({ headless: true });
   try {
     const page = await browser.newPage();

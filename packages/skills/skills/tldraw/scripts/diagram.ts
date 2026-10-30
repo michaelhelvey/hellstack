@@ -3,7 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { loadDependencies, type Dependencies } from "./lib/deps.ts";
+import { createElk } from "./lib/elk.ts";
 import { openEditor, type EditorSession, type ImageOptions } from "./lib/editor.ts";
 import {
   autoLayout,
@@ -83,7 +83,7 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-async function readDiagram(deps: Dependencies, file: string): Promise<Diagram> {
+async function readDiagram(file: string): Promise<Diagram> {
   let json: unknown;
   try {
     json = JSON.parse(await readFile(file, "utf8"));
@@ -91,7 +91,7 @@ async function readDiagram(deps: Dependencies, file: string): Promise<Diagram> {
     throw new Error(`Cannot read ${file}: ${messageOf(error)}`, { cause: error });
   }
   try {
-    return parseSpec(deps.z, json);
+    return parseSpec(json);
   } catch (error) {
     throw new Error(`The spec ${file} is not valid:\n${messageOf(error)}`, { cause: error });
   }
@@ -116,11 +116,7 @@ async function sizeDiagram(session: EditorSession, diagram: Diagram): Promise<Di
   return { ...diagram, nodes: planned.map((node, i) => ({ ...node, ...measured[i] })) };
 }
 
-async function layOut(
-  deps: Dependencies,
-  session: EditorSession,
-  diagram: Diagram,
-): Promise<Layout> {
+async function layOut(session: EditorSession, diagram: Diagram): Promise<Layout> {
   const sizes = new Map(diagram.nodes.map((node) => [node.id, { w: node.w ?? 0, h: node.h ?? 0 }]));
   if (diagram.layout === "manual") return manualLayout(diagram, sizes);
   const labels = diagram.edges.map((edge) => ({
@@ -129,7 +125,7 @@ async function layOut(
     size: edge.size,
   }));
   const labelSizes = (await session.api("measureText", labels)).map(padLabel);
-  return autoLayout(deps.createElk(), diagram, sizes, labelSizes);
+  return autoLayout(createElk(), diagram, sizes, labelSizes);
 }
 
 async function writeImages(session: EditorSession, options: Options): Promise<string[]> {
@@ -144,13 +140,12 @@ async function writeImages(session: EditorSession, options: Options): Promise<st
 }
 
 async function run(options: Options): Promise<string[]> {
-  const deps = await loadDependencies();
-  const spec = await readDiagram(deps, options.specPath);
-  const session = await openEditor(deps.puppeteer, deps.tldrawAppDir);
+  const spec = await readDiagram(options.specPath);
+  const session = await openEditor();
   try {
     await session.api("loadFonts");
     const diagram = await sizeDiagram(session, spec);
-    await session.api("draw", drawPlan(diagram, await layOut(deps, session, diagram)));
+    await session.api("draw", drawPlan(diagram, await layOut(session, diagram)));
     await writeFile(options.out, await session.api("serialize"));
     return [options.out, ...(await writeImages(session, options))];
   } finally {

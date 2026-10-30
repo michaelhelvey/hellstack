@@ -1,7 +1,5 @@
 import { describe, expect, test } from "bun:test";
 
-import { z } from "zod";
-
 import { createElk } from "../skills/tldraw/scripts/lib/elk.ts";
 import {
   autoLayout,
@@ -15,14 +13,14 @@ import {
 } from "../skills/tldraw/scripts/lib/layout.ts";
 import { parseSpec, type Diagram } from "../skills/tldraw/scripts/lib/spec.ts";
 
-const elk = createElk(import.meta.url);
+const elk = createElk();
 
 function sizes(diagram: Diagram): Map<string, Size> {
   return new Map(diagram.nodes.map((node) => [node.id, { w: 160, h: 80 }]));
 }
 
 async function layOut(spec: unknown): Promise<Layout> {
-  const diagram = parseSpec(z, spec);
+  const diagram = parseSpec(spec);
   return autoLayout(
     elk,
     diagram,
@@ -53,8 +51,8 @@ function nodes(...ids: string[]) {
 describe("parseSpec", () => {
   test("reports unknown keys and unknown edge ends with their paths", () => {
     const spec = { nodes: nodes("a"), edges: [{ from: "a", to: "b", colour: "red" }] };
-    expect(() => parseSpec(z, spec)).toThrow(/Unrecognized key: "colour"[\s\S]*edges\[0\]/);
-    expect(() => parseSpec(z, spec)).toThrow(/unknown node or group "b"[\s\S]*edges\[0\]\.to/);
+    expect(() => parseSpec(spec)).toThrow(/Unrecognized key: "colour"[\s\S]*edges\[0\]/);
+    expect(() => parseSpec(spec)).toThrow(/unknown node or group "b"[\s\S]*edges\[0\]\.to/);
   });
 
   test("rejects groups that contain each other", () => {
@@ -65,16 +63,16 @@ describe("parseSpec", () => {
         { id: "g2", group: "g1" },
       ],
     };
-    expect(() => parseSpec(z, spec)).toThrow("groups contain each other");
+    expect(() => parseSpec(spec)).toThrow("groups contain each other");
   });
 
   test("rejects a manual layout with a node that has no position", () => {
     const spec = { layout: "manual", nodes: [{ id: "a", x: 0, y: 0 }, { id: "b" }] };
-    expect(() => parseSpec(z, spec)).toThrow(/needs "x" and "y"[\s\S]*nodes\[1\]/);
+    expect(() => parseSpec(spec)).toThrow(/needs "x" and "y"[\s\S]*nodes\[1\]/);
   });
 
   test("applies spec defaults under the values of each node", () => {
-    const diagram = parseSpec(z, {
+    const diagram = parseSpec({
       defaults: { node: { fill: "solid", color: "blue" }, edge: { route: "elbow" } },
       nodes: [{ id: "a" }, { id: "b", color: "red", shape: "decision" }],
       edges: [{ from: "a", to: "b" }],
@@ -111,7 +109,7 @@ describe("bendThrough", () => {
 });
 
 describe("routedBend", () => {
-  const diagram = parseSpec(z, { nodes: nodes("a") });
+  const diagram = parseSpec({ nodes: nodes("a") });
   const start = { x: 0, y: 0 };
   const end = { x: 400, y: 0 };
   const far = { x: 200, y: 200 };
@@ -185,7 +183,7 @@ describe("autoLayout", () => {
 
 describe("manualLayout", () => {
   test("puts each node center at its position and fits groups around their members", () => {
-    const diagram = parseSpec(z, {
+    const diagram = parseSpec({
       layout: "manual",
       groups: [{ id: "g" }],
       nodes: [

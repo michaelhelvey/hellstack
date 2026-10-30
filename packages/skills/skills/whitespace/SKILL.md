@@ -17,8 +17,7 @@ remove lines or change other code.
 ## Requirements
 
 - `bun` on `PATH`.
-- The first run installs oxlint and `@stylistic/eslint-plugin` into `~/.cache/whitespace-skill/`
-  (about 15 MB, a few seconds).
+- `bun install` in the hellstack repository. It installs oxlint and `@stylistic/eslint-plugin`.
 
 ## Step 1. Find the files
 

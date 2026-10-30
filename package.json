@@ -12,17 +12,11 @@
     }
   },
   "scripts": {
-    "sync": "bun packages/pi/scripts/install.ts && bun packages/gateway/src/cli.ts && bun packages/amp/src/cli.ts publish",
+    "sync": "bun packages/pi/scripts/install.ts && bun packages/gateway/src/cli.ts",
     "gateway:claude": "bun packages/gateway/src/cli.ts",
-    "amp:publish": "bun packages/amp/src/cli.ts publish",
-    "amp:secrets": "bun packages/amp/src/cli.ts secrets",
-    "pstack": "bun packages/skills/src/upstream.ts",
     "skills:add": "bun packages/skills/src/cli.ts add",
     "skills:update": "bun packages/skills/src/cli.ts update",
     "skills:remove": "bun packages/skills/src/cli.ts remove",
-    "skills:groups": "bun packages/skills/src/cli.ts groups",
-    "skills:disable": "bun packages/skills/src/cli.ts disable",
-    "skills:enable": "bun packages/skills/src/cli.ts enable",
     "pi:update": "bun packages/pi/scripts/update.ts && bun test packages/pi/tests",
     "check": "rs check --type-check",
     "format": "rs fmt",
@@ -32,6 +26,9 @@
     "validate": "bun run format && bun run --parallel check test complexity",
     "prepare": "rs hooks"
   },
+  "trustedDependencies": [
+    "puppeteer"
+  ],
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "rstack": "^0.8.0",

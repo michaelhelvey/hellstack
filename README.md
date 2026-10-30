@@ -1,61 +1,51 @@
 <div align="center">
   <img src="./assets/mascot.png" alt="The hellstack mascot: a small demon mouse" width="320" />
   <h1>hellstack</h1>
-  <p>My agent setup: <a href="https://pi.dev">pi</a> on my machines, <a href="https://ampcode.com">Amp</a> in orbs, <a href="https://github.com/cursor/plugins/tree/main/pstack">pstack</a> everywhere, and a chinchilla who talks to me.</p>
+  <p>My agent setup: <a href="https://pi.dev">pi</a>, and a chinchilla who talks to me.</p>
 </div>
 
 ## Get started
 
 You need [bun](https://bun.sh) and [pi](https://pi.dev). [herdr](https://herdr.dev) gives pi its
-subagents, and the [Amp CLI](https://ampcode.com) is for publishing to Amp.
+subagents.
 
 ```sh
 bun install
 bun run sync
 ```
 
-`bun run sync` points pi at this repository, sets up the work AI gateway for Claude Code, then
-publishes the skills and the plugin to Amp. It asks before it pushes to Amp.
+`bun run sync` points pi at this repository and sets up the work AI gateway for Claude Code.
 
-Pi loads everything from this repository. After you change a file, type `/reload` in pi. Run
-`bun run sync` again only to publish to Amp.
+Pi loads everything from this repository. After you change a file, type `/reload` in pi.
 
 ## What you get
 
-- **Chinchilla mode.** Every agent, in pi and in every Amp mode, talks like a chinchilla.
-- **pstack.** poteto's skills and playbooks, rewritten to work the same in pi and Amp. Agents route
-  real work through `poteto-mode` without being told.
-- **My skills.** jira, pr, review, tldraw, and more, next to pstack.
+- **Chinchilla mode.** Every agent talks like a chinchilla.
+- **My skills.** jira, pr, review, tldraw, and more.
 - **pi extensions.** Subagents in herdr panes, todos, goals, `/loop`, quick quotes, and more.
 
 ## Packages
 
-| Package                                 | What it holds                                                       |
-| --------------------------------------- | ------------------------------------------------------------------- |
-| [`skills`](packages/skills/README.md)   | All the skills, pstack included. A pi package, and the Amp skills.  |
-| [`pi`](packages/pi/README.md)           | The pi extensions. A pi package.                                    |
-| [`amp`](packages/amp/README.md)         | The Amp plugin, and the commands that publish to Amp.               |
-| [`prompts`](packages/prompts/README.md) | The text that every harness adds: instructions, chinchilla, pstack. |
-| [`gateway`](packages/gateway/README.md) | Sets up the work AI gateway for Claude Code.                        |
+| Package                                 | What it holds                                     |
+| --------------------------------------- | ------------------------------------------------- |
+| [`skills`](packages/skills/README.md)   | All the skills. A pi package.                     |
+| [`pi`](packages/pi/README.md)           | The pi extensions. A pi package.                  |
+| [`prompts`](packages/prompts/README.md) | The system prompt text: instructions, chinchilla. |
+| [`gateway`](packages/gateway/README.md) | Sets up the work AI gateway for Claude Code.      |
 
 ## Commands
 
-| Command                               | What it does                                                              |
-| ------------------------------------- | ------------------------------------------------------------------------- |
-| `bun run sync`                        | Point pi at this repository, set up the work gateway, and publish to Amp. |
-| `bun run gateway:claude`              | Set up the work AI gateway for Claude Code.                               |
-| `bun run amp:publish --dry-run`       | Show what Amp would get.                                                  |
-| `bun run amp:secrets [--set]`         | Show the Amp orb secrets, or set them from this shell.                    |
-| `bun run pstack diff`                 | Show the upstream pstack changes. Or tell an agent "update pstack".       |
-| `bun run skills:add <source> <skill>` | Install a skill from skills.sh.                                           |
-| `bun run validate`                    | Format, lint, type-check, test, and check complexity.                     |
+| Command                               | What it does                                             |
+| ------------------------------------- | -------------------------------------------------------- |
+| `bun run sync`                        | Point pi at this repository and set up the work gateway. |
+| `bun run gateway:claude`              | Set up the work AI gateway for Claude Code.              |
+| `bun run skills:add <source> <skill>` | Install a skill from skills.sh.                          |
+| `bun run validate`                    | Format, lint, type-check, test, and check complexity.    |
 
 ## One machine only
 
 - Packages: `pi install npm:<package>`. `bun run sync` keeps them.
 - Skills: put them in `~/.pi/agent/skills/`.
-- Models for pstack subagents: `~/.pi/agent/pstack-models.md` (see
-  [`packages/pi`](packages/pi/README.md#pstack-models)).
 
 If you're not me, edit [`packages/prompts/instructions.md`](packages/prompts/instructions.md) first.
 

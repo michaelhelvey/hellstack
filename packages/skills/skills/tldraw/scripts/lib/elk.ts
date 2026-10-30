@@ -21,9 +21,9 @@ function requireWithoutSelf(require: NodeJS.Require, id: string): ElkWorkerModul
   }
 }
 
-/** Makes an ELK instance that runs in this thread. `base` is the path that elkjs resolves from. */
-export function createElk(base: string | URL): ELK {
-  const require = createRequire(base);
+/** Makes an ELK instance that runs in this thread. */
+export function createElk(): ELK {
+  const require = createRequire(import.meta.url);
   const { Worker } = requireWithoutSelf(require, "elkjs/lib/elk-worker.min.js");
   const ElkApi = require("elkjs/lib/elk-api.js") as ElkApiConstructor;
   return new ElkApi({ workerFactory: (url) => new Worker(url) });

@@ -14,9 +14,8 @@ editor, and writes a `.tldr` file and an image. You do not calculate coordinates
 ## Requirements
 
 - `bun` on `PATH`.
-- The first run installs tldraw-cli, elkjs, and zod into `~/.cache/tldraw-diagram-skill/` (up to 30
-  seconds). If puppeteer has no Chrome yet, it also downloads Chrome (about 1 minute). Later runs
-  take 3 to 5 seconds.
+- `bun install` in the hellstack repository. It installs tldraw-cli, elkjs, zod, and the Chrome of
+  puppeteer. A run takes 3 to 5 seconds.
 
 ## Workflow
 

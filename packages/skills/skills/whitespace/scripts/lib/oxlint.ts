@@ -1,9 +1,16 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import type { Dependencies } from "./deps.ts";
 import { PADDING_LINE_OPTIONS } from "./rules.ts";
+
+const oxlint = join(
+  dirname(fileURLToPath(import.meta.resolve("oxlint/package.json"))),
+  "bin",
+  "oxlint",
+);
+const stylistic = fileURLToPath(import.meta.resolve("@stylistic/eslint-plugin"));
 
 /**
  * Makes an oxlint config that enables only `@stylistic/padding-line-between-statements`.
@@ -32,20 +39,19 @@ export function oxlintConfig(stylistic: string) {
  *
  * Oxlint writes its report to the stdout and stderr of this process.
  *
- * @param deps the paths of the installed packages.
  * @param files the paths to fix.
  * @returns the exit code of oxlint. It is 0 when no problems remain.
  */
-export async function fixWhitespace(deps: Dependencies, files: string[]): Promise<number> {
+export async function fixWhitespace(files: string[]): Promise<number> {
   const dir = await mkdtemp(join(tmpdir(), "whitespace-skill-"));
 
   try {
     const config = join(dir, "oxlintrc.json");
 
-    await writeFile(config, JSON.stringify(oxlintConfig(deps.stylistic)));
+    await writeFile(config, JSON.stringify(oxlintConfig(stylistic)));
 
     const args = ["--config", config, "--fix", "--", ...files];
-    const proc = Bun.spawn([process.execPath, deps.oxlint, ...args], {
+    const proc = Bun.spawn([process.execPath, oxlint, ...args], {
       stdio: ["ignore", "inherit", "inherit"],
     });
 

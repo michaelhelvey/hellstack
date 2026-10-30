@@ -44,7 +44,7 @@ test("pi loads the package with no errors or warnings, and gives its tools to th
   expect(commands).toContain("todos");
   expect(commands).toContain("agents");
   expect(commands).toContain("loop");
-  expect(commands).toContain("skill:poteto-mode");
+  expect(commands).toContain("skill:pr");
   const tools = sandbox.model.requests[0]?.tools.map((t) => t.function.name) ?? [];
   expect(EXPECTED_TOOLS.filter((name) => !tools.includes(name))).toEqual([]);
   expect(tools.filter((name) => name === "bash")).toHaveLength(1);

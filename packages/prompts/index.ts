@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** The prompt files of this package, in the order that a harness adds them. */
-export const promptNames = ["instructions", "chinchilla", "pstack"] as const;
+export const promptNames = ["instructions", "chinchilla"] as const;
 
 /** The name of a prompt file of this package. */
 export type PromptName = (typeof promptNames)[number];

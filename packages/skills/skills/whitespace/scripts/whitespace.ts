@@ -1,6 +1,5 @@
 import { parseArgs } from "util";
 
-import { loadDependencies } from "./lib/deps.ts";
 import { fixWhitespace } from "./lib/oxlint.ts";
 
 const USAGE = `
@@ -45,4 +44,4 @@ if (files.length < 1) {
   usageAndExit(1, "Invalid arguments: expected at least one path");
 }
 
-process.exit(await fixWhitespace(await loadDependencies(), files));
+process.exit(await fixWhitespace(files));
