@@ -2,5 +2,6 @@
   "theme": "system",
   "hideThinkingBlock": true,
   "packages": ["npm:@ff-labs/pi-fff"],
-  "defaultTools": ["+codemode"]
+  "defaultTools": ["+codemode"],
+  "skills": ["-skills/rex"]
 }

@@ -2,6 +2,8 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { z } from "zod";
+
 import { FAKE_MODEL, FAKE_PROVIDER, FakeModel } from "./fake-model.ts";
 import { readText } from "./lines.ts";
 import { type PiCommand, RpcPi } from "./rpc.ts";
@@ -43,6 +45,8 @@ function hostEnv(): Record<string, string> {
   return Object.fromEntries(entries.filter((e): e is [string, string] => e[1] !== undefined));
 }
 
+const AgentSettingsSchema = z.object({ skills: z.array(z.string()) });
+
 async function writeAgentDir(agentDir: string, model: FakeModel): Promise<void> {
   const provider = {
     baseUrl: model.baseUrl,
@@ -54,9 +58,12 @@ async function writeAgentDir(agentDir: string, model: FakeModel): Promise<void> 
     path.join(agentDir, "models.json"),
     JSON.stringify({ providers: { [FAKE_PROVIDER]: provider } }),
   );
+  const { skills } = AgentSettingsSchema.parse(
+    await Bun.file(path.join(PACKAGE_DIR, "agent-settings.json")).json(),
+  );
   await Bun.write(
     path.join(agentDir, "settings.json"),
-    JSON.stringify({ packages: [PACKAGE_DIR, SKILLS_DIR], quietStartup: true }),
+    JSON.stringify({ packages: [PACKAGE_DIR, SKILLS_DIR], skills, quietStartup: true }),
   );
 }
 

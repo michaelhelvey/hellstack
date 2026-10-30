@@ -5,7 +5,7 @@ import { visibleWidth } from "@earendil-works/pi-tui";
 
 import { MAX_ROWS, preview, renderPicker, segments, spans } from "../../src/quick-quote/picker.ts";
 import type { Quote } from "../../src/quick-quote/quotes.ts";
-import { testTheme } from "../herdr-agents/theme.ts";
+import { testTheme } from "../shared/theme.ts";
 
 let theme: Theme;
 

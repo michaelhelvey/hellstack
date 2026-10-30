@@ -6,8 +6,8 @@
 
 ## Get started
 
-You need [bun](https://bun.sh) and [pi](https://pi.dev). [herdr](https://herdr.dev) gives pi its
-subagents.
+You need [bun](https://bun.sh) and [pi](https://pi.dev). In [herdr](https://herdr.dev) or Rex, pi
+agents start and talk to other agents in other panes.
 
 ```sh
 bun install
@@ -22,7 +22,8 @@ Pi loads everything from this repository. After you change a file, type `/reload
 
 - **Chinchilla mode.** Every agent talks like a chinchilla.
 - **My skills.** jira, pr, review, tldraw, and more.
-- **pi extensions.** Subagents in herdr panes, todos, goals, `/loop`, quick quotes, and more.
+- **pi extensions.** Agents that work with other agents in herdr or Rex, todos, goals, `/loop`,
+  quick quotes, and more.
 
 ## Packages
 

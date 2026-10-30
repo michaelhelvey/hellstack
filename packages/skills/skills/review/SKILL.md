@@ -5,13 +5,13 @@ description:
   low to max. Can also apply the fixes. Use when the user says "/review", asks for a code review, or
   asks you to review their (or your) changes.
 argument-hint: "[low|medium|high|xhigh|max] [--fix] [target or guidance...]"
-disable-model-invocation: true
 ---
 
 # Review
 
-Review a diff for real bugs and cleanups. Do all of the work yourself, in this context. Do not start
-subagents.
+Review a diff for real bugs and cleanups. If you are the agent created the diff, do NOT perform the
+review directly. ALWAYS create a subagent that will review your work independently, using this skill
+as input.
 
 ## Arguments
 
@@ -32,11 +32,6 @@ that comes after this skill.
    the review target. Other text is guidance from the user. Obey it when you find and rank findings.
 
 Start the report with one short line that gives the level, for example `medium effort review`.
-
-## Sub-Agents
-
-If you have the ability to spawn a sub-agent, always run the review in a sub-agent. Do not run it
-yourself.
 
 ## Phase 0 — Get the diff
 

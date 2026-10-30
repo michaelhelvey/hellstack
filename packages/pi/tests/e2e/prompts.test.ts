@@ -26,8 +26,3 @@ test("every session gets the instructions, the chinchilla voice, and the skills"
   expect(system).toContain("Protect Your Time");
   expect(system).toContain("<name>pr</name>");
 });
-
-test("a subagent talks like a chinchilla", async () => {
-  const system = await systemPrompt({ HELLSTACK_SUBAGENT: "1" });
-  expect(system).toContain("You are a small, feral chinchilla");
-});

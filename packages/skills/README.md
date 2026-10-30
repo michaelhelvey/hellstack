@@ -12,9 +12,9 @@ skills/
     scripts/      # optional
 ```
 
-The package manifest does not load `skills/herdr`. The `herdr-skill` extension of
-[`@hellstack/pi`](../pi/README.md) loads it only in a herdr pane. Other code gets the folder of a
-skill with `skillDir(name)` from `@hellstack/skills`.
+The package manifest does not load `skills/herdr` and `skills/rex`. The `multiplexer` extension of
+[`@hellstack/pi`](../pi/README.md) loads one of them only in a herdr pane or a Rex terminal. Other
+code gets the folder of a skill with `skillDir(name)` from `@hellstack/skills`.
 
 ## My Philosophy of Skills
 

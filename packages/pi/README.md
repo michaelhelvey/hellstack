@@ -2,41 +2,55 @@
 
 Personal extensions for [pi](https://pi.dev).
 
-| Extension         | What it does                                                                                                                                                         |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `prompts`         | Adds [`@hellstack/prompts`](../prompts/README.md) (instructions, the chinchilla voice) to the system prompt, with the pi notes (`src/prompts/pi.md`).                |
-| `ask`             | Adds the `ask_user_question` tool: questions with fixed choices in a dialog.                                                                                         |
-| `loop`            | Adds `/loop [interval] <prompt>` and the `schedule_wakeup` tool. Without an interval, the agent schedules each next run itself. `/loop stop` ends it.                |
-| `goal`            | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                                        |
-| `todo`            | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                                        |
-| `uv`              | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                               |
-| `web-fetch`       | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                                     |
-| `chrome-devtools` | Adds the `chrome-devtools` MCP server for codemode scripts. It controls your own Chrome session. See below.                                                          |
-| `sentry`          | Adds the remote Sentry MCP server for codemode scripts. Sign in once with `/mcp login sentry`.                                                                       |
-| `herdr-prompts`   | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.                           |
-| `herdr-skill`     | Loads the `herdr` skill from [`@hellstack/skills`](../skills/README.md) only when pi runs in a herdr pane (`HERDR_ENV=1`).                                           |
-| `herdr-agents`    | Runs subagents as pi agents in herdr or Rex panes, and shows them above the editor. Adds the `subagent_*` tools and `/agents` (`/agents stop [id\|all]`). See below. |
-| `whimsical`       | Shows a random working message on each turn.                                                                                                                         |
-| `quick-quote`     | Type `>` at the start of a line to quote a paragraph of the last reply. See below.                                                                                   |
-| `skill-commands`  | Start a skill with `/name` anywhere in the prompt, not only with `/skill:name` at the start. See below.                                                              |
+| Extension         | What it does                                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prompts`         | Adds [`@hellstack/prompts`](../prompts/README.md) (instructions, the chinchilla voice) to the system prompt, with the pi notes (`src/prompts/pi.md`). |
+| `ask`             | Adds the `ask_user_question` tool: questions with fixed choices in a dialog.                                                                          |
+| `loop`            | Adds `/loop [interval] <prompt>` and the `schedule_wakeup` tool. Without an interval, the agent schedules each next run itself. `/loop stop` ends it. |
+| `goal`            | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                         |
+| `todo`            | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                         |
+| `session-history` | Adds `session_list`, `session_search`, and `session_read` for codemode scripts, to read past sessions. See below.                                     |
+| `uv`              | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                |
+| `web-fetch`       | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                      |
+| `chrome-devtools` | Adds the `chrome-devtools` MCP server for codemode scripts. It controls your own Chrome session. See below.                                           |
+| `sentry`          | Adds the remote Sentry MCP server for codemode scripts. Sign in once with `/mcp login sentry`.                                                        |
+| `herdr-prompts`   | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.            |
+| `multiplexer`     | In herdr or Rex, loads the matching skill and tells the agent to use it to work with other agents. See below.                                         |
+| `whimsical`       | Shows a random working message on each turn.                                                                                                          |
+| `quick-quote`     | Type `>` at the start of a line to quote a paragraph of the last reply. See below.                                                                    |
+| `skill-commands`  | Start a skill with `/name` anywhere in the prompt, not only with `/skill:name` at the start. See below.                                               |
 
-## Subagents
+## Multiplexer
 
-`herdr-agents` works when pi runs in a herdr pane or a Rex terminal. At startup, it finds which one
-from the environment (`HERDR_ENV` or `REX_SESSION`). Outside both, its tools and `/agents` show an
-error. In Rex, pi reports the state of each subagent itself, so Rex needs no integration.
+`multiplexer` finds the terminal multiplexer that pi runs in, from the environment: herdr
+(`HERDR_ENV=1`) or Rex (`REX_SESSION`). In a herdr pane in a Rex terminal, herdr has priority. The
+extension then:
 
-- The subagents go in the current herdr workspace or Rex session, in tabs named
-  `<project>-<group>-<n>`, for example `hellstack-review-1`. The model sets the group when it starts
-  a subagent. A tab holds at most 8 subagents.
-- Each subagent is `pi --model <model>` in its own pane. Subagents do not get the subagent tools.
-- When a subagent finishes, the parent gets its last reply in a message, and the subagent closes. A
-  blocked subagent stays open.
-- A message to a closed subagent resumes it: pi starts again in a new pane with the same session, so
-  the subagent keeps its full history. A subagent whose pane you closed does not resume.
-- The parent keeps its subagents in memory only. When you quit pi or change the session, pi stops
-  the subagents. After `/reload`, or when the parent process stops, the subagents continue to run
-  without a parent.
+- Loads the `herdr` or `rex` skill from [`@hellstack/skills`](../skills/README.md). Pi does not load
+  these skills in other sessions.
+- Adds a short section to the system prompt. It tells the agent to use the skill to find, start,
+  talk to, and stop other agents, and to close the tabs and panes that it does not need.
+
+The agent keeps no list of agents. It reads the panes from the multiplexer each time, so you can
+tell one agent to talk to an agent in a different tab or session. Give your tabs names that tell
+their task, so that agents can find them.
+
+`bun run sync` turns off the `rex` skill that `rex skill setup` puts in `~/.agents/skills`, so that
+pi loads only the copy in this repository.
+
+## Session history
+
+`session-history` lets the agent read your past pi sessions, for example when you ask "catch me up
+on this repository". The tools are only for codemode scripts:
+
+| Tool             | What it returns                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `session_list`   | The sessions, newest first, with the first user message of each.                      |
+| `session_search` | The messages that contain all words of `query`, newest first.                         |
+| `session_read`   | The transcript of the active branch of one session. The default is the last 50 items. |
+
+All tools use the sessions of the current directory. Set `scope: "all"` to use the sessions of all
+directories. Tool calls and tool results are not included unless you set `include_tools: true`.
 
 ## Chrome DevTools
 

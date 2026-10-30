@@ -27,8 +27,6 @@ const EXPECTED_TOOLS = [
   "update_goal",
   "web_fetch",
   "bash",
-  "subagent_start",
-  "subagent_wait",
 ];
 
 const CommandsSchema = z.object({ commands: z.array(z.object({ name: z.string() })) });
@@ -42,7 +40,6 @@ test("pi loads the package with no errors or warnings, and gives its tools to th
   const commands = CommandsSchema.parse(data).commands.map((c) => c.name);
   expect(commands).toContain("goal");
   expect(commands).toContain("todos");
-  expect(commands).toContain("agents");
   expect(commands).toContain("loop");
   expect(commands).toContain("skill:pr");
   const tools = sandbox.model.requests[0]?.tools.map((t) => t.function.name) ?? [];
