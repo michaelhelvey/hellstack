@@ -1,17 +1,17 @@
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { readPrompt } from "@hellstack/prompts";
 
-function readLocal(file: string): string {
-  return readFileSync(join(dirname(fileURLToPath(import.meta.url)), file), "utf8");
-}
+/**
+ * The pi notes. This path is the same from `src/prompts` and from `dist/prompts`, because both
+ * folders are two levels below the package folder.
+ */
+const PI_NOTES = new URL("../../src/prompts/pi.md", import.meta.url);
 
 /** Returns the system prompt sections of hellstack, by name. */
 export function promptSections(): Record<string, string> {
   return {
-    instructions: [readPrompt("instructions"), readLocal("pi.md")].join("\n"),
+    instructions: [readPrompt("instructions"), readFileSync(PI_NOTES, "utf8")].join("\n"),
     chinchilla: readPrompt("chinchilla"),
   };
 }

@@ -12,16 +12,17 @@
     }
   },
   "scripts": {
-    "sync": "bun packages/pi/scripts/install.ts && bun packages/gateway/src/cli.ts",
+    "build": "bun run --filter @hellstack/pi build",
+    "sync": "bun run build && bun packages/pi/scripts/install.ts && bun packages/gateway/src/cli.ts",
     "gateway:claude": "bun packages/gateway/src/cli.ts",
     "skills:add": "bun packages/skills/src/cli.ts add",
     "skills:update": "bun packages/skills/src/cli.ts update",
     "skills:remove": "bun packages/skills/src/cli.ts remove",
-    "pi:update": "bun packages/pi/scripts/update.ts && bun test packages/pi/tests",
+    "pi:update": "bun packages/pi/scripts/update.ts && bun run build && bun test packages/pi/tests",
     "check": "rs check --type-check",
     "format": "rs fmt",
     "lint": "rs lint",
-    "test": "bun test --parallel --path-ignore-patterns='packages/skills/skills/**'",
+    "test": "bun run build && bun test --parallel --path-ignore-patterns='packages/skills/skills/**'",
     "complexity": "uvx lizard -w -i0 -Tnloc=20 -Tcyclomatic_complexity=4 -Tparameter_count=4 -x \"./packages/skills/skills/*\" -x \"./packages/skills/tests/*\" -x \"*/node_modules/*\" .",
     "validate": "bun run format && bun run --parallel check test complexity",
     "prepare": "rs hooks"

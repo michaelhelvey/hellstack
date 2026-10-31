@@ -25,6 +25,8 @@ This is a bun workspace. Each part (the pi extensions, the skills, the prompts) 
   will break.
 - Pi runs its extensions with Node.js, not bun, so code in `packages/pi/src` must not use `Bun`
   APIs.
+- Pi loads `packages/pi/dist`, not `src`. After you change `packages/pi/src`, run `bun run build` so
+  that pi and the e2e tests use your change.
 
 ## References
 

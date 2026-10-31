@@ -68,6 +68,12 @@ different browser.
 Chrome asks you to allow each new connection. Scripts call the tools as
 `tools.mcp__chrome_devtools__<tool>`, for example `tools.mcp__chrome_devtools__list_pages({})`.
 
+Pi starts each MCP server when a session starts. The extension gives pi a small server
+(`src/chrome-devtools/lazy-server.ts`) that answers the tool list from
+`~/.cache/hellstack/chrome-devtools-mcp-<key>.json`, and starts `chrome-devtools-mcp` on the first
+tool call. The first session without this file starts the server at once and writes the file. To get
+a new tool list, delete the file.
+
 ## Quick quote
 
 Type `>` at the start of a line in the editor. A picker shows the paragraphs, list items, and code
@@ -106,8 +112,11 @@ these features stop.
 
 `bun run sync` at the repository root adds this package and
 [`@hellstack/skills`](../skills/README.md) to `packages` in `~/.pi/agent/settings.json`, with the
-settings in `agent-settings.json`. It keeps the other settings and packages of the machine. Pi loads
-the files from this repository, so a change applies after `/reload`.
+settings in `agent-settings.json`. It keeps the other settings and packages of the machine.
+
+Pi loads the extensions from `dist`, not from `src`: one bundle loads faster than many source files.
+After you change `src`, run `bun run build`, then `/reload`. `bun run sync` and `bun run test` also
+build.
 
 Use `pi config` to turn off one extension. Install packages that only one machine needs with
 `pi install`.

@@ -9,8 +9,11 @@
   ],
   "pi": {
     "extensions": [
-      "./src/*/index.ts"
+      "./dist/*/index.js"
     ]
+  },
+  "scripts": {
+    "build": "bun scripts/build.ts"
   },
   "dependencies": {
     "marked": "18.0.11",

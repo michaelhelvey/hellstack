@@ -25,6 +25,7 @@ export function multiplexerSection(name: Multiplexer): string {
     "- Before you start an agent, look for an agent that already does that task.",
     "- Give each tab and pane that you make a name that tells its task, so that other agents can find it.",
     "- When you do not need an agent, tab, or pane that you made, close it immediately.",
+    "- Prioritize human readability in how you organize panes.  e.g. a grid layout is more readable than 6 horizontal splits stacked on top of each other.",
   ].join("\n");
 }
 

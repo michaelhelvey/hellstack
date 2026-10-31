@@ -47,6 +47,23 @@ function hostEnv(): Record<string, string> {
 
 const AgentSettingsSchema = z.object({ skills: z.array(z.string()) });
 
+async function newestChange(pattern: string): Promise<number> {
+  const files = await Array.fromAsync(
+    new Bun.Glob(pattern).scan({ cwd: PACKAGE_DIR, absolute: true }),
+  );
+  const times = await Promise.all(files.map(async (file) => (await Bun.file(file).stat()).mtimeMs));
+  return Math.max(0, ...times);
+}
+
+/** Fails if `dist` is older than `src`, because pi loads the package from `dist`. */
+async function assertBuilt(): Promise<void> {
+  const [source, built] = await Promise.all([
+    newestChange("src/**/*.ts"),
+    newestChange("dist/*/index.js"),
+  ]);
+  if (built < source) throw new Error("dist is older than src. Run: bun run build");
+}
+
 async function writeAgentDir(agentDir: string, model: FakeModel): Promise<void> {
   const provider = {
     baseUrl: model.baseUrl,
@@ -82,6 +99,7 @@ export class PiSandbox {
 
   /** Makes the temporary folders and starts the fake model. */
   static async create(options: SandboxOptions = {}): Promise<PiSandbox> {
+    await assertBuilt();
     const root = await mkdtemp(path.join(tmpdir(), "hellstack-pi-e2e-"));
     const sandbox = new PiSandbox(new FakeModel(), root, options);
     await mkdir(sandbox.workDir);
