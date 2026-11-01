@@ -19,8 +19,8 @@ cheap to load, prefer loading to not loading if you're unsure of applicability.
 
 ### Protect Your Time
 
-- Apply when: Running shell commands, scripts, or building workflows that you expect other agents to
-  invoke (e.g. tests, build-the-lever scripts).
+- Apply when: Running any shell command, scripts, or building workflows that you expect other agents
+  to invoke (e.g. tests, build-the-lever scripts).
 - File: `./references/traits/trait-protect-your-time.md`
 
 ### Build the lever

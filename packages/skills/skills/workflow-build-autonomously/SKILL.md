@@ -32,16 +32,17 @@ above. Keep it short and straightforward -- a couple of sentences per item, maxi
 before continuing.
 
 Confirm with me if it's not clear 1) whether you should create a PR with your work or leave it local
-and 2) what JIRA ticket is associated with this work (if you need to make a PR).
+and 2) what JIRA ticket is associated with this work (if you need to make a PR, and I'm at work;
+Personal work doesn't require jira tickets).
 
 ## Working tree
 
 Confirm with me where the work should land. Usually for me this is a local checkout that is tied to
-a jira ticket. For example, I might be on branch ab-123-some-feature when I ask you to start this
-workflow. Your job will be to manage agents in worktrees and ultimately bring everything back so
-that at the end state there are no extra branches or worktrees hanging around, and all work is (at
-least) locally committed on the checkout. Worktrees are for you, not for me. I don't want to have to
-think about them or have them be left around on my machine.
+a jira ticket (if I'm at work). For example, I might be on branch ab-123-some-feature when I ask you
+to start this workflow. Your job will be to manage agents in worktrees and ultimately bring
+everything back so that at the end state there are no extra branches or worktrees hanging around,
+and all work is (at least) locally committed on the checkout. Worktrees are for you, not for me. I
+don't want to have to think about them or have them be left around on my machine.
 
 Always start from a clean checkout of the branch that the work should land on, and confirm with me
 what to do if the current working tree is not clean.
