@@ -33,7 +33,7 @@ export interface PrintResult {
   exitCode: number;
 }
 
-const INHERITED_ENV_PREFIXES = ["PI_", "HERDR_", "REX_", "HELLSTACK_"];
+const INHERITED_ENV_PREFIXES = ["PI_", "HC_", "HERDR_", "REX_", "HELLSTACK_"];
 const INHERITED_ENV_NAMES = new Set(["WEB_FETCH_BIN", "LIGHTPANDA_BIN"]);
 
 function isHostSetting(name: string): boolean {

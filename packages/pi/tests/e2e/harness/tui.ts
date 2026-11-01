@@ -34,6 +34,11 @@ export class TuiPi {
     return Bun.stripANSI(this.#output);
   }
 
+  /** The bytes that pi wrote to the terminal, with ANSI escape sequences. */
+  get rawOutput(): string {
+    return this.#output;
+  }
+
   /** Writes keys to the terminal. Use `\r` for Enter and `\x1b` for Escape. */
   type(keys: string): void {
     this.#terminal.write(keys);
@@ -65,6 +70,19 @@ export class TuiPi {
     throw new Error(`Timed out waiting for ${String(expected)}. Output:\n${this.output}`);
   }
 
+  /**
+   * Waits until the raw output after `from` contains the text, or matches the pattern. Returns the
+   * raw output.
+   */
+  async waitForRaw(expected: string | RegExp, from = 0): Promise<string> {
+    const deadline = Date.now() + TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      if (this.#matchesRaw(expected, from)) return this.#output;
+      await Bun.sleep(50);
+    }
+    throw new Error(`Timed out waiting for ${String(expected)}. Output:\n${this.output}`);
+  }
+
   /** Stops pi. */
   async stop(): Promise<void> {
     this.#proc.kill();
@@ -74,6 +92,11 @@ export class TuiPi {
 
   #matches(expected: string | RegExp): boolean {
     const output = this.output;
+    return typeof expected === "string" ? output.includes(expected) : expected.test(output);
+  }
+
+  #matchesRaw(expected: string | RegExp, from: number): boolean {
+    const output = this.#output.slice(from);
     return typeof expected === "string" ? output.includes(expected) : expected.test(output);
   }
 }

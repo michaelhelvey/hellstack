@@ -14,22 +14,28 @@ Personal extensions for [pi](https://pi.dev).
 | `web-fetch`       | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                      |
 | `chrome-devtools` | Adds the `chrome-devtools` MCP server for codemode scripts. It controls your own Chrome session. See below.                                           |
 | `sentry`          | Adds the remote Sentry MCP server for codemode scripts. Sign in once with `/mcp login sentry`.                                                        |
-| `herdr-prompts`   | Shows the herdr pane as blocked while a dialog waits for an answer. Use it with `herdr integration install pi`, which `bun run sync` runs.            |
-| `multiplexer`     | In herdr or Rex, loads the matching skill and tells the agent to use it to work with other agents. See below.                                         |
+| `herdr-status`    | Reports the state of pi to herdr-core through OSC 7501: `working`, `done`, `idle`, and `blocked` while a dialog waits for an answer.                  |
+| `multiplexer`     | In Herdr or Rex, loads the matching skill and tells the agent to use it to work with other agents. See below.                                         |
 | `whimsical`       | Shows a random working message on each turn.                                                                                                          |
 | `quick-quote`     | Type `>` at the start of a line to quote a paragraph of the last reply. See below.                                                                    |
 | `skill-commands`  | Start a skill with `/name` anywhere in the prompt, not only with `/skill:name` at the start. See below.                                               |
 
 ## Multiplexer
 
-`multiplexer` finds the terminal multiplexer that pi runs in, from the environment: herdr
-(`HERDR_ENV=1`) or Rex (`REX_SESSION`). In a herdr pane in a Rex terminal, herdr has priority. The
-extension then:
+`multiplexer` finds the terminal multiplexer that pi runs in, from the environment: herdr-core
+(`HC_TERMINAL_ID`) or Rex (`REX_SESSION`). In a herdr terminal in a Rex terminal, herdr has
+priority. The extension then:
 
 - Loads the `herdr` or `rex` skill from [`@hellstack/skills`](../skills/README.md). Pi does not load
-  these skills in other sessions.
-- Adds a short section to the system prompt. It tells the agent to use the skill to find, start,
-  talk to, and stop other agents, and to close the tabs and panes that it does not need.
+  these skills in other sessions. The `herdr` skill points at `hc --skill`, so its commands always
+  match the installed herdr-core version.
+- Adds a short section to the system prompt. In Rex, it tells the agent to use the skill to find,
+  start, talk to, and stop other agents, and to close the tabs and panes that it does not need. In
+  herdr, it also tells the agent to give each child a report address, to wait for child reports
+  instead of polling, to keep terminal output visible, to show useful child work with
+  `terminal.peek` or `terminal.keep`, to let agents with disjoint files share a worktree and use
+  separate worktrees for overlapping edits or independent branches, to clean up only the terminals
+  that it started, and to use `herdr-app` only for the window and worktrees.
 
 The agent keeps no list of agents. It reads the panes from the multiplexer each time, so you can
 tell one agent to talk to an agent in a different tab or session. Give your tabs names that tell

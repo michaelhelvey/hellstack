@@ -53,13 +53,6 @@ async function writeSettings(agentDir: string): Promise<void> {
   await writeFile(file, `${JSON.stringify(settings, null, 2)}\n`);
 }
 
-function installHerdr(): void {
-  if (Bun.which("herdr") === null) return;
-  Bun.spawnSync(["herdr", "integration", "install", "pi"], {
-    stdio: ["ignore", "inherit", "inherit"],
-  });
-}
-
 function envDir(name: string, fallback: string[]): string {
   return process.env[name] ?? path.join(homedir(), ...fallback);
 }
@@ -67,7 +60,6 @@ function envDir(name: string, fallback: string[]): string {
 async function main(): Promise<void> {
   const agentDir = envDir("PI_CODING_AGENT_DIR", [".pi", "agent"]);
   await writeSettings(agentDir);
-  installHerdr();
   console.log(`pi: ${path.join(agentDir, "settings.json")} loads ${REPO_PACKAGES.join(" and ")}`);
 }
 

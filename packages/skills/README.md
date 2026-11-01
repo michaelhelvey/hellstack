@@ -13,8 +13,11 @@ skills/
 ```
 
 The package manifest does not load `skills/herdr` and `skills/rex`. The `multiplexer` extension of
-[`@hellstack/pi`](../pi/README.md) loads one of them only in a herdr pane or a Rex terminal. Other
-code gets the folder of a skill with `skillDir(name)` from `@hellstack/skills`.
+[`@hellstack/pi`](../pi/README.md) loads one of them only in a herdr-core terminal or a Rex
+terminal. Other code gets the folder of a skill with `skillDir(name)` from `@hellstack/skills`.
+
+`skills/herdr` is a local skill. It points at `hc --skill` and `herdr-app --skill`, so its commands
+match the installed Herdr version. It is not in `skills-lock.json`.
 
 ## My Philosophy of Skills
 
@@ -59,7 +62,7 @@ bun run skills:update [skill...]             # update all or some skills.sh skil
 bun run skills:remove <skill...>             # remove skills.sh skills
 ```
 
-For example: `bun run skills:add herdrdev/herdr herdr`.
+For example: `bun run skills:add modem-dev/hunk hunk-review`.
 
 `skills-lock.json` records the source of each skills.sh skill. Commit it with the skill files.
 
