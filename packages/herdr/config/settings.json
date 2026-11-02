@@ -1,0 +1,14 @@
+{
+  "zoom": 1.0,
+  "sounds": {
+    "enabled": true
+  },
+  "font": "MonoLisaCode Herdr",
+  "font_size": 13.0,
+  "ui_font": "MonoLisaCode Herdr",
+  "minimum_contrast": 1.0,
+  "theme": {
+    "light": "theme-picker-light",
+    "dark": "theme-picker-dark"
+  }
+}

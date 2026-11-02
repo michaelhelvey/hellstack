@@ -1,0 +1,7 @@
+{
+  "name": "@hellstack/herdr",
+  "version": "0.0.0",
+  "description": "Personal layouts, mods, keys, and themes for the Herdr desktop app.",
+  "type": "module",
+  "private": true
+}

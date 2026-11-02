@@ -6,6 +6,11 @@ dist
 # macos
 .DS_Store
 
+# herdr writes these into each linked mod folder
+packages/herdr/config/mods/*/gpui-kit.d.ts
+packages/herdr/config/mods/*/jsconfig.json
+packages/herdr/config/**/*.error
+
 # misc
 .cache
 .pi/todos

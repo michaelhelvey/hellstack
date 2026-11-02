@@ -1,0 +1,11 @@
+{
+  "programs": {
+    "pi": {
+      "name": "Pi",
+      "run": ["pi"]
+    },
+    "codex": {
+      "run": ["codex", "--no-daemon"]
+    }
+  }
+}

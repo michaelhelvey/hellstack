@@ -14,7 +14,8 @@ bun install
 bun run sync
 ```
 
-`bun run sync` points pi at this repository and sets up the work AI gateway for Claude Code.
+`bun run sync` points pi at this repository, links the Herdr desktop config, and sets up the work AI
+gateway for Claude Code.
 
 Pi loads everything from this repository. After you change a file, type `/reload` in pi.
 
@@ -33,15 +34,16 @@ Pi loads everything from this repository. After you change a file, type `/reload
 | [`pi`](packages/pi/README.md)           | The pi extensions. A pi package.             |
 | [`prompts`](packages/prompts/README.md) | The global instructions, in `AGENTS.md`.     |
 | [`gateway`](packages/gateway/README.md) | Sets up the work AI gateway for Claude Code. |
+| [`herdr`](packages/herdr/README.md)     | Layouts, mods, keys, and themes for Herdr.   |
 
 ## Commands
 
-| Command                               | What it does                                             |
-| ------------------------------------- | -------------------------------------------------------- |
-| `bun run sync`                        | Point pi at this repository and set up the work gateway. |
-| `bun run gateway:claude`              | Set up the work AI gateway for Claude Code.              |
-| `bun run skills:add <source> <skill>` | Install a skill from skills.sh.                          |
-| `bun run validate`                    | Format, lint, type-check, test, and check complexity.    |
+| Command                               | What it does                                               |
+| ------------------------------------- | ---------------------------------------------------------- |
+| `bun run sync`                        | Point pi and Herdr at this repository, set up the gateway. |
+| `bun run gateway:claude`              | Set up the work AI gateway for Claude Code.                |
+| `bun run skills:add <source> <skill>` | Install a skill from skills.sh.                            |
+| `bun run validate`                    | Format, lint, type-check, test, and check complexity.      |
 
 ## One machine only
 
