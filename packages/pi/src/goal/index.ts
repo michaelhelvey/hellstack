@@ -2,9 +2,10 @@
 
 import { randomUUID } from "node:crypto";
 
-import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+
+import { StringEnum } from "../shared/string-enum.ts";
 
 const STATE_TYPE = "goal";
 

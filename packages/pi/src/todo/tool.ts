@@ -1,4 +1,3 @@
-import { StringEnum } from "@earendil-works/pi-ai";
 import {
   defineTool,
   type AgentToolResult,
@@ -8,6 +7,7 @@ import {
 import { Text } from "@earendil-works/pi-tui";
 import { type Static, Type } from "typebox";
 
+import { StringEnum } from "../shared/string-enum.ts";
 import { formatTodoId, normalizeTodoId } from "./ids.ts";
 import { groupTodos, type TodoFrontMatter, type TodoRecord } from "./model.ts";
 import {

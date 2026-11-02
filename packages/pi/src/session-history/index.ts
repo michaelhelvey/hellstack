@@ -1,4 +1,3 @@
-import { StringEnum } from "@earendil-works/pi-ai";
 import {
   defineTool,
   SessionManager,
@@ -8,6 +7,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
+import { StringEnum } from "../shared/string-enum.ts";
 import {
   readTranscript,
   resolveSession,
