@@ -19,6 +19,7 @@
     "skills:update": "bun packages/skills/src/cli.ts update",
     "skills:remove": "bun packages/skills/src/cli.ts remove",
     "pi:update": "bun packages/pi/scripts/update.ts && bun run build && bun test packages/pi/tests",
+    "pi:patch-startup": "bun packages/pi/scripts/patch-startup.ts",
     "check": "rs check --type-check",
     "format": "rs fmt",
     "lint": "rs lint",

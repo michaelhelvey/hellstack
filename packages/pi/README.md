@@ -4,11 +4,11 @@ Personal extensions for [pi](https://pi.dev).
 
 | Extension         | What it does                                                                                                                                          |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `prompts`         | Adds [`@hellstack/prompts`](../prompts/README.md) (instructions, the chinchilla voice) to the system prompt, with the pi notes (`src/prompts/pi.md`). |
 | `ask`             | Adds the `ask_user_question` tool: questions with fixed choices in a dialog.                                                                          |
 | `loop`            | Adds `/loop [interval] <prompt>` and the `schedule_wakeup` tool. Without an interval, the agent schedules each next run itself. `/loop stop` ends it. |
 | `goal`            | Tracks a long-running objective across turns, with continuation, status, and budget handling.                                                         |
 | `todo`            | File-based todos in `.pi/todos`. Adds the `todo` tool for the agent and the `/todos` manager.                                                         |
+| `context`         | Adds `/context`: the token counts and sources of the current context window. See below.                                                               |
 | `session-history` | Adds `session_list`, `session_search`, and `session_read` for codemode scripts, to read past sessions. See below.                                     |
 | `uv`              | Replaces the `bash` tool. Blocks `pip`, `poetry`, and `python -m pip/venv/py_compile`.                                                                |
 | `web-fetch`       | Adds the `web_fetch` tool, which returns a web page as Markdown.                                                                                      |
@@ -43,6 +43,20 @@ their task, so that agents can find them.
 
 `bun run sync` turns off the `rex` skill that `rex skill setup` puts in `~/.agents/skills`, so that
 pi loads only the copy in this repository.
+
+## Context window
+
+`/context` shows where the tokens in the current context window are: the sections of the system
+prompt, the tool declarations, the conversation grouped by role and tool, and the largest single
+messages. The rows are estimates, scaled to the total that pi reports.
+
+| Key           | Action             |
+| ------------- | ------------------ |
+| `↑` `↓`       | Scroll one line.   |
+| `PgUp` `PgDn` | Scroll one page.   |
+| `esc`         | Close the overlay. |
+
+In modes without terminal UI, the report is a notification or plain text.
 
 ## Session history
 
@@ -118,7 +132,9 @@ these features stop.
 
 `bun run sync` at the repository root adds this package and
 [`@hellstack/skills`](../skills/README.md) to `packages` in `~/.pi/agent/settings.json`, with the
-settings in `agent-settings.json`. It keeps the other settings and packages of the machine.
+settings in `agent-settings.json`. It keeps the other settings and packages of the machine. It also
+links `~/.pi/agent/AGENTS.md` to [`@hellstack/prompts`](../prompts/README.md), which pi loads in
+every session as a context file.
 
 Pi loads the extensions from `dist`, not from `src`: one bundle loads faster than many source files.
 After you change `src`, run `bun run build`, then `/reload`. `bun run sync` and `bun run test` also
@@ -126,6 +142,23 @@ build.
 
 Use `pi config` to turn off one extension. Install packages that only one machine needs with
 `pi install`.
+
+## Startup skills list
+
+Pi renders the `[Skills]` line of the startup details itself, and an extension cannot change it.
+`scripts/patch-startup.ts` patches the bundle of the installed pi, so the section shows the skills
+that the model can invoke on the first line, and the skills with `disable-model-invocation: true` on
+the next line:
+
+```text
+[Skills]
+  chinchilla-mode, herdr, pr, review
+  command-only: cleanup-macos, jira, show-me
+```
+
+`bun run pi:update` applies the patch after each update. If you run `pi update` directly, run
+`bun run pi:patch-startup` after it. A new pi version can change the bundle text. The patch then
+stops with a message, and so does its test.
 
 ## Configuration
 
@@ -150,8 +183,8 @@ Update pi with this command at the repository root, not with `pi update`:
 bun run pi:update
 ```
 
-It runs `pi update`, sets the pi devDependencies to the new pi version, and runs the pi tests. The
-type check then finds API changes, and the other tests find changes in behavior. Arguments go to
-`pi update`.
+It runs `pi update`, sets the pi devDependencies to the new pi version, applies the startup patch,
+and runs the pi tests. The type check then finds API changes, and the other tests find changes in
+behavior. Arguments go to `pi update`.
 
 If you ran `pi update` directly, the devDependency tests fail. Run `bun run pi:update` to fix them.

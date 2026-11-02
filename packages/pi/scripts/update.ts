@@ -1,5 +1,7 @@
 import path from "node:path";
 
+import { patchInstalledPi } from "./patch-startup.ts";
+
 /** The pi packages that this package uses for types. Their versions must be the same as pi. */
 export const PI_PACKAGES = [
   "@earendil-works/pi-coding-agent",
@@ -36,6 +38,9 @@ async function main(args: string[]): Promise<void> {
     ...PI_PACKAGES.map((p) => `${p}@${version}`),
   ]);
   console.log(`pi devDependencies are at ${version}`);
+  const patched = await patchInstalledPi();
+  if (patched.length === 0) console.log("pi: the [Skills] patch is already applied");
+  for (const file of patched) console.log(`pi: patched ${file}`);
 }
 
 if (import.meta.main) await main(process.argv.slice(2));

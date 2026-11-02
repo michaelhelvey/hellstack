@@ -13,7 +13,8 @@
     ]
   },
   "scripts": {
-    "build": "bun scripts/build.ts"
+    "build": "bun scripts/build.ts",
+    "patch-startup": "bun scripts/patch-startup.ts"
   },
   "dependencies": {
     "marked": "18.0.11",

@@ -27,12 +27,12 @@ Pi loads everything from this repository. After you change a file, type `/reload
 
 ## Packages
 
-| Package                                 | What it holds                                     |
-| --------------------------------------- | ------------------------------------------------- |
-| [`skills`](packages/skills/README.md)   | All the skills. A pi package.                     |
-| [`pi`](packages/pi/README.md)           | The pi extensions. A pi package.                  |
-| [`prompts`](packages/prompts/README.md) | The system prompt text: instructions, chinchilla. |
-| [`gateway`](packages/gateway/README.md) | Sets up the work AI gateway for Claude Code.      |
+| Package                                 | What it holds                                |
+| --------------------------------------- | -------------------------------------------- |
+| [`skills`](packages/skills/README.md)   | All the skills. A pi package.                |
+| [`pi`](packages/pi/README.md)           | The pi extensions. A pi package.             |
+| [`prompts`](packages/prompts/README.md) | The global instructions, in `AGENTS.md`.     |
+| [`gateway`](packages/gateway/README.md) | Sets up the work AI gateway for Claude Code. |
 
 ## Commands
 
@@ -48,7 +48,7 @@ Pi loads everything from this repository. After you change a file, type `/reload
 - Packages: `pi install npm:<package>`. `bun run sync` keeps them.
 - Skills: put them in `~/.pi/agent/skills/`.
 
-If you're not me, edit [`packages/prompts/instructions.md`](packages/prompts/instructions.md) first.
+If you're not me, edit [`packages/prompts/AGENTS.md`](packages/prompts/AGENTS.md) first.
 
 ## what's with the name?
 

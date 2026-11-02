@@ -1,8 +1,9 @@
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readlink, rm, symlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
+import { AGENTS_FILE } from "@hellstack/prompts";
 import { z } from "zod";
 
 const PACKAGES_DIR = path.resolve(import.meta.dir, "../..");
@@ -53,6 +54,22 @@ async function writeSettings(agentDir: string): Promise<void> {
   await writeFile(file, `${JSON.stringify(settings, null, 2)}\n`);
 }
 
+/**
+ * Links `<agentDir>/AGENTS.md` to `source`, so that pi loads the global instructions of this
+ * repository in every session. It replaces a context file of that name that is not the link,
+ * because pi loads one context file from the agent folder.
+ */
+export async function linkAgentsFile(
+  agentDir: string,
+  source: string = AGENTS_FILE,
+): Promise<void> {
+  const link = path.join(agentDir, "AGENTS.md");
+  await mkdir(agentDir, { recursive: true });
+  if ((await readlink(link).catch(() => undefined)) === source) return;
+  await rm(link, { force: true });
+  await symlink(source, link);
+}
+
 function envDir(name: string, fallback: string[]): string {
   return process.env[name] ?? path.join(homedir(), ...fallback);
 }
@@ -60,7 +77,9 @@ function envDir(name: string, fallback: string[]): string {
 async function main(): Promise<void> {
   const agentDir = envDir("PI_CODING_AGENT_DIR", [".pi", "agent"]);
   await writeSettings(agentDir);
+  await linkAgentsFile(agentDir);
   console.log(`pi: ${path.join(agentDir, "settings.json")} loads ${REPO_PACKAGES.join(" and ")}`);
+  console.log(`pi: ${path.join(agentDir, "AGENTS.md")} -> ${AGENTS_FILE}`);
 }
 
 if (import.meta.main) await main();

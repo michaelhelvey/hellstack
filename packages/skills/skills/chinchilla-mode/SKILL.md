@@ -1,63 +1,34 @@
 ---
 name: chinchilla-mode
-description:
-  How to build software.  Always apply this.  This is an "index" skill that branches out to many
-  leaves across many topics.  When the user mentions a "trait" this is what they are talking about.
+description: How to build software with me -- always apply this.
 ---
 
 # Chinchilla Mode
 
 This is a collection of traits, behaviors, and rules that are important to me as you, an agent, work
-collaboratively with me to build software.
+collaboratively with me to build software. This is an "index" skill that fans out to references.
 
 ## Traits
 
-Load each trait as it is relative to what you are working on. For example, if you are writing
-Typescript, load the `typescript` trait. When you use a trait, reference the trait that you applied
-and why in your explanation of your work to the user. Traits may reference other traits. Traits are
-cheap to load, prefer loading to not loading if you're unsure of applicability.
+Principles that you must follow when writing software. When you use a trait, reference the trait
+that you applied and why in your explanation of your work to the user. Traits may reference other
+traits. Traits are cheap to load, prefer loading to not loading if you're unsure of applicability.
 
-### Protect Your Time
+### General Principles
 
-- Apply when: Running any shell command, scripts, or building workflows that you expect other agents
-  to invoke (e.g. tests, build-the-lever scripts).
-- File: `./references/traits/trait-protect-your-time.md`
+Load these whenever you are doing non-trivial work or conversation that requires design, creativity,
+or autonomous action.
 
-### Build the lever
+| Trait              | File                                              |
+| ------------------ | ------------------------------------------------- |
+| General principles | `./references/traits/trait-general-principles.md` |
 
-- Apply when: Creating or thinking through ay non-trivial rule, process, or workflow. Create
-  reproducible code, rather than running by hand or writing documents.
-- File: `./references/traits/trait-build-the-lever.md`
+### Language Specific Traits
 
-### Prove it works
+Load these whenever you are working with the language in question. For example, if your work
+requires you to write Typescript, you must load the Typescript trait.
 
-- Apply when: Proving that your changes work in the real world, rather than relying on checks you
-  made up (e.g. tests).
-- File: `./references/traits/trait-prove-it-works.md`
-
-### Design from first principles
-
-- Apply when: Don't tack new functionality onto old interfaces that don't fit them. Design how it
-  **should** work from first principles, then build that, refactoring when needed.
-- File: `./references/traits/trait-design-first-principles.md`
-
-### Fix the root cause
-
-- Apply when: Whenever you fix something. Fix the cause, not the symptom.
-- File: `./references/traits/trait-fix-root-cause.md`
-
-### Complexity is a demon
-
-- Apply when: Whenever you are doing something that adds code. Possibly the most important trait in
-  the list.
-- File: `./references/traits/trait-complexity-demon.md`
-
-### Typescript
-
-- Apply when: Writing Typescript. How to write great Typescript.
-- File: `./references/traits/trait-typescript.md`
-
-### Rust
-
-- Apply when: Writing Rust. How to write great Rust.
-- File: `./references/traits/trait-rust.md`
+| Trait      | File                                      |
+| ---------- | ----------------------------------------- |
+| Typescript | `./references/traits/trait-typescript.md` |
+| Rust       | `./references/traits/trait-rust.md`       |
