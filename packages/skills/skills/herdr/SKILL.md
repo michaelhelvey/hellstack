@@ -44,3 +44,5 @@ If `hc --skill` fails, the installed herdr-core is older than this skill. Use `h
   workflow. Read the installed guide at `~/.config/herdr-app/AGENTS.md` for mods and layouts. When
   the user wants worktrees as visible spaces, use the worktree workflow in `herdr-app --skill`. Keep
   children under their parent by default.
+- Exclusively use pi for subagents. Never use claude-code etc. Otherwise subagents won't get all the
+  nice stuff that you have.
