@@ -16,6 +16,7 @@ import {
 import {
   createDaemon,
   HOUSEKEEPING_MS,
+  PRUNE_MS,
   tick,
   type DaemonOptions,
 } from "../../src/daemon/daemon.ts";
@@ -24,7 +25,7 @@ import type { Source } from "../../src/daemon/source.ts";
 import { statePath } from "../../src/daemon/state.ts";
 import { STUCK_MS } from "../../src/daemon/watchdog.ts";
 import { tempLedger } from "../core/helpers.ts";
-import { event, fakeHc, noHerdr, task, terminal } from "./helpers.ts";
+import { event, fakeHc, fakeInbox, noHerdr, task, terminal } from "./helpers.ts";
 
 function failing(): Promise<CommandResult> {
   return Promise.reject(new Error("no model"));
@@ -39,7 +40,7 @@ const events: FactoryEvent[] = [
 async function writeLedger(paths: LedgerPaths): Promise<void> {
   const github = { type: "github", everySeconds: 60, rules: [{ kind: "ci", action: "ignore" }] };
   await writeFile(paths.config, JSON.stringify({ ...defaultConfig(), sources: [github] }));
-  const owner = task({ status: "working", threads: ["gh:acme/api#88"], repo: paths.home });
+  const owner = task({ status: "working", threads: ["gh:acme/api#88"], cwd: paths.home });
   await writeTask(owner, paths);
 }
 
@@ -58,6 +59,7 @@ interface Setup {
   agents: boolean;
   terminals?: HcTerminal[];
   detail?: Partial<HcTerminalDetail>;
+  done?: string[];
 }
 
 async function setup(fields: Setup) {
@@ -66,12 +68,14 @@ async function setup(fields: Setup) {
   const fake = fakeHc(fields.terminals ?? [terminal()], fields.detail);
   const { source, polls } = countingSource();
   const logs: string[] = [];
+  const inbox = fakeInbox(fields.done);
   const options = { paths, agents: fields.agents, hc: fake.hc, herdr: noHerdr, tickMs: 1 };
   const daemon = await createDaemon({
     ...options,
     ...{ runner: failing, createSource: () => source, log: (line) => logs.push(line) },
+    inbox: inbox.sources,
   } satisfies DaemonOptions);
-  return { paths, fake, logs, polls, daemon };
+  return { paths, fake, logs, polls, daemon, inbox };
 }
 
 async function sources(paths: LedgerPaths) {
@@ -97,6 +101,12 @@ describe("daemon tick", () => {
       ],
     });
     expect(daemon.state.cursors.github).toEqual({ since: "x" });
+  });
+
+  test("an inbox event gets the detail of its source", async () => {
+    const { paths, daemon } = await setup({ agents: false });
+    await tick(daemon, 0);
+    expect((await listInbox(paths)).map((e) => e.detail)).toEqual([{ state: "open" }]);
   });
 
   test("waits for the poll interval and does not handle an event two times", async () => {
@@ -196,6 +206,35 @@ describe("daemon tick", () => {
     const last = (await readFeed(1, paths))[0];
     expect(last).toMatchObject({ source: "factoryd", ok: false });
     expect(last?.error).toContain("sources[0].org");
+  });
+
+  test("prunes done inbox events every PRUNE_MS and writes one record per pass that removed some", async () => {
+    const done: string[] = [];
+    const { paths, daemon, inbox } = await setup({ agents: false, done });
+    await tick(daemon, 0);
+    expect(inbox.calls).toEqual(["isDone free", "isDone "]);
+    done.push("free");
+    await tick(daemon, PRUNE_MS - 1);
+    expect(await listInbox(paths)).toHaveLength(1);
+    await tick(daemon, PRUNE_MS);
+    expect(await listInbox(paths)).toEqual([]);
+    await tick(daemon, 2 * PRUNE_MS);
+    const pruned = (await sources(paths)).filter(([, summary]) => summary?.startsWith("Removed"));
+    expect(pruned).toEqual([["factoryd", "Removed 1 done inbox events: gh:acme/api#1."]]);
+  });
+
+  test("a prune error writes a failed record and keeps the events", async () => {
+    const { paths, daemon } = await setup({ agents: false });
+    await tick(daemon, 0);
+    daemon.options.inbox.github = {
+      ...daemon.options.inbox.github,
+      isDone: () => Promise.reject(new Error("gh is down")),
+    };
+    await tick(daemon, PRUNE_MS);
+    expect(await listInbox(paths)).toHaveLength(1);
+    const last = (await readFeed(5, paths)).find((record) => record.error);
+    expect(last).toMatchObject({ source: "factoryd", summary: "The prune step failed." });
+    expect(last?.error).toBe("github: gh is down");
   });
 
   test("a poll error writes a failed record", async () => {

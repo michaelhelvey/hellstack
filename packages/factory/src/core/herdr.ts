@@ -42,6 +42,8 @@ export interface Herdr {
   spaces(): Promise<HerdrSpace[] | typeof NO_WINDOW>;
   /** Renames a space or tab. Returns false when Herdr does not know it (yet) or fails. */
   rename(target: HerdrName): Promise<boolean>;
+  /** Shows the agent in terminal `address` (an hc address). Returns false when Herdr fails. */
+  focus(address: string): Promise<boolean>;
 }
 
 /** Returns a {@link Herdr} that runs the `herdr-app` CLI with `runner`. */
@@ -58,6 +60,11 @@ export function createHerdr(runner: CommandRunner = runCommand): Herdr {
       const result = await runner("herdr-app", args, 2_000).catch(() => undefined);
       return result?.code === 0;
     },
+    async focus(address) {
+      const args = ["do", "agent.focus", "--terminal", address];
+      const result = await runner("herdr-app", args, 5_000).catch(() => undefined);
+      return result?.code === 0;
+    },
   };
 }
 
@@ -69,21 +76,24 @@ function shortHash(text: string): string {
   return createHash("sha256").update(text).digest("hex").slice(0, 12);
 }
 
+/** Where the agent of a task goes: the folder of its space, and the id and name of its tab. */
+export interface TaskTab {
+  cwd: string;
+  tab: string;
+  tabName: string;
+}
+
 /**
- * Returns the placement of the worker of task `id`: the space whose folder is `repo` (a new space
- * when there is none), in a tab of its own with the name `tabName`.
+ * Returns the placement of an agent of a task (a worker or a design agent): the space whose folder
+ * is `cwd` (a new space when there is none), in the tab `tab` with the name `tabName`.
  */
-export async function workerPlacement(
-  spaces: HerdrSpace[],
-  task: { id: string; repo: string; tabName: string },
-): Promise<HerdrPlacement> {
-  const folder = await realFolder(task.repo);
+export async function taskPlacement(spaces: HerdrSpace[], task: TaskTab): Promise<HerdrPlacement> {
+  const folder = await realFolder(task.cwd);
   const folders = await Promise.all(spaces.map((space) => realFolder(space.folder ?? "")));
   const space = spaces[folders.indexOf(folder)]?.id ?? `spfactory-${shortHash(folder)}`;
-  const tab = `tbfactory-${task.id}`;
   return {
-    labels: { "herdr.space": space, "herdr.tab": tab },
-    names: [{ kind: "tab", id: tab, name: task.tabName }],
+    labels: { "herdr.space": space, "herdr.tab": task.tab },
+    names: [{ kind: "tab", id: task.tab, name: task.tabName }],
   };
 }
 

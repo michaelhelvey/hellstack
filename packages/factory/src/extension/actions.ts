@@ -85,17 +85,17 @@ async function getAction(ctx: ActionContext, params: TaskParams): Promise<string
 
 async function createAction(ctx: ActionContext, params: TaskParams): Promise<string> {
   notWorker(ctx.role, "create");
-  const fields = { title: required(params.title, "title"), repo: required(params.repo, "repo") };
+  const fields = { title: required(params.title, "title"), cwd: required(params.cwd, "cwd") };
   const task = await createTask(fields, ctx.paths);
   return `Created the sketch ${describe(task, ctx.paths)}\nWrite the contract into the file.`;
 }
 
 /** Returns the front matter change of an `update` call. An empty `needs_you` clears it. */
 export function taskPatch(params: TaskParams): TaskPatch {
-  const { status, now, threads, paused, title } = params;
+  const { status, now, threads, paused, title, cwd } = params;
   const needs_you = params.needs_you === "" ? null : params.needs_you;
   if (title?.trim() === "") throw new Error("title cannot be empty");
-  const patch = { status, now, threads, paused, title, needs_you };
+  const patch = { status, now, threads, paused, title, cwd, needs_you };
   if (Object.values(patch).every((value) => value === undefined)) {
     throw new Error("update needs at least one field to change");
   }

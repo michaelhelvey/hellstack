@@ -15,7 +15,7 @@ function task(id: string, meta: Partial<TaskMeta> = {}): Task {
     id,
     title: `task ${id}`,
     status: "working",
-    repo: "/repo/hellstack",
+    cwd: "/repo/hellstack",
     threads: [],
     paused: false,
     needs_you: null,
@@ -72,26 +72,41 @@ describe("buildBoard tasks", () => {
       id: "t-0001",
       title: "task t-0001",
       status: "working",
-      repo: "/repo/hellstack",
+      cwd: "/repo/hellstack",
       ...meta,
       landing: { done: 1, total: 2 },
     });
   });
 
-  test("a card gets the address of the live worker terminal and its agent status", () => {
-    const tasks = [task("t-0001"), task("t-0002"), task("t-0003")];
+  test("a card gets its live worker, else its live design agent", () => {
+    const tasks = [task("t-0001"), task("t-0002"), task("t-0003"), task("t-0004")];
     const terminals = [
       terminal("factory-t-0001", { status: "working" }),
-      terminal("factory-t-0002", { status: "idle" }),
+      terminal("factory-design-t-0001"),
+      terminal("factory-design-t-0002", { status: "idle" }),
       terminal("factory-t-0003", { state: "exited" }),
       terminal("factory"),
     ];
     const cards = board({ tasks, terminals }).tasks;
-    expect(cards.map(({ terminal, working }) => ({ terminal, working }))).toEqual([
-      { terminal: "t-factory-t-0001", working: true },
-      { terminal: "t-factory-t-0002", working: false },
-      { terminal: undefined, working: undefined },
+    expect(cards.map(({ agent }) => agent)).toEqual([
+      { terminal: "factory-t-0001", role: "worker", working: true },
+      { terminal: "factory-design-t-0002", role: "design", working: false },
+      undefined,
+      undefined,
     ]);
+  });
+});
+
+describe("buildBoard running", () => {
+  test("factoryd runs when its terminal is live; the coordinator when it runs pi", () => {
+    expect(board({}).running).toEqual({ factoryd: false, coordinator: false });
+    const terminals = [
+      terminal("factoryd", { agent: "bun" }),
+      terminal("factory", { agent: "pi" }),
+    ];
+    expect(board({ terminals }).running).toEqual({ factoryd: true, coordinator: true });
+    const shell = [terminal("factory", { agent: "zsh" })];
+    expect(board({ terminals: shell }).running.coordinator).toBe(false);
   });
 });
 
@@ -109,16 +124,16 @@ function event(id: string, ts: string): FactoryEvent {
 }
 
 describe("buildBoard inbox", () => {
-  test("the inbox events are newest first, without the summary", () => {
+  test("the inbox events are newest first, with their detail", () => {
+    const detail = { author: "someone", body: "please rename x", state: "open", repo: "a/b" };
     const inbox = [
       event("1", "2026-11-05T14:00:00.000Z"),
-      event("3", "2026-11-05T14:02:00.000Z"),
+      { ...event("3", "2026-11-05T14:02:00.000Z"), detail },
       event("2", "2026-11-05T14:01:00.000Z"),
     ];
     const items = board({ inbox }).inbox;
     expect(items.map((item) => item.id)).toEqual(["3", "2", "1"]);
-    const { summary: _, ...shown } = event("3", "2026-11-05T14:02:00.000Z");
-    expect(items[0]).toEqual(shown);
+    expect(items[0]).toEqual({ ...event("3", "2026-11-05T14:02:00.000Z"), detail });
   });
 });
 

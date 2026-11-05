@@ -13,8 +13,13 @@ bun run factory init           # make the ledger in $FACTORY_HOME (default ~/.fa
 bun run factory up             # start the coordinator and factoryd (safe to run again)
 bun run factory status         # what runs, the task counts, the inbox, the last poll of each source
 bun run factory down           # stop factoryd and the coordinator; workers continue
-bun run factory board --json   # print the board model (tasks, inbox, source health, feed)
+bun run factory board --json   # print the board model (what runs, tasks, inbox, source health, feed)
+bun run factory open <task-id>             # start and focus the agent of a task in Herdr
+bun run factory inbox dismiss <event-id>   # mark the notification done or resolve the issue
+bun run factory inbox design <event-id>    # make a sketch from an inbox event and open its design agent
 ```
+
+`open`, `inbox dismiss`, and `inbox design` print JSON with `--json`.
 
 `factoryd` polls the sources in `config.json`, routes events to workers, the coordinator, or the
 inbox, keeps workers and the coordinator running, and writes `feed.jsonl`. `up` runs it in the hc
@@ -29,7 +34,11 @@ The Herdr `factory` layout shows the board. See `packages/herdr/README.md`.
 
 In any pi session, `/sketch <title>` starts a task for the current folder. The agent helps you write
 the contract into the task file. Say that it is ready (or run `/handoff`), and the task goes to the
-coordinator.
+coordinator. `inbox design` does the same in a new design agent (terminal `factory-design-<id>`), in
+the local checkout of the event repository: it looks in `repoRoots` of `config.json` (default
+`["~/dev"]`).
+
+The sources use the logins of `gh` (`gh auth login`) and `sentry` (`sentry auth login`).
 
 `FACTORY_ROLE` gives a pi session its role. Spawn sets it; you do not set it by hand.
 
@@ -37,6 +46,7 @@ coordinator.
 | ----------------------------------- | ---------------------------------------------------------------------------------- |
 | `coordinator`                       | the `factory` skill, `COORDINATOR.md`, all `factory_*` tools, bash limited to 10 s |
 | `worker` (with `FACTORY_TASK=<id>`) | `WORKER.md`, `factory_task` for its own task, `/park` and `/unpark`                |
+| `design` (with `FACTORY_TASK=<id>`) | the task template guidance, `factory_task` and `factory_handoff` for its own task  |
 | `subagent`                          | the chinchilla rules only                                                          |
 | not set                             | `/sketch` only                                                                     |
 

@@ -7,6 +7,7 @@ import { ledgerPaths, promptPath, taskPath, type LedgerPaths } from "./paths.ts"
 import {
   appendLogEntry,
   checkLandingItem,
+  cwdStatuses,
   newTask,
   newTaskId,
   parseTask,
@@ -18,7 +19,7 @@ import {
   type TaskStatus,
 } from "./task.ts";
 
-type PatchField = "status" | "now" | "needs_you" | "threads" | "paused" | "title";
+type PatchField = "status" | "now" | "needs_you" | "threads" | "paused" | "title" | "cwd";
 
 /** The front matter fields that `updateTask` can change. An undefined field does not change. */
 export type TaskPatch = { [K in PatchField]?: TaskMeta[K] | undefined };
@@ -95,20 +96,26 @@ export async function getTask(id: string, paths: LedgerPaths = ledgerPaths()): P
 }
 
 /**
- * Writes `task` atomically and sets `updated` to the current time. Returns the written task. It does
- * not take the task lock; the other write functions do.
+ * Writes `task` atomically and sets `updated` to `now` (the default is the current time). Returns
+ * the written task. It does not take the task lock; the other write functions do.
  */
-export async function writeTask(task: Task, paths: LedgerPaths = ledgerPaths()): Promise<Task> {
-  const written = { ...task, meta: { ...task.meta, updated: new Date().toISOString() } };
+export async function writeTask(
+  task: Task,
+  paths: LedgerPaths = ledgerPaths(),
+  now: string = new Date().toISOString(),
+): Promise<Task> {
+  const written = { ...task, meta: { ...task.meta, updated: now } };
   await mkdir(paths.tasks, { recursive: true });
   await writeAtomic(taskPath(paths, task.meta.id), serializeTask(written));
   return written;
 }
 
-/** The fields of a task that `createTask` makes. */
+/** The fields of a task that `createTask` makes. `goal` is a draft for the Goal section. */
 export interface CreateTask {
   title: string;
-  repo: string;
+  cwd: string;
+  threads?: string[];
+  goal?: string;
 }
 
 /** Makes a `sketch` task from `prompts/task-template.md` and writes it. Returns the new task. */
@@ -128,12 +135,14 @@ export async function createTask(
 
 async function editTask(
   id: string,
-  edit: (task: Task) => Task | Promise<Task>,
+  edit: (task: Task, now: string) => Task | Promise<Task>,
   paths: LedgerPaths,
 ): Promise<Task> {
-  return withLock(taskPath(paths, id), async () =>
-    writeTask(await edit(await getTask(id, paths)), paths),
-  );
+  return withLock(taskPath(paths, id), async () => {
+    const task = await getTask(id, paths);
+    const now = new Date().toISOString();
+    return writeTask(await edit(task, now), paths, now);
+  });
 }
 
 function definedFields(patch: TaskPatch): Partial<Pick<TaskMeta, PatchField>> {
@@ -153,10 +162,18 @@ function transitionHint(from: TaskStatus, to: TaskStatus): string {
   return from === "sketch" && to === "ready" ? "; use handoff to make it ready" : "";
 }
 
+function assertCwd(task: Task, cwd: string | undefined): void {
+  if (cwd === undefined || cwd === task.meta.cwd || cwdStatuses.includes(task.meta.status)) return;
+  throw new Error(
+    `task ${task.meta.id} is ${task.meta.status}; cwd can change only in sketch or ready`,
+  );
+}
+
 /**
  * Changes front matter fields of task `id`. Fields that are undefined do not change. Throws when the
  * status change is not in {@link statusTransitions}: for example, only {@link handoff} moves a
- * `sketch` to `ready`. The change to `landed` sets `landed_at`.
+ * `sketch` to `ready`. Throws when `cwd` changes and the status is not in {@link cwdStatuses}. The
+ * change to `landed` sets `landed_at`.
  */
 export async function updateTask(
   id: string,
@@ -165,10 +182,11 @@ export async function updateTask(
 ): Promise<Task> {
   return editTask(
     id,
-    (task) => {
+    (task, now) => {
       assertTransition(id, task.meta.status, patch.status);
+      assertCwd(task, patch.cwd);
       const lands = patch.status === "landed" && task.meta.status !== "landed";
-      const landed = lands ? { landed_at: new Date().toISOString() } : {};
+      const landed = lands ? { landed_at: now } : {};
       return { ...task, meta: { ...task.meta, ...definedFields(patch), ...landed } };
     },
     paths,

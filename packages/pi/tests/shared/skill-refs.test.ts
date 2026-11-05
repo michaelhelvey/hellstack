@@ -14,6 +14,12 @@ test("ignores paths, URLs, and slashes inside words", () => {
   expect(skillRefs(text)).toEqual([]);
 });
 
+test("ignores closing tags, but not a token after <", () => {
+  const text = '<factory from="factoryd">\nrun </review now\n</factory>';
+
+  expect(skillRefs(text)).toEqual(["review"]);
+});
+
 test("ignores the text of skill blocks", () => {
   const block = '<skill name="jira" location="/s/jira/SKILL.md">\nUse /browser.\n</skill>';
 

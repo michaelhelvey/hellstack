@@ -67,3 +67,7 @@ test("expandSkills adds a block for each named skill before the text", async () 
 test("expandSkills returns undefined when the text names no skill", async () => {
   expect(await expandSkills("hello /missing", skills)).toBeUndefined();
 });
+
+test("expandSkills does not expand a skill for its closing tag", async () => {
+  expect(await expandSkills("<jira>\nwrap up\n</jira>", skills)).toBeUndefined();
+});

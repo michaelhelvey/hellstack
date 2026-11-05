@@ -39,6 +39,10 @@ describe("slashToken", () => {
     expect(slashToken(["a", "/"], 1, 1)).toEqual({ query: "", atStart: false });
   });
 
+  test("does not find a closing tag", () => {
+    expect(slashToken(["text </fac"], 0, 10)).toBeUndefined();
+  });
+
   test("finds nothing in a path or after a space", () => {
     expect(slashToken(["src/ji"], 0, 6)).toBeUndefined();
     expect(slashToken(["/jira x"], 0, 7)).toBeUndefined();

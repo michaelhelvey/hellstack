@@ -1,4 +1,4 @@
-import { workerTerminal, type HcTerminal, type Task } from "../core/index.ts";
+import { designTerminal, workerTerminal, type HcTerminal, type Task } from "../core/index.ts";
 import { runningPi } from "./route.ts";
 
 /**
@@ -14,7 +14,15 @@ export interface ReconcileInput {
   closeAfterMinutes: number;
 }
 
-/** A worker terminal to close. `minutes` is the time since the task finished. */
+/**
+ * The terminals of the agents of task `id`: its worker and its design agent. The reconciler closes
+ * them when the task is finished.
+ */
+export function agentTerminals(id: string): string[] {
+  return [workerTerminal(id), designTerminal(id)];
+}
+
+/** A worker or design terminal to close. `minutes` is the time since the task finished. */
 export interface Close {
   task: Task;
   terminal: string;
@@ -87,8 +95,9 @@ function noticeTask(key: string): string {
 
 /**
  * Compares the tasks with the terminals. It starts each wanted worker that does not run pi. It
- * closes the worker of each `landed` or `dropped` task when the worker is not working and has been
- * idle for `closeAfterMinutes` since the later of the finish time and its last status change. It
+ * closes the worker and the design agent of each `landed` or `dropped` task when the agent is not
+ * working and has been idle for `closeAfterMinutes` since the later of the finish time and its last
+ * status change. It
  * tells the coordinator one time about each `ready` task and each stale task. It forgets the
  * notices of tasks that no longer exist.
  */
@@ -102,7 +111,9 @@ export function reconcile(input: ReconcileInput): ReconcilePlan {
     start: input.tasks.filter(
       (task) => wantsWorker(task) && !running.has(workerTerminal(task.meta.id)),
     ),
-    close: input.tasks.flatMap((task) => closeWorker(task, input, worker(task))),
+    close: input.tasks.flatMap((task) =>
+      agentTerminals(task.meta.id).flatMap((name) => closeWorker(task, input, byName.get(name))),
+    ),
     ...notices(input, worker),
   };
 }

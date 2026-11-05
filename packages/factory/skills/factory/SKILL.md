@@ -30,7 +30,7 @@ remember them.
 | Path              | What                                                                                |
 | ----------------- | ----------------------------------------------------------------------------------- |
 | `tasks/<id>.md`   | One task. Front matter, then Goal, Verification, Output, Constraints, Landing, Log. |
-| `inbox/<id>.json` | An event that no task owns.                                                         |
+| `inbox/<id>.json` | An event that no task owns, with its `detail` (author, text, state, repository).    |
 | `feed.jsonl`      | What factoryd did: polls, routes, respawns, errors.                                 |
 | `config.json`     | What factoryd polls and how it filters. Per machine.                                |
 | `COORDINATOR.md`  | Your memory. Edit it when you learn something that must survive a restart.          |
@@ -52,9 +52,15 @@ Task status: `sketch` → `ready` → `working` → `landing` → `landed`, or `
   bug, Verification is a reproduction; for Landing, use what the repository usually does (see
   `COORDINATOR.md`) and say so. Set `needs_you` to "approve?" and tell the user. When the user
   approves, run `factory_handoff`, then dispatch.
+- Every task has a `cwd`: the absolute folder where its agents work, usually a repository. Set it
+  with `create`; change it with `update` only while the task is `sketch` or `ready`.
 - When factoryd tells you that a task is `ready`, dispatch it with `factory_dispatch`. Each worker
-  is a fresh pi session in the Herdr space of the task repository. It reads only its task file, so a
-  task must make sense without your conversation.
+  is a fresh pi session in the Herdr space of the task `cwd`. It reads only its task file, so a task
+  must make sense without your conversation.
+- A sketch can have a design agent (terminal `factory-design-<id>`), where the user writes the
+  contract with an agent. The user starts it from the board or with
+  `bun run factory inbox design <event-id>` (a sketch from an inbox event) or
+  `bun run factory open <id>`. Leave a design agent alone; the user talks to it.
 - A contract change from the user goes into the task file, then to the worker:
   `hc send factory-<id> "<what changed>"`.
 
@@ -78,6 +84,12 @@ go to its worker. You get the rest as `<factory from="factoryd">` blocks, at mos
 seconds. Events that no task owns are also in the inbox. For each event, decide: ignore it (and
 `dismiss` it), tell the user, or propose a task.
 
+`factory_inbox` `dismiss` only removes the inbox file. To also mark the GitHub notification done or
+resolve the Sentry issue, run `bun run factory inbox dismiss <event-id>`; do that only when the user
+asks for it. factoryd removes inbox events by itself every 5 minutes when their subject is done (a
+merged or closed PR or issue, a resolved or ignored Sentry issue, a notification that the user
+marked done).
+
 Stay quiet about noise. When a block has nothing that needs the user, answer with one short line
 (for example `2 bot comments, noise`), or nothing at all. Do not explain each event. Do not repeat
 the inbox. When the same kind of noise comes three times, propose one config rule for it, one time.
@@ -94,6 +106,7 @@ When the user says "watch for sentry issues", "stop telling me about dependabot"
   "summaryModel": "haiku",
   "staleAfterMinutes": 120,
   "closeAfterMinutes": 60,
+  "repoRoots": ["~/dev"],
   "sources": [
     {
       "type": "github",
@@ -104,10 +117,8 @@ When the user says "watch for sentry issues", "stop telling me about dependabot"
     {
       "type": "sentry",
       "everySeconds": 300,
-      "url": "https://sentry.io",
       "org": "my-org",
       "projects": ["api"],
-      "tokenEnv": "SENTRY_AUTH_TOKEN",
       "default": "candidate",
       "rules": []
     }
@@ -116,14 +127,16 @@ When the user says "watch for sentry issues", "stop telling me about dependabot"
 ```
 
 - Source types that exist: `github` (uses `gh auth`; GitHub notifications: PR comments, reviews,
-  review requests, mentions, CI, dependabot) and `sentry` (issues of the listed projects).
+  review requests, mentions, CI, dependabot) and `sentry` (issues of the listed projects; uses the
+  login of the `sentry` CLI).
+- `repoRoots`: the folders where `inbox design` looks for the local checkout of a repository.
 - Rule fields: `kind`, `repo` (`owner/repo`), `action`. Actions: `ignore`, `candidate` (route it),
   `mention-only` (route it only when it mentions the user or asks for their review). The first
   matching rule wins, else `default`.
 - Event kinds: `pr_comment`, `review_requested`, `review`, `ci`, `mention`, `security_alert`,
   `issue_new`, `issue_regression`.
-- Secrets never go in the config. For a token, ask the user to put it in the environment of the
-  `factoryd` terminal or their shell profile, and put only the variable name in `tokenEnv`.
+- Secrets never go in the config. When a source fails with an auth error, ask the user to run
+  `gh auth login` or `sentry auth login`.
 - factoryd reloads the config when the file changes. After a change, wait for the next poll of that
   source, then read the last records of `feed.jsonl` and tell the user if it works or why not. A bad
   config file leaves the last good config in use, and the feed has the error.
@@ -135,6 +148,7 @@ When the user says "watch for sentry issues", "stop telling me about dependabot"
 ```sh
 bun run factory status        # what runs, task counts (from the hellstack repository)
 bun run factory up            # start factoryd and you, when they do not run
+bun run factory open <id>     # start and focus the agent of a task (for the user)
 hc ls                         # all terminals
 hc read factory-<id> --lines 60
 tail -n 20 "$FACTORY_HOME/feed.jsonl"

@@ -1,4 +1,9 @@
-import type { FactoryEvent } from "../core/index.ts";
+import {
+  MAX_DETAIL_BODY,
+  type EventDetail,
+  type FactoryEvent,
+  type FactoryEventSource,
+} from "../core/index.ts";
 
 /** The poll position of a source. Each source sets its own fields. The daemon keeps it in `state/`. */
 export type Cursor = Record<string, string>;
@@ -17,6 +22,43 @@ export interface PollResult {
 export interface Source {
   /** Gets the events since `cursor`. With no cursor, it starts at `now` minus {@link LOOKBACK_MS}. */
   poll(cursor: Cursor | undefined, now: Date): Promise<PollResult>;
+}
+
+/**
+ * What factoryd and the CLI do with the inbox events of one source type. Each source module makes
+ * its own.
+ */
+export interface InboxSource {
+  /** Returns the detail of an event for the inbox. It completes the `detail` that the poll set. */
+  detail(event: FactoryEvent): Promise<EventDetail | undefined>;
+  /** Does the dismiss action of the source for the event. Throws when it fails. */
+  dismiss(event: FactoryEvent): Promise<void>;
+  /**
+   * Returns the ids of the events whose subject is done. It checks all events with few calls. An
+   * event that it cannot check is not done.
+   */
+  isDone(events: FactoryEvent[]): Promise<string[]>;
+}
+
+/** The {@link InboxSource} of each source type. */
+export type InboxSources = Record<FactoryEventSource, InboxSource>;
+
+const HTML_TAG =
+  /<\/?(?:a|em|strong|p|br|hr|img|div|span|details|summary|sub|sup|kbd|ul|ol|li|h[1-6]|table|thead|tbody|tr|td|th|blockquote|picture|source)\b[^>]*>/gi;
+
+/**
+ * Returns a plain text excerpt of Markdown or HTML text: without HTML comments and the usual HTML
+ * tags of GitHub text, without runs of empty lines, and cut to {@link MAX_DETAIL_BODY} characters.
+ * Other text in angle brackets, such as `Promise<string>`, stays.
+ */
+export function excerpt(text: string): string {
+  const plain = text
+    .replace(/<!--[\s\S]*?(?:-->|$)/g, "")
+    .replace(HTML_TAG, "")
+    .replace(/\r/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return plain.length > MAX_DETAIL_BODY ? `${plain.slice(0, MAX_DETAIL_BODY - 1)}…` : plain;
 }
 
 /** How far back the first poll of a source looks, in milliseconds. */

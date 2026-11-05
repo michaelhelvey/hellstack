@@ -38,7 +38,7 @@ describe("roleSections", () => {
 
   test("a design session gets its task file and the template while the task is a sketch", async () => {
     const paths = await tempLedger();
-    const task = await createTask({ title: "Fix it", repo: await tempFolder() }, paths);
+    const task = await createTask({ title: "Fix it", cwd: await tempFolder() }, paths);
     const role = { kind: "design", task: task.meta.id } as const;
     const sketch = await roleSections(role, paths);
     expect(Object.keys(sketch)).toEqual(["factory_rules", "factory_design"]);

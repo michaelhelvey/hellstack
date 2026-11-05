@@ -72,7 +72,7 @@ const builders: Record<ToolName, (context: () => ActionContext) => FactoryTool> 
       name: "factory_task",
       label: "Factory task",
       description:
-        "Read and change factory task files: list, get, create, update (status, now, needs_you, threads, paused, title), log, check. Edit the prose sections of a task file with the edit tools; change the front matter and the Log only with this tool. A worker acts only on its own task.",
+        "Read and change factory task files: list, get, create, update (status, now, needs_you, threads, paused, title, cwd), log, check. Edit the prose sections of a task file with the edit tools; change the front matter and the Log only with this tool. A worker acts only on its own task.",
       parameters: taskParamsSchema,
       run: (params) => runTaskAction(context(), params),
     }),
@@ -98,7 +98,7 @@ const builders: Record<ToolName, (context: () => ActionContext) => FactoryTool> 
       name: "factory_handoff",
       label: "Factory handoff",
       description:
-        "Move a factory sketch to ready. It fails and names the missing parts unless Goal, Verification, Output, and Constraints have text, Landing has checkbox items, and repo is a folder.",
+        "Move a factory sketch to ready. It fails and names the missing parts unless Goal, Verification, Output, and Constraints have text, Landing has checkbox items, and cwd is a folder.",
       parameters: handoffParamsSchema,
       run: (params) => runHandoff(context(), params.id),
     }),

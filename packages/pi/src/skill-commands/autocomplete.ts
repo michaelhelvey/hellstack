@@ -10,7 +10,7 @@ import type { SkillCommand } from "./skills.ts";
 
 const SKILL_PREFIX = "skill:";
 
-const SLASH_TOKEN = /(?:^|[\s([{<"'`])\/([\w-]*)$/;
+const SLASH_TOKEN = /(?:^|[\s([{"'`])\/([\w-]*)$/;
 
 /** A `/name` token that ends at the cursor. */
 export interface SlashToken {
@@ -20,7 +20,10 @@ export interface SlashToken {
   atStart: boolean;
 }
 
-/** Finds the `/name` token that ends at the cursor. */
+/**
+ * Finds the `/name` token that ends at the cursor. `</name` is not a token, because it is the start
+ * of a closing tag.
+ */
 export function slashToken(lines: string[], line: number, col: number): SlashToken | undefined {
   const before = (lines[line] ?? "").slice(0, col);
   const query = SLASH_TOKEN.exec(before)?.[1];

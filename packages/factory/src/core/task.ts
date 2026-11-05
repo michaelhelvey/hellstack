@@ -32,14 +32,18 @@ export const statusTransitions: Record<TaskStatus, readonly TaskStatus[]> = {
   dropped: [],
 };
 
-/**
- * The front matter of a task file. Unknown fields stay in the file. Times can have a UTC offset.
- */
-export const taskMetaSchema = z.looseObject({
+/** The statuses in which `updateTask` can change `cwd`. */
+export const cwdStatuses: readonly TaskStatus[] = ["sketch", "ready"];
+
+const legacyRepoSchema = z
+  .looseObject({ repo: z.string() })
+  .transform(({ repo, ...rest }) => ({ cwd: repo, ...rest }));
+
+const metaFieldsSchema = z.looseObject({
   id: taskIdSchema,
   title: z.string().min(1),
   status: taskStatusSchema,
-  repo: z.string().refine(isAbsolute, "repo must be an absolute path"),
+  cwd: z.string().refine(isAbsolute, "cwd must be an absolute path"),
   threads: z.array(z.string()).default([]),
   paused: z.boolean().default(false),
   needs_you: z.string().nullable().default(null),
@@ -49,10 +53,19 @@ export const taskMetaSchema = z.looseObject({
   landed_at: z.iso.datetime({ offset: true }).nullable().default(null),
 });
 
+/**
+ * The front matter of a task file. Unknown fields stay in the file. Times can have a UTC offset. An
+ * old file has `repo` instead of `cwd`: the schema reads it as `cwd`, so the next write has `cwd`.
+ */
+export const taskMetaSchema = z.preprocess(
+  (raw) => legacyRepoSchema.safeParse(raw).data ?? raw,
+  metaFieldsSchema,
+);
+
 /** The lifecycle state of a task. */
 export type TaskStatus = z.infer<typeof taskStatusSchema>;
 /** The front matter of a task file. */
-export type TaskMeta = z.infer<typeof taskMetaSchema>;
+export type TaskMeta = z.infer<typeof metaFieldsSchema>;
 
 /** A task file: the front matter and the Markdown body exactly as it is in the file. */
 export interface Task {
@@ -200,14 +213,14 @@ async function isFolder(path: string): Promise<boolean> {
 
 /**
  * Returns what a task needs before handoff: each contract section without text, a Landing section
- * without checkbox items, and a `repo` that is not a folder. An empty list means that it is ready.
+ * without checkbox items, and a `cwd` that is not a folder. An empty list means that it is ready.
  */
 export async function validateHandoff(task: Task): Promise<string[]> {
   const missing = contractSections
     .filter((name) => !sectionText(task.body, name))
     .map((name) => `${name} has no text`);
   if (landingItems(task.body).length === 0) missing.push("Landing has no checkbox items");
-  if (!(await isFolder(task.meta.repo))) missing.push(`repo is not a folder: ${task.meta.repo}`);
+  if (!(await isFolder(task.meta.cwd))) missing.push(`cwd is not a folder: ${task.meta.cwd}`);
   return missing;
 }
 
@@ -216,17 +229,26 @@ export function newTaskId(): string {
   return `t-${randomBytes(3).toString("hex")}`;
 }
 
-/** The fields of a new task. `template` is the body; `now` is the ISO time of creation. */
+/**
+ * The fields of a new task. `template` is the body; `now` is the ISO time of creation. `goal` is a
+ * draft that goes at the start of the Goal section.
+ */
 export interface NewTask {
   id: string;
   title: string;
-  repo: string;
+  cwd: string;
   template: string;
   now: string;
+  threads?: string[] | undefined;
+  goal?: string | undefined;
+}
+
+function withGoal(template: string, goal: string | undefined): string {
+  return goal ? template.replace(/^## Goal\r?\n/m, (heading) => `${heading}\n${goal}\n`) : template;
 }
 
 /** Returns a new task in the `sketch` state with the template as its body. */
-export function newTask({ id, title, repo, template, now }: NewTask): Task {
-  const meta = { id, title, repo, status: "sketch", created: now, updated: now };
-  return { meta: taskMetaSchema.parse(meta), body: `\n${template}` };
+export function newTask({ id, title, cwd, template, now, threads, goal }: NewTask): Task {
+  const meta = { id, title, cwd, threads, status: "sketch", created: now, updated: now };
+  return { meta: taskMetaSchema.parse(meta), body: `\n${withGoal(template, goal)}` };
 }
