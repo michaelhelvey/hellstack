@@ -20,12 +20,13 @@ export const taskIdSchema = z.string().regex(/^t-[0-9a-f]{4,8}$/, "not a valid t
 
 /**
  * The status changes that `updateTask` can make. Only handoff moves a `sketch` to `ready`. A
- * `landing` task can go back to `working`, and a `ready` task can go back to `sketch`.
+ * `landing` task can go back to `working`, and a `ready` task can go back to `sketch`. A `working`
+ * task can go to `landed` directly when its landing completes at once (for example, a local commit).
  */
 export const statusTransitions: Record<TaskStatus, readonly TaskStatus[]> = {
   sketch: ["dropped"],
   ready: ["sketch", "working", "dropped"],
-  working: ["landing", "dropped"],
+  working: ["landing", "landed", "dropped"],
   landing: ["working", "landed", "dropped"],
   landed: [],
   dropped: [],

@@ -113,6 +113,16 @@ describe("tasks", () => {
     expect(again.meta.updated).not.toBe(landed.meta.updated);
   });
 
+  test("a working task can land without landing", async () => {
+    const paths = await tempLedger();
+    const task = await sketch(paths);
+    const { meta } = await writeTask({ ...task, body: completeBody }, paths);
+    expect((await handoff(meta.id, paths)).ok).toBe(true);
+    await updateTask(meta.id, { status: "working" }, paths);
+    const landed = await updateTask(meta.id, { status: "landed" }, paths);
+    expect(landed.meta).toMatchObject({ status: "landed", landed_at: landed.meta.updated });
+  });
+
   test("parallel writes do not lose an update", async () => {
     const paths = await tempLedger();
     const { meta } = await sketch(paths);
