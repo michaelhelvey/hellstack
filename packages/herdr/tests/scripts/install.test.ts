@@ -61,20 +61,24 @@ test("linkConfig removes links to config files that do not exist", async () => {
     await rm(path.join(config, "layouts", "main.json"));
     await rm(path.join(config, "mods", "quiet"), { recursive: true });
     await linkConfig(app, config);
-    expect(lstat(path.join(app, "layouts", "main.json"))).rejects.toThrow("ENOENT");
-    expect(lstat(path.join(app, "mods", "quiet"))).rejects.toThrow("ENOENT");
+    await expect(lstat(path.join(app, "layouts", "main.json"))).rejects.toThrow("ENOENT");
+    await expect(lstat(path.join(app, "mods", "quiet"))).rejects.toThrow("ENOENT");
     expect(await readlink(path.join(app, "keys.json"))).toBe(path.join(config, "keys.json"));
   });
 });
 
-test("linkConfig keeps files, and links that do not point into the config folder", async () => {
+test("linkConfig keeps files, links out of the config folder, and Herdr folders", async () => {
   await withFolders(async (config, app) => {
     await mkdir(path.join(app, "layouts"), { recursive: true });
     const other = path.join(path.dirname(config), "config-old", "gone.json");
     await symlink(other, path.join(app, "layouts", "other.json"));
     await writeFile(path.join(app, "layouts", "mine.json"), "{}\n");
+    await mkdir(path.join(app, "data"));
+    const missing = path.join(config, "data", "gone.json");
+    await symlink(missing, path.join(app, "data", "gone.json"));
     await linkConfig(app, config);
     expect(await readlink(path.join(app, "layouts", "other.json"))).toBe(other);
+    expect(await readlink(path.join(app, "data", "gone.json"))).toBe(missing);
     expect(await readFile(path.join(app, "layouts", "mine.json"), "utf8")).toBe("{}\n");
   });
 });
@@ -82,6 +86,6 @@ test("linkConfig keeps files, and links that do not point into the config folder
 test("linkConfig does not write through an app folder that is a link", async () => {
   await withFolders(async (config, app) => {
     await symlink(config, app);
-    expect(linkConfig(app, config)).rejects.toThrow("is a link");
+    await expect(linkConfig(app, config)).rejects.toThrow("is a link");
   });
 });

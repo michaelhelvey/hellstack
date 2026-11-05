@@ -45,12 +45,16 @@ async function removeIfStale(link: string, configDir: string): Promise<void> {
   console.log(`herdr: removed ${link}, because ${source} does not exist`);
 }
 
-/** Removes each link in `appDir` that points into `configDir` at a path that does not exist. */
+/**
+ * Removes each link in `appDir` that points into `configDir` at a path that does not exist. Goes
+ * only into the folders that also exist in `configDir`, because Herdr owns the other folders.
+ */
 async function removeStaleLinks(appDir: string, configDir: string): Promise<void> {
   for (const entry of await readdir(appDir, { withFileTypes: true })) {
     const target = path.join(appDir, entry.name);
+    const source = path.join(configDir, entry.name);
     if (entry.isSymbolicLink()) await removeIfStale(target, configDir);
-    else if (entry.isDirectory()) await removeStaleLinks(target, configDir);
+    else if (entry.isDirectory() && existsSync(source)) await removeStaleLinks(target, source);
   }
 }
 
