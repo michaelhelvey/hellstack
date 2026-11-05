@@ -1,3 +1,4 @@
+import { loadBoard } from "./board/load.ts";
 import { createHc, initLedger, ledgerPaths, startCoordinator } from "./core/index.ts";
 import { down, repoRoot, status, up, type ControlDeps } from "./daemon/control.ts";
 import { daemonOptions, runDaemon } from "./daemon/daemon.ts";
@@ -35,6 +36,11 @@ async function daemon(args: string[]): Promise<void> {
   await runDaemon(daemonOptions(ledgerPaths(), !args.includes("--no-agents")), controller.signal);
 }
 
+async function board(args: string[]): Promise<void> {
+  if (!args.includes("--json")) throw new Error("usage: bun run factory board --json");
+  console.log(JSON.stringify(await loadBoard()));
+}
+
 /** The CLI commands by name. */
 export const commands = new Map<string, Command>([
   ["init", init],
@@ -42,6 +48,7 @@ export const commands = new Map<string, Command>([
   ["down", printing(down)],
   ["status", printing(status)],
   ["daemon", daemon],
+  ["board", board],
 ]);
 
 function usage(): string {
