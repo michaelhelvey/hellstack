@@ -54,6 +54,16 @@ describe("parseTask and serializeTask", () => {
     expect(meta).toMatchObject({ threads: [], paused: false, needs_you: null, now: "" });
   });
 
+  test("keep unknown fields, accept UTC offsets, and remove a byte order mark", () => {
+    const text = `\ufeff${fileText.replace("paused: false", "paused: false\ntags: [a]")}`.replace(
+      "2026-11-05T14:00:00.000Z",
+      "2026-11-05T15:00:00+01:00",
+    );
+    const task = parseTask(text);
+    expect(task.meta.created).toBe("2026-11-05T15:00:00+01:00");
+    expect(parseTask(serializeTask(task)).meta.tags).toEqual(["a"]);
+  });
+
   test("reject a file without front matter or with a bad field", () => {
     expect(() => parseTask("## Goal\n")).toThrow("no front matter");
     expect(() => parseTask(fileText.replace("status: working", "status: done"))).toThrow();
@@ -75,6 +85,13 @@ describe("sections and landing", () => {
     expect(landingItems(completeBody).map((item) => item.text)).toEqual(["PR opened", "merged"]);
   });
 
+  test("code blocks do not make sections or landing items", () => {
+    const body =
+      "\n## Goal\n\n```md\n## Example\n- [ ] not an item\n```\n\n## Landing\n\n~~~\n- [ ] no\n~~~\n- [ ] yes\n";
+    expect(sectionText(body, "Goal")).toBe("```md\n## Example\n- [ ] not an item\n```");
+    expect(landingItems(body).map((item) => item.text)).toEqual(["yes"]);
+  });
+
   test("checkLandingItem checks one item by its 1-based number", () => {
     const body = checkLandingItem(completeBody, 2);
     expect(landingProgress(body)).toEqual({ done: 2, total: 2 });
@@ -92,6 +109,12 @@ describe("appendLogEntry", () => {
   test("adds the first entry below the heading", async () => {
     const body = appendLogEntry(`\n${await template()}`, "t coordinator: made\nit");
     expect(body.endsWith("## Log\n\n- t coordinator: made it\n")).toBe(true);
+  });
+
+  test("keeps CRLF line ends", () => {
+    const body = "\r\n## Log\r\n\r\n- a\r\n";
+    expect(appendLogEntry(body, "b")).toBe("\r\n## Log\r\n\r\n- a\r\n- b\r\n");
+    expect(appendLogEntry("\r\n## Goal\r\n", "b")).toBe("\r\n## Goal\r\n\r\n## Log\r\n\r\n- b\r\n");
   });
 
   test("adds a Log section when there is none", () => {
