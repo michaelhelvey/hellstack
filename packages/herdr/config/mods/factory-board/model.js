@@ -31,6 +31,9 @@ const INBOX_FIELDS = ["source", "kind", "thread", "title", "url", "ts"];
 
 const COORDINATOR_TAB = "tbfactory";
 
+/** The theme color name of the accent of each role: the banner and the card of the shown worker. */
+export const ROLE_ACCENTS = { coordinator: "ansi5", worker: "ansi6", other: "dim" };
+
 /**
  * Returns the `shared()` key where the board puts the tasks and the inbox count for the banner. A
  * board with the `factoryHome` prop uses its own key, so two ledgers do not mix.
@@ -158,9 +161,18 @@ export function shownRole(tab) {
   return id ? { role: "worker", id } : { role: "other" };
 }
 
-/** Returns the part of the board that the banner uses: the tasks and the inbox count. */
-export function bannerData(board) {
-  return { tasks: board.tasks, inbox: board.inbox.length };
+/**
+ * Returns the part of the board that the banner uses: the tasks, the count of inbox threads, and
+ * the load error (an empty string when the last load was good).
+ */
+export function bannerData(board, error = "") {
+  return { tasks: board.tasks, inbox: inboxThreads(board.inbox).length, error };
+}
+
+/** Returns the inbox count text: `6`, or `6 · 30 events` when threads have more than one event. */
+export function inboxCount(inbox) {
+  const threads = inboxThreads(inbox).length;
+  return inbox.length > threads ? `${threads} · ${inbox.length} events` : String(threads);
 }
 
 /** Returns the counts of the coordinator summary that are not zero, in order of importance. */

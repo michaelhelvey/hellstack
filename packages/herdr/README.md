@@ -18,17 +18,17 @@ the macOS menus or keyboard shortcuts for window controls.
 
 ## Factory
 
-`herdr-app do layout.switch --name factory` shows the shown tab on the left and the factory board
-on the right. The keys and the tabs are the same as in the personal layout. Go to the space
-`factory` to talk to the coordinator, or to the tab of a task to talk to its worker.
+`herdr-app do layout.switch --name factory` shows the shown tab on the left and the factory board on
+the right. The keys and the tabs are the same as in the personal layout. Go to the space `factory`
+to talk to the coordinator, or to the tab of a task to talk to its worker.
 
-The banner over the tab names who you talk to: COORDINATOR (purple) or WORKER with the task (cyan).
-"← coordinator" goes back to the coordinator.
+The banner over the tab names who you talk to: COORDINATOR or WORKER with the task, each in its own
+accent of the theme (`ansi5` and `ansi6`). "← coordinator" goes back to the coordinator.
 
-The board (`mods/factory-board`) shows the tasks that need you, the working and landing tasks,
-ready and sketch, the inbox, the tasks that landed today, the health of each source, and the feed.
-Click a card with a terminal to go to its worker. Click an inbox row to open it in the browser.
-Drag the edge of the board to resize it. When it is wide, it uses two columns.
+The board (`mods/factory-board`) shows the tasks that need you, the working and landing tasks, ready
+and sketch, the inbox, the tasks that landed today, the health of each source, and the feed. Click a
+card with a terminal to go to its worker. Click an inbox row to open it in the browser. Drag the
+edge of the board to resize it. When it is wide, it uses two columns.
 
 The board runs `bun packages/factory/src/cli.ts board --json` in this repository when the ledger
 changes and every 20 seconds. It finds the repository through the link of its mod folder. Layout

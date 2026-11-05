@@ -2,11 +2,13 @@
 
 import { div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { run } from "herdr";
+import { run, terminals } from "herdr";
 
 import {
+  ROLE_ACCENTS,
   age,
   clock,
+  inboxCount,
   inboxPage,
   inboxThreads,
   kindLabel,
@@ -64,15 +66,25 @@ function clickable(el, t, onClick) {
     .on_click(onClick);
 }
 
+/**
+ * Returns a function that gives the agent status of a task: the live status of its terminal, else
+ * `working` from the last board load.
+ */
+export function liveStatus() {
+  const live = new Map(terminals().map((terminal) => [terminal.address, terminal.status]));
+  return (task) => (live.has(task.terminal) ? live.get(task.terminal) : task.working && "working");
+}
+
 function frame(el, ctx, task) {
   const { t, shown } = ctx;
+  const accent = t[ROLE_ACCENTS.worker];
   return el
     .when(task.paused, (el) => el.opacity(0.5))
     .when(task.id === shown, (el) =>
       el
         .border_1()
-        .border_color(t.ansi6)
-        .bg(t.ansi6 + "1a"),
+        .border_color(accent)
+        .bg(accent + "1a"),
     )
     .when(Boolean(task.terminal), (el) =>
       clickable(el, t, () => run("agent.focus", { terminal: task.terminal })),
@@ -189,9 +201,10 @@ function inbox(ctx, items) {
     .rounded(5)
     .text_color(t.dim)
     .child(more > 0 ? `+${more} more` : "show less");
+  const color = items.length > 0 ? t.muted : t.dim;
   return v_flex()
     .gap(1)
-    .child(countHeading(t, "Inbox", items.length))
+    .child(heading(t, `INBOX · ${inboxCount(items)}`, color))
     .children(shown.map((thread) => inboxRow(ctx, thread)))
     .when(more > 0 || ctx.inboxOpen, (el) => el.child(clickable(toggle, t, ctx.toggleInbox)));
 }
@@ -246,9 +259,11 @@ function stack(blocks) {
 
 function blocks(ctx, board) {
   const { needsYou: asks, groups } = sections(board);
+  const active = groups.filter((g) => g.status !== "landed");
+  const landed = groups.filter((g) => g.status === "landed");
   return {
-    tasks: [needsYou(ctx, asks), ...groups.slice(0, -1).map((g) => group(ctx, g))],
-    landed: group(ctx, groups.at(-1)),
+    tasks: [needsYou(ctx, asks), ...active.map((g) => group(ctx, g))],
+    landed: landed.map((g) => group(ctx, g)),
     inbox: inbox(ctx, board.inbox),
     rest: [health(ctx, board.sources), feed(ctx, board.feed)],
   };
@@ -261,10 +276,10 @@ function blocks(ctx, board) {
  */
 export function boardBody(ctx, board) {
   const { tasks, landed, inbox, rest } = blocks(ctx, board);
-  if (!ctx.wide) return stack([...tasks, inbox, landed, ...rest]);
+  if (!ctx.wide) return stack([...tasks, inbox, ...landed, ...rest]);
   return h_flex()
     .items_start()
     .gap(20)
-    .child(stack([...tasks, landed]))
+    .child(stack([...tasks, ...landed]))
     .child(stack([inbox, ...rest]));
 }

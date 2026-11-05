@@ -8,25 +8,15 @@
 
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import {
-  appHome,
-  exec,
-  focused,
-  home,
-  props,
-  setShared,
-  shared,
-  terminals,
-  theme,
-  watchFolder,
-} from "herdr";
+import { appHome, exec, focused, home, props, setShared, shared, theme, watchFolder } from "herdr";
 
 import { banner } from "./banner.js";
-import { boardBody, pill } from "./board.js";
+import { boardBody, liveStatus, pill } from "./board.js";
 import {
   EMPTY_BOARD,
   bannerData,
   boardCommand,
+  inboxCount,
   ledgerChanged,
   parseBoard,
   repoRoot,
@@ -58,18 +48,13 @@ async function readBoard(repo, factoryHome) {
   return parseBoard(result.stdout);
 }
 
-function liveStatus() {
-  const live = new Map(terminals().map((terminal) => [terminal.address, terminal.status]));
-  return (task) => (live.has(task.terminal) ? live.get(task.terminal) : task.working && "working");
-}
-
 function header(t, { inbox, invalid }) {
   return h_flex()
     .items_center()
     .gap(8)
     .child(div().flex_1().text_size(13).font_weight(700).text_color(t.foreground).child("Factory"))
     .when(invalid > 0, (el) => el.child(pill(`${invalid} bad task files`, t.blocked)))
-    .child(pill(`inbox ${inbox.length}`, inbox.length > 0 ? t.accent : t.dim));
+    .child(pill(`inbox ${inboxCount(inbox)}`, inbox.length > 0 ? t.accent : t.dim));
 }
 
 /** The factory board mod. With the prop `view: "banner"`, it shows the banner instead. */
@@ -134,7 +119,7 @@ export default class FactoryBoard extends View {
   }
 
   publish() {
-    const data = JSON.stringify(bannerData(this.board));
+    const data = JSON.stringify(bannerData(this.board, this.error));
     if (data === this.published) return;
     this.published = data;
     setShared(sharedKey(props()?.factoryHome), JSON.parse(data));

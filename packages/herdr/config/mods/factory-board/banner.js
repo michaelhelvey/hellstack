@@ -5,8 +5,8 @@ import { div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { run } from "herdr";
 
-import { pill, spinner } from "./board.js";
-import { progress, repoName, summary } from "./model.js";
+import { liveStatus, pill, spinner } from "./board.js";
+import { ROLE_ACCENTS, progress, repoName, summary } from "./model.js";
 
 function band(accent) {
   return h_flex()
@@ -30,11 +30,12 @@ function counts(t, data) {
   return h_flex()
     .flex_none()
     .gap(6)
+    .when(Boolean(data.error), (el) => el.child(pill("the board cannot load", t.blocked)))
     .children(items.map((text) => pill(text, text.endsWith("on you") ? t.blocked : t.muted)));
 }
 
 function coordinator(t, data) {
-  const accent = t.ansi5;
+  const accent = t[ROLE_ACCENTS.coordinator];
   return band(accent)
     .child(role("COORDINATOR", accent))
     .child(div().flex_1().truncate().text_color(t.muted).child("plans tasks and starts workers"))
@@ -82,12 +83,12 @@ function taskText(t, id, task) {
         .child(task.title),
     )
     .when(task.needs_you, (el) => el.child(pill("needs you", t.blocked)))
-    .when(task.working, (el) => el.child(spinner(t.working)));
+    .when(liveStatus()(task) === "working", (el) => el.child(spinner(t.working)));
   return v_flex().flex_1().min_w(0).gap(1).child(title).child(details(t, task));
 }
 
 function worker(t, id, data) {
-  const accent = t.ansi6;
+  const accent = t[ROLE_ACCENTS.worker];
   const task = data.tasks.find((task) => task.id === id);
   return band(accent)
     .child(role("WORKER", accent))
@@ -97,7 +98,8 @@ function worker(t, id, data) {
 }
 
 function other(t) {
-  return band(t.dim).child(role("NOT A FACTORY TAB", t.dim)).child(div().flex_1()).child(back(t));
+  const accent = t[ROLE_ACCENTS.other];
+  return band(accent).child(role("NOT A FACTORY TAB", accent)).child(div().flex_1()).child(back(t));
 }
 
 /**

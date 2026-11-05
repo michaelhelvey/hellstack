@@ -134,7 +134,7 @@
                   "size": {
                     "weight": 2
                   },
-                  "min": 520,
+                  "min": 420,
                   "background": "background",
                   "border": {
                     "width": 1,
@@ -184,7 +184,7 @@
                   "size": {
                     "weight": 1
                   },
-                  "min": 400,
+                  "min": 320,
                   "max": 1600,
                   "background": "chrome",
                   "border": {

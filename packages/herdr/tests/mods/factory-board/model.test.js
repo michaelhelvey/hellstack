@@ -1,8 +1,12 @@
 import { describe, expect, test } from "bun:test";
+
+import { coordinatorPlacement, workerPlacement } from "../../../../factory/src/core/herdr.ts";
 import {
   INBOX_LIMIT,
   age,
+  bannerData,
   boardCommand,
+  inboxCount,
   inboxPage,
   inboxThreads,
   kindLabel,
@@ -72,6 +76,17 @@ describe("inbox", () => {
     ]);
   });
 
+  test("the inbox count is the count of threads, with the events when there are more", () => {
+    const one = [event("1", "gh:a/b#1"), event("2", "gh:a/c#2")];
+    expect(inboxCount(one)).toBe("2");
+    expect(inboxCount([...one, event("3", "gh:a/b#1")])).toBe("2 · 3 events");
+    expect(bannerData({ tasks: [], inbox: [...one, event("3", "gh:a/b#1")] }, "x")).toEqual({
+      tasks: [],
+      inbox: 2,
+      error: "x",
+    });
+  });
+
   test("a closed inbox shows the first threads and counts the rest", () => {
     const threads = Array.from({ length: INBOX_LIMIT + 4 }, (_, i) => ({ latest: i, count: 1 }));
     const closed = inboxPage(threads, false);
@@ -103,6 +118,14 @@ describe("inbox", () => {
 });
 
 describe("banner", () => {
+  test("the roles come from the tab ids that factory spawn gives", async () => {
+    const coordinator = coordinatorPlacement([]).labels["herdr.tab"];
+    const task = { id: "t-1a2b3c", repo: "/tmp", tabName: "x" };
+    const worker = (await workerPlacement([], task)).labels["herdr.tab"];
+    expect(shownRole(coordinator)).toEqual({ role: "coordinator" });
+    expect(shownRole(worker)).toEqual({ role: "worker", id: "t-1a2b3c" });
+  });
+
   test("the tab id tells the coordinator, a worker, or another tab", () => {
     expect(shownRole("tbfactory")).toEqual({ role: "coordinator" });
     expect(shownRole("tbfactory-t-894203")).toEqual({ role: "worker", id: "t-894203" });
