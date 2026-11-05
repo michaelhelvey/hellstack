@@ -1,7 +1,7 @@
 {
-  "zoom": 0.9,
+  "zoom": 1,
   "sounds": {
-    "enabled": true
+    "enabled": false
   },
   "font": "MonoLisaCode Herdr",
   "font_size": 13,

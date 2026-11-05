@@ -43,7 +43,7 @@ sub-agent. Use your judgment.
 - Worktrees and branches are for you, not for the user. Give each sub-agent its own worktree when
   their edits can overlap. Remove every worktree and temporary branch that you made before the task
   is landed. The end state is what the Landing section says, and nothing more on disk.
-- Commit in small, clear steps with normal commit messages.
+- Commit in small, clear steps with conventional-commit messages.
 - Never force-push a branch that other people use. Never merge to a protected branch unless the
   Landing section says so.
 
