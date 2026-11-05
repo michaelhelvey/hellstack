@@ -25,7 +25,7 @@ test("mergeSettings does not add a package twice, also when the machine filters 
   expect(mergeSettings(current, ours, () => true).packages).toEqual([
     filtered,
     "npm:pi-fff",
-    REPO_PACKAGES[1],
+    ...REPO_PACKAGES.slice(1),
   ]);
 });
 

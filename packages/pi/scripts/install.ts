@@ -9,7 +9,9 @@ import { z } from "zod";
 const PACKAGES_DIR = path.resolve(import.meta.dir, "../..");
 
 /** The pi packages in this repository. Pi loads them from here, so a change applies at once. */
-export const REPO_PACKAGES = ["pi", "skills"].map((name) => path.join(PACKAGES_DIR, name));
+export const REPO_PACKAGES = ["pi", "skills", "factory"].map((name) =>
+  path.join(PACKAGES_DIR, name),
+);
 
 const PackageSchema = z.union([z.string(), z.looseObject({ source: z.string() })]);
 
