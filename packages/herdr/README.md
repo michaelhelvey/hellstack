@@ -9,20 +9,18 @@ one unit. When Herdr writes a real file over a link, the next sync moves that fi
 
 ## Layouts
 
-Select the personal layout with `herdr-app do layout.switch --name herdr`. It has the space picker
-and tabs across the top. The sidebar starts hidden; Ctrl+F then B shows the spaces and agents. The
-file and change icons open the standard Herdr panels.
+Select the personal layout with `herdr-app do layout.switch --name michaelhelvey`. It has the space
+picker and tabs across the top. The sidebar starts hidden; Ctrl+F then B shows the spaces and
+agents. The file and change icons open the standard Herdr panels.
 
 The native macOS window buttons are outside the visible window (`traffic_lights: [-100, 16]`). Use
 the macOS menus or keyboard shortcuts for window controls.
-
-The tmux-style layout is `herdr-app do layout.switch --name tmux`.
 
 ## Panes
 
 `mods/pane-quiet` draws the program name, the folder, and the agent state in dim colors. The split,
 zoom, and close buttons show while the pointer is on the pane. The focused pane has a rim of 17%
-white (`#ffffff2b`). Change it in `layouts/herdr.json`: `pane.focus.color`.
+white (`#ffffff2b`). Change it in `layouts/michaelhelvey.json`: `pane.focus.color`.
 
 ## Font
 
@@ -42,8 +40,7 @@ Press Ctrl+F, then:
 
 Cmd+1 through Cmd+9 select spaces. Ctrl+Shift+J / Ctrl+Shift+K zoom the app in / out.
 
-The prefix mod runs `hc keys` only to send a literal prefix. The status mod runs
-`git status --porcelain` in the folder of the focused terminal every five seconds.
+The prefix mod runs `hc keys` only to send a literal prefix.
 
 ## Checks
 

@@ -55,6 +55,30 @@ test("linkConfig keeps a file that Herdr wrote over a link as a backup", async (
   });
 });
 
+test("linkConfig removes links to config files that do not exist", async () => {
+  await withFolders(async (config, app) => {
+    await linkConfig(app, config);
+    await rm(path.join(config, "layouts", "main.json"));
+    await rm(path.join(config, "mods", "quiet"), { recursive: true });
+    await linkConfig(app, config);
+    expect(lstat(path.join(app, "layouts", "main.json"))).rejects.toThrow("ENOENT");
+    expect(lstat(path.join(app, "mods", "quiet"))).rejects.toThrow("ENOENT");
+    expect(await readlink(path.join(app, "keys.json"))).toBe(path.join(config, "keys.json"));
+  });
+});
+
+test("linkConfig keeps files, and links that do not point into the config folder", async () => {
+  await withFolders(async (config, app) => {
+    await mkdir(path.join(app, "layouts"), { recursive: true });
+    const other = path.join(path.dirname(config), "config-old", "gone.json");
+    await symlink(other, path.join(app, "layouts", "other.json"));
+    await writeFile(path.join(app, "layouts", "mine.json"), "{}\n");
+    await linkConfig(app, config);
+    expect(await readlink(path.join(app, "layouts", "other.json"))).toBe(other);
+    expect(await readFile(path.join(app, "layouts", "mine.json"), "utf8")).toBe("{}\n");
+  });
+});
+
 test("linkConfig does not write through an app folder that is a link", async () => {
   await withFolders(async (config, app) => {
     await symlink(config, app);

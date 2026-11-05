@@ -215,12 +215,12 @@ function bar(w) {
 /** The shipped Terminals tab bar with theme colors and native window-button clearance. */
 export default class TerminalsBar extends View {
   remember() {
-    const history = shared("tmux.history") ?? {};
+    const history = shared("pane.history") ?? {};
     const next = rememberPane(
       history,
       panes().find((pane) => pane.focused),
     );
-    if (next !== history) setShared("tmux.history", next);
+    if (next !== history) setShared("pane.history", next);
   }
 
   panel(id) {

@@ -4,7 +4,7 @@ import { actionFor, targetPane } from "./bindings.js";
 import { menu } from "./menu.js";
 
 /** A one-key command menu for the Ctrl+F prefix. */
-export default class TmuxPrefix extends View {
+export default class Prefix extends View {
   init(_props, cx) {
     this.handle = cx.focus_handle();
     this.handle.focus();
@@ -39,7 +39,7 @@ export default class TmuxPrefix extends View {
   }
 
   focusPane(command) {
-    const pane = targetPane(command, panes(), focused(), shared("tmux.history") ?? {});
+    const pane = targetPane(command, panes(), focused(), shared("pane.history") ?? {});
     if (pane) run("pane.focus", { pane });
   }
 
@@ -52,7 +52,7 @@ export default class TmuxPrefix extends View {
 
   render() {
     return div()
-      .id("tmux-prefix")
+      .id("prefix")
       .size_full()
       .track_focus(this.handle)
       .on_key_down((event, cx) => this.key(event, cx))

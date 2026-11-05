@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { actionFor, targetPane } from "../../../config/mods/tmux-prefix/bindings.js";
-import { rememberPane } from "../../../config/mods/tmux-status/history.js";
-import { rememberPane as rememberTabPane } from "../../../config/mods/herdr-tabs/geometry.js";
+import { actionFor, targetPane } from "../../../config/mods/prefix/bindings.js";
+import { rememberPane } from "../../../config/mods/herdr-tabs/geometry.js";
 
 function event(key, key_char, modifiers = {}) {
   return { key, key_char, modifiers };
@@ -34,10 +33,7 @@ describe("prefix actions", () => {
   });
 });
 
-describe.each([
-  ["tmux", rememberPane],
-  ["Herdr tabs", rememberTabPane],
-])("%s pane history", (_name, rememberPane) => {
+describe("pane history", () => {
   const a = { tab: "one", pane: "a" };
   const b = { tab: "one", pane: "b" };
   const c = { tab: "two", pane: "c" };

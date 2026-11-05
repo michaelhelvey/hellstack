@@ -22,7 +22,7 @@ export function findNode(node, id) {
   return null;
 }
 
-/** Keep pane history in the format used by tmux-status. Mods have separate module roots. */
+/** Keep the two most recent panes for each tab. The prefix mod reads this history. */
 export function rememberPane(history, pane) {
   if (!pane || history[pane.tab]?.[0] === pane.pane) return history;
   return {
