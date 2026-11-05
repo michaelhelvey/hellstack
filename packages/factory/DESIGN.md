@@ -330,17 +330,34 @@ A Herdr mod that reads `factory board --json`:
 ```ts
 { tasks: { id; title; status; repo; needs_you; now; paused; landing: { done; total };
            terminal?: string; working?: boolean }[];
-  inbox: number;
+  inbox: { id; source; kind; thread; title; url; ts }[];   // newest first
   invalid: number;                          // task files that are not valid
   sources: { source; ok; ts; summary }[];   // the last record of each source in the last
                                             // 2000 records, factoryd too
   feed: { ts; source; summary }[] }          // the last 20 records
 ```
 
-It shows "needs you" first (tasks with `needs_you`; a coordinator proposal is a `sketch` with
-`needs_you` set), then the columns `sketch`, `ready`, `working`, `landing`, and `landed` (today
-only, from `landed_at`; else `updated` for files without it), then the source health and the feed. A
-click on a task with a terminal focuses that terminal.
+The Herdr layout `factory` shows the shown tab on the left, with a banner over it, and the board as
+a sidebar on the right (one third of the window, resizable).
+
+The banner tells who the shown tab talks to. Herdr tab `tbfactory` is the coordinator (accent
+`ansi5`): the banner shows the counts of tasks that wait on you, working, landing, ready, and the
+inbox. Tab `tbfactory-<id>` is the worker of task `<id>` (accent `ansi6`): the banner shows the
+task id, title, repo, status, landing progress, and `now`, and a button back to the coordinator.
+The board shows the card of that task with the same accent. The board gives the banner its tasks
+through Herdr `shared()`.
+
+The board shows, from top to bottom: "needs you" (tasks with `needs_you`; a coordinator proposal is
+a `sketch` with `needs_you` set), `working` and `landing` as cards with `now` and the landing
+progress, `ready` and `sketch` as one line each, the inbox, `landed` (today only, from
+`landed_at`; else `updated` for files without it), the source health, and the feed. An empty
+section is one line. When the board is 680 px or wider, it has two columns: the tasks on the left;
+the inbox, the source health, and the feed on the right.
+
+The inbox joins events of one thread into one row: the kind of the newest event, `repo#n` (or the
+Sentry short id), the title, the count, and the age. It shows 15 rows and "+N more". A click on a
+row opens its `url` in the browser. A click on a task with a terminal focuses that terminal. Colors
+come from the Herdr theme (`theme()`), so the board follows the theme-picker themes.
 
 ## CLI
 

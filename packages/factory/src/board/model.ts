@@ -1,3 +1,4 @@
+import type { FactoryEvent } from "../core/events.ts";
 import type { FeedRecord } from "../core/feed.ts";
 import type { HcTerminal } from "../core/hc.ts";
 import { workerTerminal } from "../core/spawn.ts";
@@ -34,10 +35,17 @@ export interface BoardFeedItem {
   summary: string;
 }
 
+/** One inbox event on the board. */
+export type BoardInboxItem = Pick<
+  FactoryEvent,
+  "id" | "source" | "kind" | "thread" | "title" | "url" | "ts"
+>;
+
 /** The data that the board mod shows. DESIGN.md (Board) is the contract. */
 export interface Board {
   tasks: BoardTask[];
-  inbox: number;
+  /** The inbox events, newest first. */
+  inbox: BoardInboxItem[];
   /** The count of task files that are not valid. */
   invalid: number;
   sources: BoardSource[];
@@ -48,7 +56,7 @@ export interface Board {
 export interface BoardInput {
   tasks: Task[];
   invalid: number;
-  inbox: number;
+  inbox: FactoryEvent[];
   feed: FeedRecord[];
   terminals: HcTerminal[];
   now: Date;
@@ -86,6 +94,20 @@ function lastPerSource(feed: FeedRecord[]): BoardSource[] {
   return [...last.values()].map(({ source, ok, ts, summary }) => ({ source, ok, ts, summary }));
 }
 
+function newestFirst(inbox: FactoryEvent[]): BoardInboxItem[] {
+  return [...inbox]
+    .sort((a, b) => b.ts.localeCompare(a.ts))
+    .map(({ id, source, kind, thread, title, url, ts }) => ({
+      id,
+      source,
+      kind,
+      thread,
+      title,
+      url,
+      ts,
+    }));
+}
+
 /**
  * Returns the board model. It leaves out dropped tasks and tasks that did not land today (local
  * time, from `landed_at`, else `updated`). `feed` must be in file order; the sources use all of
@@ -97,7 +119,7 @@ export function buildBoard(input: BoardInput): Board {
     tasks: input.tasks
       .filter((task) => onBoard(task, input.now))
       .map((task) => boardTask(task, byName.get(workerTerminal(task.meta.id)))),
-    inbox: input.inbox,
+    inbox: newestFirst(input.inbox),
     invalid: input.invalid,
     sources: lastPerSource(input.feed),
     feed: input.feed

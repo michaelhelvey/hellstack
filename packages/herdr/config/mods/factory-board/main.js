@@ -1,184 +1,61 @@
-// The factory board: "needs you", the task columns, the source health, and the feed.
+// The factory board: "needs you", the tasks, the inbox, the source health, and the feed. With the
+// prop `view: "banner"`, the banner over the main area that names the coordinator or the worker.
 // Data: `bun <repo>/packages/factory/src/cli.ts board --json`. It loads again when the ledger
-// changes and every 20 s. Props (optional): { repo, factoryHome }. Without `repo`, the mod
-// finds the repository through the link of its folder. Without `factoryHome`, it uses
-// FACTORY_HOME of the user's environment, else ~/.factory.
+// changes and every 20 s. The board puts the tasks in `shared()` for the banner.
+// Props (optional): { view, repo, factoryHome }. Without `repo`, the mod finds the repository
+// through the link of its folder. Without `factoryHome`, it uses FACTORY_HOME of the user's
+// environment, else ~/.factory.
 
-import { View, div, svg } from "gpui-kit";
+import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { appHome, exec, home, props, run, terminals, theme, watchFolder } from "herdr";
+import {
+  appHome,
+  exec,
+  focused,
+  home,
+  props,
+  setShared,
+  shared,
+  terminals,
+  theme,
+  watchFolder,
+} from "herdr";
 
+import { banner } from "./banner.js";
+import { boardBody, pill } from "./board.js";
 import {
   EMPTY_BOARD,
-  age,
+  bannerData,
   boardCommand,
-  clock,
   ledgerChanged,
   parseBoard,
-  progress,
-  repoName,
   repoRoot,
-  sections,
+  sharedKey,
+  shownRole,
 } from "./model.js";
 
 const REFRESH_MS = 20000;
+const TWO_COLUMNS_PX = 680;
 
+// Runs `pwd` also when the props give the repository: in Herdr, when the first `exec` of a mod copy
+// does not start in its first task before an `await`, that `exec` and all later ones never finish.
 async function findRepo() {
-  if (props()?.repo) return props().repo;
-  const result = await exec("pwd", ["-P"], { cwd: `${appHome()}/mods/factory-board` });
-  return repoRoot(result.stdout.trim());
+  const repo = props()?.repo;
+  const result = await exec("pwd", ["-P"], { cwd: repo ?? `${appHome()}/mods/factory-board` });
+  return repo ? result.stdout.trim() : repoRoot(result.stdout.trim());
 }
 
 async function findLedger() {
   if (props()?.factoryHome) return props().factoryHome;
-  const result = await exec("printenv", ["FACTORY_HOME"]);
+  const result = await exec("printenv", ["FACTORY_HOME"], { cwd: home() });
   return result.stdout.trim() || `${home()}/.factory`;
 }
 
 async function readBoard(repo, factoryHome) {
   const [command, args] = boardCommand(repo, factoryHome);
-  const result = await exec(command, args);
+  const result = await exec(command, args, { cwd: repo });
   if (result.code !== 0) throw new Error(result.stderr.trim() || `board exited ${result.code}`);
   return parseBoard(result.stdout);
-}
-
-function heading(t, text, color) {
-  return div()
-    .text_size(10)
-    .font_weight(600)
-    .text_color(color ?? t.dim)
-    .child(text);
-}
-
-function pill(text, color) {
-  return div()
-    .flex_none()
-    .px(5)
-    .h(16)
-    .flex()
-    .items_center()
-    .rounded(4)
-    .bg(color + "26")
-    .text_size(10)
-    .text_color(color)
-    .child(text);
-}
-
-function stateIcon(t, task, status) {
-  if (task.paused) return pill("paused", t.muted);
-  if (status === "working") {
-    return svg("mods/workspace-chrome/spinner.svg").size(11).text_color(t.working).spin(900);
-  }
-  if (status === "blocked") return div().size(6).rounded_full().bg(t.blocked);
-  return null;
-}
-
-function cardTop(t, task, status) {
-  const icon = stateIcon(t, task, status);
-  return h_flex()
-    .gap(6)
-    .items_center()
-    .text_size(11)
-    .text_color(t.dim)
-    .child(div().flex_1().truncate().child(repoName(task.repo)))
-    .child(div().flex_none().text_color(t.muted).child(progress(task)))
-    .when(Boolean(icon), (el) => el.child(icon));
-}
-
-function focusable(el, t, task) {
-  return el
-    .cursor_pointer()
-    .hover((s) => s.bg(t.hover))
-    .on_click(() => run("agent.focus", { terminal: task.terminal }));
-}
-
-function card(t, task, status) {
-  return v_flex()
-    .id(`fb-${task.id}`)
-    .gap(2)
-    .px(9)
-    .py(7)
-    .rounded(7)
-    .bg(t.foreground + "08")
-    .when(task.paused, (el) => el.opacity(0.5))
-    .when(Boolean(task.terminal), (el) => focusable(el, t, task))
-    .child(cardTop(t, task, status))
-    .child(div().truncate().text_color(t.foreground).child(task.title))
-    .when(Boolean(task.now), (el) => el.child(div().truncate().text_color(t.dim).child(task.now)));
-}
-
-function question(t, task, status) {
-  return card(t, task, status).child(div().text_color(t.blocked).child(task.needs_you));
-}
-
-function needsYou(t, tasks, statusOf) {
-  return v_flex()
-    .gap(6)
-    .p(8)
-    .rounded(9)
-    .border_1()
-    .border_color(t.blocked + "66")
-    .bg(t.blocked + "14")
-    .child(heading(t, `NEEDS YOU · ${tasks.length}`, t.blocked))
-    .children(tasks.map((task) => question(t, task, statusOf(task))));
-}
-
-function column(t, { label, tasks }, statusOf) {
-  const color = tasks.length > 0 ? t.muted : t.dim;
-  return v_flex()
-    .gap(5)
-    .child(heading(t, `${label.toUpperCase()} · ${tasks.length}`, color))
-    .children(tasks.map((task) => card(t, task, statusOf(task))));
-}
-
-function header(t, { inbox, invalid }) {
-  return h_flex()
-    .items_center()
-    .gap(8)
-    .child(div().flex_1().text_size(12).text_color(t.muted).child("Factory"))
-    .when(invalid > 0, (el) => el.child(pill(`${invalid} bad task files`, t.blocked)))
-    .child(pill(`inbox ${inbox}`, inbox > 0 ? t.accent : t.dim));
-}
-
-function health(t, sources, now) {
-  if (sources.length === 0) return div().text_color(t.dim).child("no source has polled yet");
-  return h_flex()
-    .flex_wrap()
-    .gap(10)
-    .text_size(11)
-    .children(
-      sources.map((s) =>
-        h_flex()
-          .gap(4)
-          .child(div().text_color(t.muted).child(s.source))
-          .child(
-            div()
-              .text_color(s.ok ? t.done : t.blocked)
-              .child(s.ok ? "✓" : "✗"),
-          )
-          .child(
-            div()
-              .text_color(t.dim)
-              .child(`${age(s.ts, now)} ago`),
-          ),
-      ),
-    );
-}
-
-function feedLine(t, item) {
-  return h_flex()
-    .gap(6)
-    .items_start()
-    .text_size(11)
-    .child(div().flex_none().text_color(t.dim).child(clock(item.ts)))
-    .child(div().flex_1().min_w(0).text_color(t.muted).child(item.summary));
-}
-
-function feed(t, items) {
-  return v_flex()
-    .gap(4)
-    .child(heading(t, "FEED"))
-    .children([...items].reverse().map((item) => feedLine(t, item)));
 }
 
 function liveStatus() {
@@ -186,11 +63,21 @@ function liveStatus() {
   return (task) => (live.has(task.terminal) ? live.get(task.terminal) : task.working && "working");
 }
 
-/** The factory board mod. */
+function header(t, { inbox, invalid }) {
+  return h_flex()
+    .items_center()
+    .gap(8)
+    .child(div().flex_1().text_size(13).font_weight(700).text_color(t.foreground).child("Factory"))
+    .when(invalid > 0, (el) => el.child(pill(`${invalid} bad task files`, t.blocked)))
+    .child(pill(`inbox ${inbox.length}`, inbox.length > 0 ? t.accent : t.dim));
+}
+
+/** The factory board mod. With the prop `view: "banner"`, it shows the banner instead. */
 export default class FactoryBoard extends View {
   init(_props, cx) {
     this.board = EMPTY_BOARD;
     this.error = "";
+    if (props()?.view === "banner") return;
     cx.spawn(async (cx) => this.start(cx));
     cx.timer.every(REFRESH_MS, (cx) => this.tick(cx));
   }
@@ -230,6 +117,7 @@ export default class FactoryBoard extends View {
       while (this.again) {
         this.again = false;
         await this.load();
+        this.publish();
         cx.notify();
       }
       this.loading = false;
@@ -245,26 +133,58 @@ export default class FactoryBoard extends View {
     }
   }
 
+  publish() {
+    const data = JSON.stringify(bannerData(this.board));
+    if (data === this.published) return;
+    this.published = data;
+    setShared(sharedKey(props()?.factoryHome), JSON.parse(data));
+  }
+
   async close() {
     this.closed = true;
   }
 
+  resize(width, cx) {
+    const wide = width >= TWO_COLUMNS_PX;
+    if (wide === this.wide) return;
+    this.wide = wide;
+    cx.notify();
+  }
+
+  context(t) {
+    const toggleInbox = (_e, cx) => {
+      this.inboxOpen = !this.inboxOpen;
+      cx.notify();
+    };
+    const shown = shownRole(focused()?.tab).id;
+    const inboxOpen = Boolean(this.inboxOpen);
+    return {
+      t,
+      now: Date.now(),
+      statusOf: liveStatus(),
+      shown,
+      wide: this.wide,
+      inboxOpen,
+      toggleInbox,
+    };
+  }
+
   render() {
     const t = theme();
-    const { needsYou: asks, columns } = sections(this.board);
-    const statusOf = liveStatus();
+    if (props()?.view === "banner") {
+      const data = shared(sharedKey(props()?.factoryHome)) ?? bannerData(EMPTY_BOARD);
+      return banner(t, shownRole(focused()?.tab), data);
+    }
     return v_flex()
       .id("fb-root")
       .size_full()
       .overflow_y_scrollbar()
-      .p(12)
-      .gap(14)
+      .on_size_change((size, cx) => this.resize(size.width, cx))
+      .p(14)
+      .gap(16)
       .text_size(12)
       .child(header(t, this.board))
       .when(Boolean(this.error), (el) => el.child(div().text_color(t.blocked).child(this.error)))
-      .when(asks.length > 0, (el) => el.child(needsYou(t, asks, statusOf)))
-      .children(columns.map((c) => column(t, c, statusOf)))
-      .child(health(t, this.board.sources, Date.now()))
-      .child(feed(t, this.board.feed));
+      .child(boardBody(this.context(t), this.board));
   }
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { BOARD_FEED_SIZE, buildBoard, type BoardInput } from "../../src/board/model.ts";
+import type { FactoryEvent } from "../../src/core/events.ts";
 import type { FeedRecord } from "../../src/core/feed.ts";
 import type { HcTerminal } from "../../src/core/hc.ts";
 import type { Task, TaskMeta } from "../../src/core/task.ts";
@@ -44,7 +45,7 @@ function record(source: string, ts: string, fields: Partial<FeedRecord> = {}): F
 }
 
 function board(input: Partial<BoardInput>) {
-  return buildBoard({ tasks: [], invalid: 0, inbox: 0, feed: [], terminals: [], now, ...input });
+  return buildBoard({ tasks: [], invalid: 0, inbox: [], feed: [], terminals: [], now, ...input });
 }
 
 describe("buildBoard tasks", () => {
@@ -90,6 +91,33 @@ describe("buildBoard tasks", () => {
   });
 });
 
+function event(id: string, ts: string): FactoryEvent {
+  return {
+    id,
+    source: "github",
+    thread: `gh:a/b#${id}`,
+    kind: "pr_comment",
+    title: `title ${id}`,
+    summary: "long text",
+    url: `https://github.com/a/b/pull/${id}`,
+    ts,
+  };
+}
+
+describe("buildBoard inbox", () => {
+  test("the inbox events are newest first, without the summary", () => {
+    const inbox = [
+      event("1", "2026-11-05T14:00:00.000Z"),
+      event("3", "2026-11-05T14:02:00.000Z"),
+      event("2", "2026-11-05T14:01:00.000Z"),
+    ];
+    const items = board({ inbox }).inbox;
+    expect(items.map((item) => item.id)).toEqual(["3", "2", "1"]);
+    const { summary: _, ...shown } = event("3", "2026-11-05T14:02:00.000Z");
+    expect(items[0]).toEqual(shown);
+  });
+});
+
 describe("buildBoard sources and feed", () => {
   test("the sources are the last record of each source, factoryd too", () => {
     const feed = [
@@ -111,8 +139,7 @@ describe("buildBoard sources and feed", () => {
     const feed = Array.from({ length: BOARD_FEED_SIZE + 5 }, (_, i) =>
       record("github", new Date(Date.UTC(2026, 10, 5, 0, i)).toISOString()),
     );
-    const items = board({ feed, inbox: 3 });
-    expect(items.inbox).toBe(3);
+    const items = board({ feed });
     const last = feed.slice(5).map(({ ts, source, summary }) => ({ ts, source, summary }));
     expect(items.feed).toEqual(last);
   });

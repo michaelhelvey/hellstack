@@ -30,5 +30,5 @@ export async function loadBoard(
     readFeed(BOARD_FEED_SCAN, paths),
     listTerminals(hc),
   ]);
-  return buildBoard({ tasks, invalid: invalid.length, inbox: inbox.length, feed, terminals, now });
+  return buildBoard({ tasks, invalid: invalid.length, inbox, feed, terminals, now });
 }
