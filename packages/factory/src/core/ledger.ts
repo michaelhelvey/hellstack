@@ -11,15 +11,16 @@ import {
   newTaskId,
   parseTask,
   serializeTask,
+  taskMetaSchema,
   validateHandoff,
   type Task,
   type TaskMeta,
 } from "./task.ts";
 
-/** The front matter fields that `updateTask` can change. */
-export type TaskPatch = Partial<
-  Pick<TaskMeta, "status" | "now" | "needs_you" | "threads" | "paused" | "title">
->;
+type PatchField = "status" | "now" | "needs_you" | "threads" | "paused" | "title";
+
+/** The front matter fields that `updateTask` can change. An undefined field does not change. */
+export type TaskPatch = { [K in PatchField]?: TaskMeta[K] | undefined };
 
 /** The result of a handoff: the ready task, or the parts that the task needs. */
 export type HandoffResult = { ok: true; task: Task } | { ok: false; missing: string[] };
@@ -129,7 +130,11 @@ export async function updateTask(
       if (task.meta.status === "sketch" && patch.status === "ready") {
         throw new Error(`task ${id} is a sketch; use handoff to make it ready`);
       }
-      return { ...task, meta: { ...task.meta, ...patch } };
+      const fields = Object.entries(patch).filter(([, value]) => value !== undefined);
+      return {
+        ...task,
+        meta: taskMetaSchema.parse({ ...task.meta, ...Object.fromEntries(fields) }),
+      };
     },
     paths,
   );

@@ -64,6 +64,14 @@ describe("tasks", () => {
     expect(updated.body).toBe(task.body);
   });
 
+  test("updateTask keeps the fields that the patch leaves undefined", async () => {
+    const paths = await tempLedger();
+    const task = await sketch(paths);
+    await updateTask(task.meta.id, { now: "testing", paused: true }, paths);
+    const updated = await updateTask(task.meta.id, { status: undefined, now: "next" }, paths);
+    expect(updated.meta).toMatchObject({ status: "sketch", now: "next", paused: true });
+  });
+
   test("updateTask does not move a sketch to ready", async () => {
     const paths = await tempLedger();
     const task = await sketch(paths);
