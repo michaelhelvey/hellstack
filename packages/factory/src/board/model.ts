@@ -63,7 +63,8 @@ function sameLocalDay(a: Date, b: Date): boolean {
 
 function onBoard(task: Task, now: Date): boolean {
   if (task.meta.status === "dropped") return false;
-  return task.meta.status !== "landed" || sameLocalDay(new Date(task.meta.updated), now);
+  const landed = task.meta.landed_at ?? task.meta.updated;
+  return task.meta.status !== "landed" || sameLocalDay(new Date(landed), now);
 }
 
 function terminalsByName(terminals: HcTerminal[]): Map<string, HcTerminal> {
@@ -87,7 +88,8 @@ function lastPerSource(feed: FeedRecord[]): BoardSource[] {
 
 /**
  * Returns the board model. It leaves out dropped tasks and tasks that did not land today (local
- * time). `feed` must be in file order; the sources use all of it, the feed only the last records.
+ * time, from `landed_at`, else `updated`). `feed` must be in file order; the sources use all of
+ * it, the feed only the last records.
  */
 export function buildBoard(input: BoardInput): Board {
   const byName = terminalsByName(input.terminals);

@@ -156,7 +156,7 @@ function transitionHint(from: TaskStatus, to: TaskStatus): string {
 /**
  * Changes front matter fields of task `id`. Fields that are undefined do not change. Throws when the
  * status change is not in {@link statusTransitions}: for example, only {@link handoff} moves a
- * `sketch` to `ready`.
+ * `sketch` to `ready`. The change to `landed` sets `landed_at`.
  */
 export async function updateTask(
   id: string,
@@ -167,7 +167,9 @@ export async function updateTask(
     id,
     (task) => {
       assertTransition(id, task.meta.status, patch.status);
-      return { ...task, meta: { ...task.meta, ...definedFields(patch) } };
+      const lands = patch.status === "landed" && task.meta.status !== "landed";
+      const landed = lands ? { landed_at: new Date().toISOString() } : {};
+      return { ...task, meta: { ...task.meta, ...definedFields(patch), ...landed } };
     },
     paths,
   );

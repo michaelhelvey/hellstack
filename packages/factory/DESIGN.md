@@ -94,6 +94,7 @@ Front matter fields:
 | `now`       | string            | One line: what happens now.                                           |
 | `created`   | ISO time          |                                                                       |
 | `updated`   | ISO time          | Every write through core sets it.                                     |
+| `landed_at` | ISO time or null  | Core sets it when the status changes to `landed`.                     |
 
 Status values: `sketch`, `ready`, `working`, `landing`, `landed`, `dropped`.
 
@@ -210,6 +211,9 @@ and a 20 second timeout. The model name must resolve without extensions; `haiku`
 does. When that fails, it uses a fixed template. It does not call the model for a cycle with
 `ok: true` and `new: 0`; the template is enough.
 
+`readFeed(n)` in core reads blocks from the end of the file until it has `n` valid records, so the
+cost of a read does not grow with the size of the feed.
+
 ## Terminals
 
 All factory agents are interactive pi in herdr-core terminals. They do not have a parent, so that
@@ -319,13 +323,15 @@ A Herdr mod that reads `factory board --json`:
            terminal?: string; working?: boolean }[];
   inbox: number;
   invalid: number;                          // task files that are not valid
-  sources: { source; ok; ts; summary }[];   // the last record of each source, factoryd too
+  sources: { source; ok; ts; summary }[];   // the last record of each source in the last
+                                            // 2000 records, factoryd too
   feed: { ts; source; summary }[] }          // the last 20 records
 ```
 
 It shows "needs you" first (tasks with `needs_you`; a coordinator proposal is a `sketch` with
 `needs_you` set), then the columns `sketch`, `ready`, `working`, `landing`, and `landed` (today
-only), then the source health and the feed. A click on a task with a terminal focuses that terminal.
+only, from `landed_at`; else `updated` for files without it), then the source health and the feed. A
+click on a task with a terminal focuses that terminal.
 
 ## CLI
 

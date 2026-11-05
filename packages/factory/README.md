@@ -8,10 +8,11 @@ no build step.
 ## Usage
 
 ```sh
-bun run factory init     # make the ledger in $FACTORY_HOME (default ~/.factory)
-bun run factory up       # start the coordinator and factoryd (safe to run again)
-bun run factory status   # what runs, the task counts, the inbox, the last poll of each source
-bun run factory down     # stop factoryd and the coordinator; workers continue
+bun run factory init           # make the ledger in $FACTORY_HOME (default ~/.factory)
+bun run factory up             # start the coordinator and factoryd (safe to run again)
+bun run factory status         # what runs, the task counts, the inbox, the last poll of each source
+bun run factory down           # stop factoryd and the coordinator; workers continue
+bun run factory board --json   # print the board model (tasks, inbox, source health, feed)
 ```
 
 `factoryd` polls the sources in `config.json`, routes events to workers, the coordinator, or the
@@ -22,6 +23,8 @@ sending them):
 ```sh
 FACTORY_HOME=$(mktemp -d) bun run factory daemon --no-agents
 ```
+
+The Herdr `factory` layout shows the board. See `packages/herdr/README.md`.
 
 `bun run sync` also runs `init`. It does not replace files that exist. Edit `~/.factory/config.json`
 to set the models and the event sources. Other parts of the factory use the modules in `src/core`
