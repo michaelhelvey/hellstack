@@ -11,15 +11,15 @@ Keep the code small. Do not add process that a capable model does not need.
 
 ## Parts
 
-| Part         | Where                                     | Runtime | What it does                                                    |
-| ------------ | ----------------------------------------- | ------- | --------------------------------------------------------------- |
-| core         | `src/core/`                               | Node    | Ledger paths, config, task files, inbox, feed, hc, worker spawn |
-| `factoryd`   | `src/daemon/`                             | bun     | Poll, filter, route, reconcile, keepalive, watchdog, feed       |
-| extension    | `src/index.ts`, `src/extension/`          | Node    | Roles, prompt injection, tools, commands, bash timeout          |
-| CLI          | `src/cli.ts`                              | bun     | `init`, `up`, `down`, `status`, `board`                         |
-| prose        | `prompts/`, `skills/factory/`             | -       | `chinchilla.md`, `WORKER.md`, coordinator seed, task template   |
-| board        | `packages/herdr/config/mods/factory-board` | Herdr   | The board mod                                                   |
-| layout       | `packages/herdr/config/layouts/factory.json` | Herdr | The `factory` layout                                            |
+| Part       | Where                                        | Runtime | What it does                                                    |
+| ---------- | -------------------------------------------- | ------- | --------------------------------------------------------------- |
+| core       | `src/core/`                                  | Node    | Ledger paths, config, task files, inbox, feed, hc, worker spawn |
+| `factoryd` | `src/daemon/`                                | bun     | Poll, filter, route, reconcile, keepalive, watchdog, feed       |
+| extension  | `src/index.ts`, `src/extension/`             | Node    | Roles, prompt injection, tools, commands, bash timeout          |
+| CLI        | `src/cli.ts`                                 | bun     | `init`, `up`, `down`, `status`, `board`                         |
+| prose      | `prompts/`, `skills/factory/`                | -       | `chinchilla.md`, `WORKER.md`, coordinator seed, task template   |
+| board      | `packages/herdr/config/mods/factory-board`   | Herdr   | The board mod                                                   |
+| layout     | `packages/herdr/config/layouts/factory.json` | Herdr   | The `factory` layout                                            |
 
 Pi runs the extension with Node, so `src/core` and `src/extension` must not use `Bun` APIs. The
 daemon and the CLI run with bun and can use `Bun` APIs, but prefer the core functions.
@@ -81,18 +81,18 @@ updated: 2026-11-05T15:12:00.000Z
 
 Front matter fields:
 
-| Field       | Type                  | Meaning                                                                |
-| ----------- | --------------------- | ---------------------------------------------------------------------- |
-| `id`        | `t-` + 4 to 8 hex     | Unique. The file name is `<id>.md`.                                    |
-| `title`     | string                | Short.                                                                 |
-| `status`    | see below             | The lifecycle state.                                                   |
-| `repo`      | absolute path         | The worker's working directory.                                        |
-| `threads`   | string[]              | Thread keys that the task owns. Events on them go to the task worker. |
-| `paused`    | boolean               | When true, the reconciler does not start or restart the worker.       |
-| `needs_you` | string or null        | A question for the user. Not null puts the task in "needs you".        |
-| `now`       | string                | One line: what happens now.                                            |
-| `created`   | ISO time              |                                                                        |
-| `updated`   | ISO time              | Every write through core sets it.                                      |
+| Field       | Type              | Meaning                                                               |
+| ----------- | ----------------- | --------------------------------------------------------------------- |
+| `id`        | `t-` + 4 to 8 hex | Unique. The file name is `<id>.md`.                                   |
+| `title`     | string            | Short.                                                                |
+| `status`    | see below         | The lifecycle state.                                                  |
+| `repo`      | absolute path     | The worker's working directory.                                       |
+| `threads`   | string[]          | Thread keys that the task owns. Events on them go to the task worker. |
+| `paused`    | boolean           | When true, the reconciler does not start or restart the worker.       |
+| `needs_you` | string or null    | A question for the user. Not null puts the task in "needs you".       |
+| `now`       | string            | One line: what happens now.                                           |
+| `created`   | ISO time          |                                                                       |
+| `updated`   | ISO time          | Every write through core sets it.                                     |
 
 Status values: `sketch`, `ready`, `working`, `landing`, `landed`, `dropped`.
 
@@ -114,24 +114,32 @@ design agent, a coordinator proposal, or a file that someone wrote by hand.
 **Landing progress** is the count of checked items and all items in the Landing section.
 
 Core functions read and write task files. They keep unknown sections and prose. Agents can edit the
-prose with their edit tools. Agents change front matter and the log through the `factory_task`
-tool, so that `updated` stays correct.
+prose with their edit tools. Agents change front matter and the log through the `factory_task` tool,
+so that `updated` stays correct.
 
 ## Thread keys
 
-| Source | Key                                       |
-| ------ | ----------------------------------------- |
+| Source | Key                                        |
+| ------ | ------------------------------------------ |
 | GitHub | `gh:<owner>/<repo>#<number>` (issue or PR) |
-| Sentry | `sentry:<org>/<shortId>`                  |
-| Task   | `task:<id>`                               |
+| Sentry | `sentry:<org>/<shortId>`                   |
+| Task   | `task:<id>`                                |
 
 ## Events
 
 An event is a normalized record from a source:
 
 ```ts
-{ id: string; source: "github" | "sentry"; thread: string; kind: string; title: string;
-  summary: string; url: string; ts: string }
+{
+  id: string;
+  source: "github" | "sentry";
+  thread: string;
+  kind: string;
+  title: string;
+  summary: string;
+  url: string;
+  ts: string;
+}
 ```
 
 `kind` examples: `pr_comment`, `review_requested`, `review`, `ci`, `mention`, `security_alert`,
@@ -149,10 +157,21 @@ and writes an error record to the feed.
   "summaryModel": "claude-haiku-5-5",
   "staleAfterMinutes": 120,
   "sources": [
-    { "type": "github", "everySeconds": 60, "default": "candidate",
-      "rules": [{ "kind": "security_alert", "repo": "owner/repo", "action": "ignore" }] },
-    { "type": "sentry", "everySeconds": 300, "org": "my-org", "projects": ["api"],
-      "tokenEnv": "SENTRY_AUTH_TOKEN", "default": "candidate", "rules": [] }
+    {
+      "type": "github",
+      "everySeconds": 60,
+      "default": "candidate",
+      "rules": [{ "kind": "security_alert", "repo": "owner/repo", "action": "ignore" }]
+    },
+    {
+      "type": "sentry",
+      "everySeconds": 300,
+      "org": "my-org",
+      "projects": ["api"],
+      "tokenEnv": "SENTRY_AUTH_TOKEN",
+      "default": "candidate",
+      "rules": []
+    }
   ]
 }
 ```
@@ -173,22 +192,24 @@ other sources name an environment variable.
   error?: string; summary: string }
 ```
 
-`source` is a source type or `factoryd` for daemon actions (respawn, interrupt, config error).
-`to` is a terminal name or `inbox`. `summary` is one human sentence. The daemon asks the summary
-model for it with `pi -p --no-session --no-tools --no-extensions --no-skills --model <summaryModel>`
-and a short timeout. When that fails, it uses a fixed template. It does not call the model for a
-cycle with `ok: true` and `new: 0`; the template is enough.
+`source` is a source type or `factoryd` for daemon actions (respawn, interrupt, config error). `to`
+is a terminal name or `inbox`. `summary` is one human sentence. The daemon asks the summary model
+for it with `pi -p --no-session --no-tools --no-extensions --no-skills --model <summaryModel>` and a
+short timeout. When that fails, it uses a fixed template. It does not call the model for a cycle
+with `ok: true` and `new: 0`; the template is enough.
 
 ## Terminals
 
 All factory agents are interactive pi in herdr-core terminals. They do not have a parent, so that
 they live when other agents stop.
 
-| Terminal               | Name             | cwd             | Session id      | Env                                        |
-| ---------------------- | ---------------- | --------------- | --------------- | ------------------------------------------ |
-| daemon                 | `factoryd`       | repository root | -               | -                                          |
-| coordinator            | `factory`        | `FACTORY_HOME`  | `factory`       | `FACTORY_ROLE=coordinator`                 |
-| worker of task `<id>`  | `factory-<id>`   | task `repo`     | `<id>`          | `FACTORY_ROLE=worker FACTORY_TASK=<id>`    |
+| Terminal              | Name           | cwd             | Session id | Env                                                  |
+| --------------------- | -------------- | --------------- | ---------- | ---------------------------------------------------- |
+| daemon                | `factoryd`     | repository root | -          | -                                                    |
+| coordinator           | `factory`      | `FACTORY_HOME`  | `factory`  | `FACTORY_ROLE=coordinator FACTORY_HOME`              |
+| worker of task `<id>` | `factory-<id>` | task `repo`     | `<id>`     | `FACTORY_ROLE=worker FACTORY_TASK=<id> FACTORY_HOME` |
+
+Spawn sets `FACTORY_HOME` to the ledger of the caller, so that agents use the same ledger.
 
 - Start pi with `--session-id <session id>`. Pi then resumes the same session when the reconciler
   starts it again, so a conversation survives a crash. The first start sends the task prompt. A
@@ -196,14 +217,20 @@ they live when other agents stop.
 - Put the coordinator in a Herdr space named `factory`. Put each worker in the Herdr space whose
   folder is the task `repo`, in a tab named after the task. Make the space when it does not exist.
   When the Herdr window is not running, start the terminal without Herdr labels.
+- Spawn places a terminal with the `herdr.space` and `herdr.tab` labels of `hc run`. The tab id of a
+  worker is `tbfactory-<id>`, so a restart goes into the same tab. A new space for a repo has the id
+  `spfactory-<hash of the folder>`; the coordinator space has the id `spfactory`. Herdr turns on
+  core keep for terminals that it shows, so when pi exits, a shell replaces it. That terminal does
+  not run pi, so the reconciler restarts it.
+- Spawn ends and removes an old terminal with the same name before it starts the new one.
 - Workers start their own sub-agents with `FACTORY_ROLE=subagent`.
 - Spawn code lives in `src/core`, because both the coordinator tool `factory_dispatch` and the
   daemon reconciler use it.
 
 ## Messages to agents
 
-The daemon sends messages with `hc send`. Each message is one tagged block, so the agent can tell
-it from the user:
+The daemon sends messages with `hc send`. Each message is one tagged block, so the agent can tell it
+from the user:
 
 ```
 <factory from="factoryd">
@@ -240,19 +267,19 @@ The daemon reloads `config.json` when it changes.
 
 ## Extension
 
-The extension reads `FACTORY_ROLE`. A session can also become `design` with `/sketch`; pi keeps
-that in the session with `appendEntry`, so it survives a resume.
+The extension reads `FACTORY_ROLE`. A session can also become `design` with `/sketch`; pi keeps that
+in the session with `appendEntry`, so it survives a resume.
 
-| Role          | Prompt sections                                         | Tools                                   |
-| ------------- | ------------------------------------------------------- | --------------------------------------- |
-| `coordinator` | `chinchilla.md`, `COORDINATOR.md` (live file), skill    | `factory_task`, `factory_inbox`, `factory_dispatch`, `factory_handoff`; bash limited to 10 s |
-| `worker`      | `chinchilla.md`, `WORKER.md`, task id and path          | `factory_task` (own task)               |
-| `design`      | `chinchilla.md`, task template guidance, task path      | `factory_task`, `factory_handoff`       |
-| `subagent`    | `chinchilla.md`                                         | none                                    |
-| none          | nothing                                                 | `/sketch` command only                  |
+| Role          | Prompt sections                                      | Tools                                                                                        |
+| ------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `coordinator` | `chinchilla.md`, `COORDINATOR.md` (live file), skill | `factory_task`, `factory_inbox`, `factory_dispatch`, `factory_handoff`; bash limited to 10 s |
+| `worker`      | `chinchilla.md`, `WORKER.md`, task id and path       | `factory_task` (own task)                                                                    |
+| `design`      | `chinchilla.md`, task template guidance, task path   | `factory_task`, `factory_handoff`                                                            |
+| `subagent`    | `chinchilla.md`                                      | none                                                                                         |
+| none          | nothing                                              | `/sketch` command only                                                                       |
 
 - `factory_task`: `list`, `get`, `create`, `update` (status, now, needs_you, threads, paused,
-  title), `log`, `check` (check a landing item by index).
+  title), `log`, `check` (check a landing item by its 1-based number).
 - `factory_inbox`: `list`, `dismiss`.
 - `factory_dispatch`: start the worker of a `ready` task and set it to `working`.
 - `factory_handoff`: validate a `sketch` and set it to `ready`. Return the missing parts when it
@@ -273,8 +300,8 @@ A Herdr mod that reads `factory board --json`:
 ```
 
 It shows "needs you" first (tasks with `needs_you`; a coordinator proposal is a `sketch` with
-`needs_you` set), then the columns `sketch`, `ready`, `working`, `landing`, and `landed` (today only),
-then the source health and the feed. A click on a task with a terminal focuses that terminal.
+`needs_you` set), then the columns `sketch`, `ready`, `working`, `landing`, and `landed` (today
+only), then the source health and the feed. A click on a task with a terminal focuses that terminal.
 
 ## CLI
 

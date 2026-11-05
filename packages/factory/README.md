@@ -5,6 +5,16 @@ A [pi](https://pi.dev) extension. It does nothing at this time.
 `bun run sync` adds this package to your pi settings. Pi loads `src/index.ts` directly, so there is
 no build step.
 
+## Usage
+
+```sh
+bun run factory init   # make the ledger in $FACTORY_HOME (default ~/.factory)
+```
+
+`bun run sync` also runs `init`. It does not replace files that exist. Edit `~/.factory/config.json`
+to set the models and the event sources. Other parts of the factory use the modules in `src/core`
+(import `src/core/index.ts`). `DESIGN.md` has the contract.
+
 ## Assertions about Software Factories
 
 I think the concept of "factory" is tainted from years of people building stuff like superpowers and
