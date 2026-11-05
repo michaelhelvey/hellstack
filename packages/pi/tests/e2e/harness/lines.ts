@@ -9,12 +9,17 @@ export async function readLines(
   const decoder = new TextDecoder();
   let buffer = "";
   for await (const bytes of stream) {
-    buffer += decoder.decode(bytes, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    for (const line of lines) onLine(line.replace(/\r$/, ""));
+    buffer = emitLines(buffer + decoder.decode(bytes, { stream: true }), onLine);
   }
   if (buffer) onLine(buffer);
+}
+
+/** Calls `onLine` for each complete line of `text`. Returns the text after the last LF. */
+function emitLines(text: string, onLine: (line: string) => void): string {
+  const lines = text.split("\n");
+  const rest = lines.pop() ?? "";
+  for (const line of lines) onLine(line.replace(/\r$/, ""));
+  return rest;
 }
 
 /** Reads all of a byte stream as text. */

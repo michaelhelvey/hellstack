@@ -7,6 +7,7 @@ import {
 import { Text } from "@earendil-works/pi-tui";
 import { type Static, Type } from "typebox";
 
+import { toolExecute } from "../shared/execute.ts";
 import { StringEnum } from "../shared/string-enum.ts";
 import { formatTodoId, normalizeTodoId } from "./ids.ts";
 import { groupTodos, type TodoFrontMatter, type TodoRecord } from "./model.ts";
@@ -224,8 +225,7 @@ export function createTodoTool(todosDirLabel: string) {
     label: "Todo",
     description: todoToolDescription(todosDirLabel),
     parameters: TodoParams,
-    execute: (_toolCallId, params, _signal, _onUpdate, ctx) =>
-      runTodoAction(createTodoStore(ctx), params),
+    execute: toolExecute(TodoParams, (params, ctx) => runTodoAction(createTodoStore(ctx), params)),
     renderCall,
     renderResult: (result, { expanded, isPartial }, theme) =>
       new Text(renderResultText(theme, result, { expanded, isPartial }), 0, 0),

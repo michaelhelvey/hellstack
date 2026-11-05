@@ -118,7 +118,7 @@ function sampleReport() {
   });
 }
 
-test("the report names the sources of the system prompt, the tools, and the conversation", () => {
+test("the report has the total, the percent, and a section for each source", () => {
   const report = sampleReport();
 
   expect(report.totalTokens).toBe(1000);
@@ -128,6 +128,10 @@ test("the report names the sources of the system prompt, the tools, and the conv
     "Tool definitions",
     "Conversation",
   ]);
+});
+
+test("the report names the sources of the system prompt, the tools, and the conversation", () => {
+  const report = sampleReport();
 
   const prompt = report.sections[0];
   const agents = prompt?.parts.find((part) => part.label === "AGENTS.md");

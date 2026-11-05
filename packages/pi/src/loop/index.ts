@@ -1,6 +1,7 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { type Static, Type } from "typebox";
 
+import { toolExecute } from "../shared/execute.ts";
 import { MAX_DELAY_S, MIN_DELAY_S, Scheduler } from "./scheduler.ts";
 
 /** The longest interval of a loop. `setInterval` treats a longer delay as 1 ms. */
@@ -79,8 +80,12 @@ function startLoop(scheduler: Scheduler, command: Running, ctx: ExtensionCommand
   start(scheduler, selfPacedPrompt(command.prompt), ctx);
 }
 
+function usageText(reason: string | undefined): string {
+  return `${reason ?? ""} ${usage}`;
+}
+
 function runLoop(scheduler: Scheduler, command: LoopCommand, ctx: ExtensionCommandContext): void {
-  if (command.kind === "usage") return ctx.ui.notify(`${command.reason ?? ""} ${usage}`, "info");
+  if (command.kind === "usage") return ctx.ui.notify(usageText(command.reason), "info");
   const stopped = scheduler.stopAll();
   if (command.kind !== "stop") return startLoop(scheduler, command, ctx);
   ctx.ui.notify(stopped ? "Loop stopped." : "No loop.", "info");
@@ -95,8 +100,9 @@ export default function loop(pi: ExtensionAPI): void {
     exposure: "model-only",
     description: `Run a prompt in this session after delaySeconds (${MIN_DELAY_S}-${MAX_DELAY_S}), when the session is idle. One wakeup is pending at a time: a new call replaces it, and stop: true cancels it. A self-paced /loop uses it.`,
     parameters: WakeupParams,
-    execute: (_id, params, _signal, _onUpdate, ctx) =>
+    execute: toolExecute(WakeupParams, (params, ctx) =>
       Promise.resolve(wakeup(scheduler, params, ctx)),
+    ),
   });
   pi.registerCommand("loop", {
     description: "Run a prompt each interval (/loop 5m <prompt>), self-paced, or stop it",

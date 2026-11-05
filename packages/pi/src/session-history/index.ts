@@ -7,6 +7,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
+import { toolExecute } from "../shared/execute.ts";
 import { StringEnum } from "../shared/string-enum.ts";
 import {
   readTranscript,
@@ -90,6 +91,28 @@ function jsonResult<T extends object>(value: T) {
   };
 }
 
+const ListParams = Type.Object({
+  scope: Scope,
+  limit: Type.Optional(Type.Integer({ minimum: 1, description: "Maximum sessions. Default: 20" })),
+});
+
+const ReadParams = Type.Object({
+  session: Type.String({ description: "Session ID, unique ID prefix, name, or file path" }),
+  scope: Scope,
+  offset: Type.Optional(Type.Integer({ minimum: 0, description: "Index of the first item" })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, description: "Maximum items. Default: 50" })),
+  include_tools: IncludeTools,
+  max_chars: MaxChars,
+});
+
+const SearchParams = Type.Object({
+  query: Type.String({ description: "Words to find" }),
+  scope: Scope,
+  limit: Type.Optional(Type.Integer({ minimum: 1, description: "Maximum matches. Default: 20" })),
+  include_tools: IncludeTools,
+  max_chars: MaxChars,
+});
+
 const listTool = defineTool({
   name: "session_list",
   label: "Session list",
@@ -98,18 +121,13 @@ const listTool = defineTool({
   exposure: "codemode",
   namespace: NAMESPACE,
   annotations: { readOnlyHint: true },
-  parameters: Type.Object({
-    scope: Scope,
-    limit: Type.Optional(
-      Type.Integer({ minimum: 1, description: "Maximum sessions. Default: 20" }),
-    ),
-  }),
+  parameters: ListParams,
   outputSchema: Type.Object({ total: Type.Number(), sessions: Type.Array(SessionSummarySchema) }),
 
-  async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+  execute: toolExecute(ListParams, async (params, ctx) => {
     const all = await listSummaries(ctx, params.scope);
     return jsonResult({ total: all.length, sessions: all.slice(0, params.limit ?? 20) });
-  },
+  }),
 });
 
 const readTool = defineTool({
@@ -120,14 +138,7 @@ const readTool = defineTool({
   exposure: "codemode",
   namespace: NAMESPACE,
   annotations: { readOnlyHint: true },
-  parameters: Type.Object({
-    session: Type.String({ description: "Session ID, unique ID prefix, name, or file path" }),
-    scope: Scope,
-    offset: Type.Optional(Type.Integer({ minimum: 0, description: "Index of the first item" })),
-    limit: Type.Optional(Type.Integer({ minimum: 1, description: "Maximum items. Default: 50" })),
-    include_tools: IncludeTools,
-    max_chars: MaxChars,
-  }),
+  parameters: ReadParams,
   outputSchema: Type.Object({
     session: SessionSummarySchema,
     total: Type.Number(),
@@ -135,11 +146,11 @@ const readTool = defineTool({
     items: Type.Array(Item),
   }),
 
-  async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+  execute: toolExecute(ReadParams, async (params, ctx) => {
     const session = resolveSession(await listSummaries(ctx, params.scope), params.session);
     const items = await readTranscript(session.path, transcriptOptions(params));
     return jsonResult({ session, ...page(items, params.offset, params.limit) });
-  },
+  }),
 });
 
 const searchTool = defineTool({
@@ -150,13 +161,7 @@ const searchTool = defineTool({
   exposure: "codemode",
   namespace: NAMESPACE,
   annotations: { readOnlyHint: true },
-  parameters: Type.Object({
-    query: Type.String({ description: "Words to find" }),
-    scope: Scope,
-    limit: Type.Optional(Type.Integer({ minimum: 1, description: "Maximum matches. Default: 20" })),
-    include_tools: IncludeTools,
-    max_chars: MaxChars,
-  }),
+  parameters: SearchParams,
   outputSchema: Type.Object({
     hits: Type.Array(
       Type.Object({
@@ -167,14 +172,14 @@ const searchTool = defineTool({
     ),
   }),
 
-  async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+  execute: toolExecute(SearchParams, async (params, ctx) => {
     const hits = await searchSessions(await listSessions(ctx, params.scope), {
       query: params.query,
       limit: params.limit ?? 20,
       ...transcriptOptions(params),
     });
     return jsonResult({ hits });
-  },
+  }),
 });
 
 /**

@@ -89,7 +89,7 @@ export async function runWebFetch(
 function toWebFetchError(error: unknown, signal: AbortSignal | undefined): Error {
   if (signal?.aborted) return new Error("web-fetch was cancelled");
   const failure = parseErrorInfo(error);
-  const message = (failure.stderr || failure.message || "unknown error").trim();
+  const message = ([failure.stderr, failure.message].find(Boolean) ?? "unknown error").trim();
   const code = failure.code ? ` (${failure.code})` : "";
 
   return new Error(`web-fetch failed${code}: ${message}`);

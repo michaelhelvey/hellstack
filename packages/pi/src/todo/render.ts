@@ -140,19 +140,25 @@ export function renderTodoList(
   }).join("\n\n");
 }
 
+function renderTodoMetadata(theme: Theme, todo: TodoRecord): string[] {
+  const tags = todo.tags.length ? todo.tags.join(", ") : "none";
+  return [
+    theme.fg("muted", `Status: ${getTodoStatus(todo)}`),
+    theme.fg("muted", `Tags: ${tags}`),
+    theme.fg("muted", `Created: ${todo.created_at || "unknown"}`),
+  ];
+}
+
 /** Returns a todo in color. If `expanded` is true, includes the metadata and the body. */
 export function renderTodoDetail(theme: Theme, todo: TodoRecord, expanded: boolean): string {
   const summary = renderTodoHeading(theme, todo);
 
   if (!expanded) return summary;
-  const tags = todo.tags.length ? todo.tags.join(", ") : "none";
   const body = todo.body.trim() || "No details yet.";
 
   return [
     summary,
-    theme.fg("muted", `Status: ${getTodoStatus(todo)}`),
-    theme.fg("muted", `Tags: ${tags}`),
-    theme.fg("muted", `Created: ${todo.created_at || "unknown"}`),
+    ...renderTodoMetadata(theme, todo),
     "",
     theme.fg("muted", "Body:"),
     ...body.split("\n").map((line) => theme.fg("text", `  ${line}`)),

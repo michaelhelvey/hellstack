@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
+import { toolExecute } from "../shared/execute.ts";
 import { StringEnum } from "../shared/string-enum.ts";
 
 const STATE_TYPE = "goal";
@@ -50,6 +51,8 @@ type GoalResult = {
   remainingTokens: number | null;
   completionBudgetReport: string | null;
 };
+
+const GetParams = Type.Object({});
 
 const CreateParams = Type.Object({
   objective: Type.String({ description: "The concrete objective to pursue." }),
@@ -710,8 +713,8 @@ class GoalExtension {
       name: "get_goal",
       label: "Get Goal",
       description: "Get the current goal and its usage state.",
-      parameters: Type.Object({}),
-      execute: (_id, _params, _signal, _update, ctx) => Promise.resolve(this.goalTool(ctx, false)),
+      parameters: GetParams,
+      execute: toolExecute(GetParams, (_params, ctx) => Promise.resolve(this.goalTool(ctx, false))),
     });
   }
 
@@ -721,7 +724,7 @@ class GoalExtension {
       label: "Create Goal",
       description: "Create a long-running goal when explicitly requested.",
       parameters: CreateParams,
-      execute: (_id, params, _signal, _update, ctx) => this.createTool(params, ctx),
+      execute: toolExecute(CreateParams, (params, ctx) => this.createTool(params, ctx)),
     });
   }
 
@@ -731,7 +734,7 @@ class GoalExtension {
       label: "Update Goal",
       description: "Mark the current goal complete or blocked after verification.",
       parameters: UpdateParams,
-      execute: (_id, params, _signal, _update, ctx) => this.updateTool(params.status, ctx),
+      execute: toolExecute(UpdateParams, (params, ctx) => this.updateTool(params.status, ctx)),
     });
   }
 

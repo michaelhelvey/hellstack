@@ -1,6 +1,8 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { type Static, Type } from "typebox";
 
+import { toolExecute } from "../shared/execute.ts";
+
 const OTHER = "Other (type an answer)";
 const DONE = "Done";
 
@@ -74,6 +76,10 @@ export function resultText(asked: number, answers: Answer[]): string {
   return "The user dismissed the question without answering.";
 }
 
+const AskParams = Type.Object({
+  questions: Type.Array(QuestionSchema, { minItems: 1, maxItems: 4 }),
+});
+
 /** Adds the `ask_user_question` tool, which asks the user questions with fixed choices. */
 export default function ask(pi: ExtensionAPI): void {
   pi.registerTool({
@@ -82,11 +88,9 @@ export default function ask(pi: ExtensionAPI): void {
     exposure: "model-only",
     description:
       "Ask the user 1-4 structured questions, each with 2-4 options; the user can also type their own answer. Use it for genuine preference calls the user must make.",
-    parameters: Type.Object({
-      questions: Type.Array(QuestionSchema, { minItems: 1, maxItems: 4 }),
-    }),
+    parameters: AskParams,
     executionMode: "sequential",
-    async execute(_id, params, signal, _onUpdate, ctx) {
+    execute: toolExecute(AskParams, async (params, ctx, signal) => {
       if (!ctx.hasUI) throw new Error("This session has no UI. Ask the user in plain text.");
       const answers: Answer[] = [];
       for (const question of params.questions) {
@@ -96,6 +100,6 @@ export default function ask(pi: ExtensionAPI): void {
       }
       const text = resultText(params.questions.length, answers);
       return { content: [{ type: "text", text }], details: { answers } };
-    },
+    }),
   });
 }

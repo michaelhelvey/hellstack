@@ -115,10 +115,10 @@ class SkillAutocomplete implements AutocompleteProvider {
 
   async #tokenSuggestions(token: SlashToken, args: SuggestArgs) {
     const found = skillSuggestions(token, this.#skills());
-    for (const item of found?.items ?? []) this.#ours.add(item);
-    if (found || args[3].force !== true) return found;
+    if (!found) return args[3].force === true ? this.#base.getSuggestions(...args) : found;
+    for (const item of found.items) this.#ours.add(item);
 
-    return this.#base.getSuggestions(...args);
+    return found;
   }
 }
 
