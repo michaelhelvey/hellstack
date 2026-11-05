@@ -1,31 +1,49 @@
-// The factory board: "needs you", the tasks, the inbox, the source health, and the feed. With the
-// prop `view: "banner"`, the banner over the main area that names the coordinator or the worker.
+// The factory board: the power switch, the tasks, the inbox with its triage buttons, the source
+// health, and the feed. With the prop `view: "banner"`, the banner over the main area that names
+// the coordinator, the worker, or the design agent.
 // Data: `bun <repo>/packages/factory/src/cli.ts board --json`. It loads again when the ledger
-// changes and every 20 s. The board puts the tasks in `shared()` for the banner.
-// Props (optional): { view, repo, factoryHome }. Without `repo`, the mod finds the repository
-// through the link of its folder. Without `factoryHome`, it uses FACTORY_HOME of the user's
-// environment, else ~/.factory.
+// changes, after each action, and every 20 s. The board puts its data in `shared()` for the
+// banner. Props (optional): { view, repo, factoryHome, boardFile }. Without `repo`, the mod finds
+// the repository through the link of its folder. Without `factoryHome`, it uses FACTORY_HOME of
+// the user's environment, else ~/.factory. With `boardFile` (for development), it reads the board
+// from that JSON file and only logs the actions.
 
-import { View, div } from "gpui-kit";
-import { v_flex, h_flex } from "gpui-base";
-import { appHome, exec, focused, home, props, setShared, shared, theme, watchFolder } from "herdr";
+import { View } from "gpui-kit";
+import { v_flex } from "gpui-base";
+import {
+  appHome,
+  exec,
+  focused,
+  home,
+  panes,
+  props,
+  readTextFile,
+  setShared,
+  settings,
+  shared,
+  terminals,
+  theme,
+  watchFolder,
+} from "herdr";
 
+import { Actions, COMMANDS, cliResult } from "./actions.js";
 import { banner } from "./banner.js";
-import { boardBody, liveStatus, pill } from "./board.js";
+import { BOARD_PADDING, boardBody } from "./board.js";
 import {
   EMPTY_BOARD,
   bannerData,
-  boardCommand,
-  inboxCount,
+  cliCommand,
   ledgerChanged,
   parseBoard,
   repoRoot,
   sharedKey,
   shownRole,
+  tabTerminalNames,
 } from "./model.js";
+import { liveWorking } from "./tasks.js";
+import { fontSizes } from "./ui.js";
 
 const REFRESH_MS = 20000;
-const TWO_COLUMNS_PX = 680;
 
 // Runs `pwd` also when the props give the repository: in Herdr, when the first `exec` of a mod copy
 // does not start in its first task before an `await`, that `exec` and all later ones never finish.
@@ -41,20 +59,48 @@ async function findLedger() {
   return result.stdout.trim() || `${home()}/.factory`;
 }
 
+async function runCli(repo, factoryHome, args) {
+  const [command, rest] = cliCommand(repo, factoryHome, args);
+  return exec(command, rest, { cwd: repo });
+}
+
+async function readFixture(file) {
+  return parseBoard((await readTextFile(file)) ?? "{}");
+}
+
 async function readBoard(repo, factoryHome) {
-  const [command, args] = boardCommand(repo, factoryHome);
-  const result = await exec(command, args, { cwd: repo });
-  if (result.code !== 0) throw new Error(result.stderr.trim() || `board exited ${result.code}`);
+  if (props()?.boardFile) return readFixture(props().boardFile);
+  const result = await runCli(repo, factoryHome, ["board", "--json"]);
+  const { ok, text } = cliResult(result);
+  if (!ok) throw new Error(text);
   return parseBoard(result.stdout);
 }
 
-function header(t, { inbox, invalid }) {
-  return h_flex()
-    .items_center()
-    .gap(8)
-    .child(div().flex_1().text_size(13).font_weight(700).text_color(t.foreground).child("Factory"))
-    .when(invalid > 0, (el) => el.child(pill(`${invalid} bad task files`, t.blocked)))
-    .child(pill(`inbox ${inboxCount(inbox)}`, inbox.length > 0 ? t.accent : t.dim));
+async function devAction(args) {
+  console.log(`factory-board (dev): factory ${args.join(" ")}`);
+  await exec("sleep", ["1.5"]);
+  return { ok: true, text: "" };
+}
+
+function shown() {
+  const now = focused();
+  const live = terminals();
+  const own = live.find((terminal) => terminal.address === now?.terminal)?.name;
+  return shownRole(now?.tab, [own, ...tabTerminalNames(now?.tab, panes(), live)]);
+}
+
+function update(cx, change) {
+  change();
+  cx.notify();
+}
+
+function toggle(set, key) {
+  if (set.has(key)) set.delete(key);
+  else set.add(key);
+}
+
+function sizes() {
+  return fontSizes(Number(settings()?.ui_font_size) || 13);
 }
 
 /** The factory board mod. With the prop `view: "banner"`, it shows the banner instead. */
@@ -62,6 +108,11 @@ export default class FactoryBoard extends View {
   init(_props, cx) {
     this.board = EMPTY_BOARD;
     this.error = "";
+    this.width = 0;
+    this.filter = "";
+    this.gone = new Set();
+    this.openBodies = new Set();
+    this.actions = new Actions((args) => this.cli(args));
     if (props()?.view === "banner") return;
     cx.spawn(async (cx) => this.start(cx));
     cx.timer.every(REFRESH_MS, (cx) => this.tick(cx));
@@ -77,9 +128,19 @@ export default class FactoryBoard extends View {
     this.tick(cx);
   }
 
+  async cli(args) {
+    if (props()?.boardFile) return devAction(args);
+    try {
+      return cliResult(await runCli(this.repo, this.ledger, args));
+    } catch (error) {
+      return { ok: false, text: String(error?.message ?? error) };
+    }
+  }
+
   tick(cx) {
     this.refresh(cx);
-    if (this.ledger && !this.watching) cx.spawn(async (cx) => this.watch(cx));
+    if (this.ledger && !this.watching && !props()?.boardFile)
+      cx.spawn(async (cx) => this.watch(cx));
   }
 
   async watch(cx) {
@@ -129,47 +190,73 @@ export default class FactoryBoard extends View {
     this.closed = true;
   }
 
-  resize(width, cx) {
-    const wide = width >= TWO_COLUMNS_PX;
-    if (wide === this.wide) return;
-    this.wide = wide;
-    cx.notify();
+  act(cx, { key, kind, args, gone = [] }) {
+    cx.spawn(async (cx) => {
+      const done = this.actions.run(key, kind, args);
+      cx.notify();
+      if (await done) for (const id of gone) this.gone.add(id);
+      this.refresh(cx);
+      cx.notify();
+    });
+  }
+
+  handlers() {
+    return {
+      power: (next, cx) => this.act(cx, { key: "power", kind: next, args: COMMANDS[next]() }),
+      openTask: (id, cx) =>
+        this.act(cx, { key: `task:${id}`, kind: "open", args: COMMANDS.open(id) }),
+      inboxAction: (thread, kind, cx) =>
+        this.act(cx, {
+          key: `thread:${thread.key}`,
+          kind,
+          args: COMMANDS[kind](thread.ids),
+          gone: thread.ids,
+        }),
+      ask: (key, kind, cx) => update(cx, () => this.actions.ask(key, kind)),
+      clear: (key, cx) => update(cx, () => this.actions.clear(key)),
+      toggleBody: (key, cx) => update(cx, () => toggle(this.openBodies, key)),
+      setFilter: (source, cx) => update(cx, () => (this.filter = source)),
+      toggleInbox: (cx) => update(cx, () => (this.inboxOpen = !this.inboxOpen)),
+    };
   }
 
   context(t) {
-    const toggleInbox = (_e, cx) => {
-      this.inboxOpen = !this.inboxOpen;
-      cx.notify();
-    };
-    const shown = shownRole(focused()?.tab).id;
-    const inboxOpen = Boolean(this.inboxOpen);
     return {
       t,
+      fs: sizes(),
       now: Date.now(),
-      statusOf: liveStatus(),
-      shown,
-      wide: this.wide,
-      inboxOpen,
-      toggleInbox,
+      home: home(),
+      error: this.error,
+      shown: shown(),
+      working: liveWorking(),
+      actions: this.actions,
+      gone: this.gone,
+      openBodies: this.openBodies,
+      filter: this.filter,
+      inboxOpen: Boolean(this.inboxOpen),
+      ...this.handlers(),
     };
+  }
+
+  resize(width, cx) {
+    if (Math.abs(width - this.width) < 1) return;
+    this.width = width;
+    cx.notify();
   }
 
   render() {
     const t = theme();
     if (props()?.view === "banner") {
       const data = shared(sharedKey(props()?.factoryHome)) ?? bannerData(EMPTY_BOARD);
-      return banner(t, shownRole(focused()?.tab), data);
+      return banner({ t, fs: sizes() }, shown(), data);
     }
     return v_flex()
       .id("fb-root")
       .size_full()
       .overflow_y_scrollbar()
       .on_size_change((size, cx) => this.resize(size.width, cx))
-      .p(14)
-      .gap(16)
-      .text_size(12)
-      .child(header(t, this.board))
-      .when(Boolean(this.error), (el) => el.child(div().text_color(t.blocked).child(this.error)))
-      .child(boardBody(this.context(t), this.board));
+      .p(BOARD_PADDING)
+      .text_size(sizes().base)
+      .child(boardBody(this.context(t), this.board, this.width));
   }
 }

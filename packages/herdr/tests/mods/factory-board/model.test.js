@@ -1,11 +1,21 @@
 import { describe, expect, test } from "bun:test";
 
-import { coordinatorPlacement, workerPlacement } from "../../../../factory/src/core/herdr.ts";
+import { coordinatorPlacement } from "../../../../factory/src/core/herdr.ts";
 import {
+  COORDINATOR_TERMINAL,
+  designTerminal,
+  taskTab,
+  workerTerminal,
+} from "../../../../factory/src/core/spawn.ts";
+import {
+  EXCERPT_CHARS,
   INBOX_LIMIT,
   age,
   bannerData,
-  boardCommand,
+  bySource,
+  cliCommand,
+  excerpt,
+  folderName,
   inboxCount,
   inboxPage,
   inboxThreads,
@@ -14,13 +24,16 @@ import {
   openable,
   parseBoard,
   progress,
-  repoName,
   repoRoot,
   sections,
   sharedKey,
   shownRole,
+  sourceCounts,
   summary,
+  tabTerminalNames,
   threadLabel,
+  tildePath,
+  withoutGone,
 } from "../../../config/mods/factory-board/model.js";
 
 function task(id, fields = {}) {
@@ -28,7 +41,7 @@ function task(id, fields = {}) {
     id,
     title: id,
     status: "working",
-    repo: "/dev/hellstack",
+    cwd: "/dev/hellstack",
     needs_you: null,
     now: "",
     paused: false,
@@ -71,20 +84,46 @@ describe("inbox", () => {
       event("1", "gh:a/b#1"),
     ];
     expect(inboxThreads(inbox)).toEqual([
-      { latest: inbox[0], count: 2 },
-      { latest: inbox[1], count: 1 },
+      { key: "gh:a/b#1", latest: inbox[0], older: [inbox[2]], count: 2, ids: ["3", "1"] },
+      { key: "gh:a/c#2", latest: inbox[1], older: [], count: 1, ids: ["2"] },
     ]);
+  });
+
+  test("the source filter and its counts use threads, not events", () => {
+    const threads = inboxThreads([
+      event("1", "gh:a/b#1"),
+      event("2", "sentry:a/X-1", { source: "sentry" }),
+      event("3", "gh:a/b#1"),
+      event("4", "gh:a/c#2"),
+    ]);
+    expect(sourceCounts(threads)).toEqual([
+      ["github", 2],
+      ["sentry", 1],
+    ]);
+    expect(bySource(threads, "sentry").map((thread) => thread.key)).toEqual(["sentry:a/X-1"]);
+    expect(bySource(threads, "")).toHaveLength(3);
+  });
+
+  test("dismissed and designed events leave the inbox before the next load", () => {
+    const inbox = [event("1", "gh:a/b#1"), event("2", "gh:a/b#1"), event("3", "gh:a/c#2")];
+    expect(withoutGone(inbox, new Set(["1", "2"])).map((item) => item.id)).toEqual(["3"]);
+  });
+
+  test("a long body shows an excerpt until it is opened", () => {
+    const long = "x".repeat(EXCERPT_CHARS + 10);
+    expect(excerpt(long, false)).toEqual({ text: `${"x".repeat(EXCERPT_CHARS)}…`, cut: true });
+    expect(excerpt(long, true)).toEqual({ text: long, cut: false });
+    expect(excerpt("  short  ", false)).toEqual({ text: "short", cut: false });
+    expect(excerpt(undefined, false)).toEqual({ text: "", cut: false });
   });
 
   test("the inbox count is the count of threads, with the events when there are more", () => {
     const one = [event("1", "gh:a/b#1"), event("2", "gh:a/c#2")];
     expect(inboxCount(one)).toBe("2");
     expect(inboxCount([...one, event("3", "gh:a/b#1")])).toBe("2 · 3 events");
-    expect(bannerData({ tasks: [], inbox: [...one, event("3", "gh:a/b#1")] }, "x")).toEqual({
-      tasks: [],
-      inbox: 2,
-      error: "x",
-    });
+    const running = { factoryd: true, coordinator: false };
+    const board = { tasks: [], inbox: [...one, event("3", "gh:a/b#1")], running };
+    expect(bannerData(board, "x")).toEqual({ tasks: [], inbox: 2, running, error: "x" });
   });
 
   test("a closed inbox shows the first threads and counts the rest", () => {
@@ -118,12 +157,44 @@ describe("inbox", () => {
 });
 
 describe("banner", () => {
-  test("the roles come from the tab ids that factory spawn gives", async () => {
+  test("the roles come from the tab ids and terminal names that factory spawn gives", () => {
     const coordinator = coordinatorPlacement([]).labels["herdr.tab"];
-    const task = { id: "t-1a2b3c", repo: "/tmp", tabName: "x" };
-    const worker = (await workerPlacement([], task)).labels["herdr.tab"];
     expect(shownRole(coordinator)).toEqual({ role: "coordinator" });
-    expect(shownRole(worker)).toEqual({ role: "worker", id: "t-1a2b3c" });
+    expect(shownRole(taskTab("worker", "t-1a2b3c"))).toEqual({ role: "worker", id: "t-1a2b3c" });
+    expect(shownRole(taskTab("design", "t-1a2b3c"))).toEqual({ role: "design", id: "t-1a2b3c" });
+    expect(shownRole("tb1", [designTerminal("t-1a2b3c")])).toEqual({
+      role: "design",
+      id: "t-1a2b3c",
+    });
+  });
+
+  test("the terminal names tell the role before the tab id; the first name wins", () => {
+    expect(shownRole("tb1", [undefined, COORDINATOR_TERMINAL])).toEqual({ role: "coordinator" });
+    const worker = { role: "worker", id: "t-00a9" };
+    expect(shownRole("tb1", ["zsh", workerTerminal("t-00a9")])).toEqual(worker);
+    const design = { role: "design", id: "t-00a9" };
+    expect(shownRole("tbfactory-t-00a9", ["factory-design-t-00a9"])).toEqual(design);
+    expect(shownRole("tb1", [workerTerminal("t-00a9"), "factory-design-t-00a9"])).toEqual(worker);
+    expect(shownRole("tbfactory-design-t-00a9")).toEqual(design);
+    expect(shownRole("tb1", ["zsh"])).toEqual({ role: "other" });
+  });
+
+  test("a terminal or tab name that only starts with factory is not a factory agent", () => {
+    expect(shownRole("tb1", ["factory-logs", "factory-board-dev"])).toEqual({ role: "other" });
+    expect(shownRole("tbfactory-notes")).toEqual({ role: "other" });
+  });
+
+  test("the names of a tab come from its panes and the live terminals", () => {
+    const panes = [
+      { tab: "tb1", terminal: "t1" },
+      { tab: "tb2", terminal: "t2" },
+      { tab: "tb1", terminal: null },
+    ];
+    const terminals = [
+      { address: "t1", name: "factory-t-1" },
+      { address: "t2", name: "factory" },
+    ];
+    expect(tabTerminalNames("tb1", panes, terminals)).toEqual(["factory-t-1", undefined]);
   });
 
   test("the tab id tells the coordinator, a worker, or another tab", () => {
@@ -154,8 +225,11 @@ describe("card text", () => {
     expect(progress(task("a", { landing: { done: 0, total: 0 } }))).toBe("");
   });
 
-  test("the repo name is the last folder", () => {
-    expect(repoName("/Users/me/dev/hellstack/")).toBe("hellstack");
+  test("the space of a task is its last folder; the hover path uses ~", () => {
+    expect(folderName("/Users/me/dev/hellstack/")).toBe("hellstack");
+    expect(folderName("/")).toBe("/");
+    expect(tildePath("/Users/me/dev/x", "/Users/me")).toBe("~/dev/x");
+    expect(tildePath("/Users/meme/x", "/Users/me")).toBe("/Users/meme/x");
   });
 
   test("age uses the largest whole unit", () => {
@@ -176,15 +250,16 @@ describe("loading", () => {
 
   test("the command sets FACTORY_HOME only when the props give one", () => {
     const cli = "/r/packages/factory/src/cli.ts";
-    expect(boardCommand("/r", "")).toEqual(["bun", [cli, "board", "--json"]]);
-    expect(boardCommand("/r", "/tmp/f")).toEqual([
+    expect(cliCommand("/r", "", ["board", "--json"])).toEqual(["bun", [cli, "board", "--json"]]);
+    expect(cliCommand("/r", "/tmp/f", ["up"])).toEqual([
       "env",
-      ["FACTORY_HOME=/tmp/f", "bun", cli, "board", "--json"],
+      ["FACTORY_HOME=/tmp/f", "bun", cli, "up"],
     ]);
   });
 
   test("missing fields in the output get the empty values", () => {
     expect(parseBoard('{"invalid":2}')).toEqual({
+      running: null,
       tasks: [],
       inbox: [],
       invalid: 2,
@@ -201,6 +276,27 @@ describe("loading", () => {
     expect(() => parseBoard('{"inbox":8}')).toThrow("unknown shape");
     const { url: _url, ...noUrl } = event("1", "gh:a/b#1");
     expect(() => parseBoard(JSON.stringify({ inbox: [noUrl] }))).toThrow("unknown shape");
+    for (const detail of ["text", { body: 42 }, { state: { open: true } }]) {
+      const bad = event("1", "gh:a/b#1", { detail });
+      expect(() => parseBoard(JSON.stringify({ inbox: [bad] }))).toThrow("unknown shape");
+    }
+    const good = event("1", "gh:a/b#1", { detail: { author: "a", body: "b" } });
+    expect(parseBoard(JSON.stringify({ inbox: [good] })).inbox).toHaveLength(1);
+  });
+
+  test("old output with repo and terminal gets cwd and a worker agent", () => {
+    const { cwd: _, ...old } = task("a", { repo: "/dev/x", terminal: "t3", working: true });
+    const [parsed] = parseBoard(JSON.stringify({ tasks: [old] })).tasks;
+    expect(parsed.cwd).toBe("/dev/x");
+    expect(parsed.agent).toEqual({ terminal: "t3", role: "worker", working: true });
+  });
+
+  test("the fixture boards have the shape that the board shows", async () => {
+    for (const name of ["board.json", "board-stopped.json"]) {
+      const board = parseBoard(await Bun.file(`${import.meta.dir}/fixtures/${name}`).text());
+      expect(board.inbox.length).toBeGreaterThan(10);
+      expect(new Set(board.tasks.map((task) => task.status)).size).toBe(5);
+    }
   });
 
   test("only task, inbox, feed, and ledger folder changes load the board again", () => {

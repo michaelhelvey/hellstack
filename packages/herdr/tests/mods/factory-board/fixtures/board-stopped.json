@@ -1,0 +1,405 @@
+{
+  "running": {
+    "factoryd": false,
+    "coordinator": false
+  },
+  "tasks": [
+    {
+      "id": "t-0412",
+      "title": "Retry the webhook delivery with a backoff",
+      "status": "working",
+      "cwd": "/Users/me/dev/acme/api",
+      "needs_you": null,
+      "now": "writing the backoff tests",
+      "paused": false,
+      "landing": {
+        "done": 2,
+        "total": 5
+      },
+      "agent": {
+        "terminal": "t17",
+        "role": "worker",
+        "working": true
+      }
+    },
+    {
+      "id": "t-0415",
+      "title": "Move the invoice export to the job queue",
+      "status": "working",
+      "cwd": "/Users/me/dev/acme/billing-service",
+      "needs_you": "The export has two callers. Keep the sync path for the admin page, or remove it?",
+      "now": "waiting for an answer",
+      "paused": false,
+      "landing": {
+        "done": 1,
+        "total": 4
+      },
+      "agent": {
+        "terminal": "t21",
+        "role": "worker",
+        "working": false
+      }
+    },
+    {
+      "id": "t-0409",
+      "title": "Fix the flaky login test on CI",
+      "status": "landing",
+      "cwd": "/Users/me/dev/acme/web",
+      "needs_you": null,
+      "now": "waiting for CI on #482",
+      "paused": false,
+      "landing": {
+        "done": 4,
+        "total": 5
+      },
+      "agent": {
+        "terminal": "t12",
+        "role": "worker",
+        "working": false
+      }
+    },
+    {
+      "id": "t-0418",
+      "title": "Show the plan limits on the settings page",
+      "status": "ready",
+      "cwd": "/Users/me/dev/acme/web",
+      "needs_you": null,
+      "now": "",
+      "paused": false,
+      "landing": {
+        "done": 0,
+        "total": 3
+      }
+    },
+    {
+      "id": "t-0420",
+      "title": "Upgrade the queue client to v5",
+      "status": "ready",
+      "cwd": "/Users/me/dev/acme/api",
+      "needs_you": null,
+      "now": "",
+      "paused": true,
+      "landing": {
+        "done": 0,
+        "total": 2
+      }
+    },
+    {
+      "id": "t-0421",
+      "title": "TypeError: cannot read properties of undefined (reading 'plan') in checkout",
+      "status": "sketch",
+      "cwd": "/Users/me/dev/acme/web",
+      "needs_you": null,
+      "now": "reading the stack trace",
+      "paused": false,
+      "landing": {
+        "done": 0,
+        "total": 0
+      },
+      "agent": {
+        "terminal": "t25",
+        "role": "design",
+        "working": true
+      }
+    },
+    {
+      "id": "t-0422",
+      "title": "Proposal: delete the old v1 export endpoints",
+      "status": "sketch",
+      "cwd": "/Users/me/dev/acme/api",
+      "needs_you": "Take this proposal? Nothing called v1 in 30 days.",
+      "now": "",
+      "paused": false,
+      "landing": {
+        "done": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "t-0423",
+      "title": "A sketch with a very long title that does not fit on one line of the card at all",
+      "status": "sketch",
+      "cwd": "/Users/me/.factory",
+      "needs_you": null,
+      "now": "",
+      "paused": false,
+      "landing": {
+        "done": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "t-0401",
+      "title": "Rate limit the public search endpoint",
+      "status": "landed",
+      "cwd": "/Users/me/dev/acme/api",
+      "needs_you": null,
+      "now": "",
+      "paused": false,
+      "landing": {
+        "done": 3,
+        "total": 3
+      }
+    },
+    {
+      "id": "t-0403",
+      "title": "Add the dark mode toggle",
+      "status": "landed",
+      "cwd": "/Users/me/dev/acme/web",
+      "needs_you": null,
+      "now": "",
+      "paused": false,
+      "landing": {
+        "done": 4,
+        "total": 4
+      }
+    }
+  ],
+  "inbox": [
+    {
+      "id": "e-gh-1",
+      "source": "github",
+      "kind": "review_requested",
+      "thread": "gh:acme/web#491",
+      "title": "Replace the date picker with the new design system component",
+      "url": "https://github.com/acme/web/pull/491",
+      "ts": "2026-11-05T18:38:00Z",
+      "detail": {
+        "author": "jlee",
+        "body": "This PR replaces the old date picker on the booking page and the report filters with the DatePicker from the design system. The old one did not work with the keyboard and had a time zone bug at the end of the month (see #455). I kept the old props as an adapter so the call sites do not change. Screenshots are in the description. I could not test Safari 16, can somebody check it?",
+        "state": "open",
+        "repo": "acme/web"
+      }
+    },
+    {
+      "id": "e-sn-1",
+      "source": "sentry",
+      "kind": "issue_regression",
+      "thread": "sentry:acme/WEB-3KD",
+      "title": "TypeError: Cannot read properties of null (reading 'items') in CartSummary",
+      "url": "https://sentry.io/organizations/acme/issues/4410021/",
+      "ts": "2026-11-05T18:31:00Z",
+      "detail": {
+        "body": "TypeError: Cannot read properties of null (reading 'items')\n  at CartSummary (src/cart/CartSummary.tsx:42:18)\n  at renderWithHooks (react-dom.production.min.js:1:51221)\n1,204 events, 312 users in the last 24 hours. First seen 3 weeks ago, resolved in 2.14.0, seen again in 2.16.1.",
+        "state": "unresolved",
+        "repo": "acme/web"
+      }
+    },
+    {
+      "id": "e-gh-2",
+      "source": "github",
+      "kind": "pr_comment",
+      "thread": "gh:acme/api#1203",
+      "title": "Add idempotency keys to the payment endpoints",
+      "url": "https://github.com/acme/api/pull/1203#issuecomment-1",
+      "ts": "2026-11-05T18:20:00Z",
+      "detail": {
+        "author": "mkowalski",
+        "body": "I think the key should expire after 24 hours, not 7 days. Stripe uses 24 hours and our retry window is only 6 hours. Also, the middleware stores the full response body; for the export endpoint that can be several MB. Can we store a hash and the status code only, and return 409 when the body differs?",
+        "state": "open",
+        "repo": "acme/api"
+      }
+    },
+    {
+      "id": "e-gh-2b",
+      "source": "github",
+      "kind": "review",
+      "thread": "gh:acme/api#1203",
+      "title": "Add idempotency keys to the payment endpoints",
+      "url": "https://github.com/acme/api/pull/1203#pullrequestreview-2",
+      "ts": "2026-11-05T17:55:00Z",
+      "detail": {
+        "author": "mkowalski",
+        "body": "Changes requested. See the comments on the middleware.",
+        "state": "open",
+        "repo": "acme/api"
+      }
+    },
+    {
+      "id": "e-gh-2c",
+      "source": "github",
+      "kind": "ci",
+      "thread": "gh:acme/api#1203",
+      "title": "Add idempotency keys to the payment endpoints",
+      "url": "https://github.com/acme/api/actions/runs/3",
+      "ts": "2026-11-05T17:40:00Z",
+      "detail": {
+        "body": "integration-tests failed on ubuntu-latest",
+        "state": "open",
+        "repo": "acme/api"
+      }
+    },
+    {
+      "id": "e-sn-2",
+      "source": "sentry",
+      "kind": "issue_new",
+      "thread": "sentry:acme/API-9QX",
+      "title": "TimeoutError: the request to the tax service took more than 10000 ms",
+      "url": "https://sentry.io/organizations/acme/issues/4410388/",
+      "ts": "2026-11-05T17:12:00Z",
+      "detail": {
+        "body": "TimeoutError: the request to the tax service took more than 10000 ms\n  at TaxClient.quote (src/tax/client.ts:88:11)\n  at CheckoutService.total (src/checkout/service.ts:140:24)\n58 events, 41 users since 16:50. Only in the eu-west region.",
+        "state": "unresolved",
+        "repo": "acme/api"
+      }
+    },
+    {
+      "id": "e-gh-3",
+      "source": "github",
+      "kind": "mention",
+      "thread": "gh:acme/infra#77",
+      "title": "Rotate the database credentials every 30 days",
+      "url": "https://github.com/acme/infra/issues/77#issuecomment-9",
+      "ts": "2026-11-05T16:02:00Z",
+      "detail": {
+        "author": "spatel",
+        "body": "@michaelhelvey can the factory take the app side of this? The secret is in the parameter store already; the services read it only at start, so each service must reload it when the rotation event comes. I wrote a list of the services below. The api and the billing-service are the most important ones. The workers can restart; they are stateless. The cron jobs read the secret on each run, so they are fine.",
+        "state": "open",
+        "repo": "acme/infra"
+      }
+    },
+    {
+      "id": "e-gh-4",
+      "source": "github",
+      "kind": "ci",
+      "thread": "gh:acme/web#482",
+      "title": "Fix the flaky login test",
+      "url": "https://github.com/acme/web/actions/runs/4",
+      "ts": "2026-11-05T15:30:00Z",
+      "detail": {
+        "author": "github-actions",
+        "body": "e2e (chromium) failed: login.spec.ts:31 timed out after 30000 ms",
+        "state": "open",
+        "repo": "acme/web"
+      }
+    },
+    {
+      "id": "e-gh-5",
+      "source": "github",
+      "kind": "security_alert",
+      "thread": "gh:acme/web",
+      "title": "Dependabot: high severity in path-to-regexp",
+      "url": "https://github.com/acme/web/security/dependabot/12",
+      "ts": "2026-11-05T14:00:00Z",
+      "detail": {
+        "body": "path-to-regexp outputs backtracking regular expressions. A crafted path can block the event loop. Upgrade to 0.1.12 or later. The package comes in through express 4.19.2.",
+        "state": "open",
+        "repo": "acme/web"
+      }
+    },
+    {
+      "id": "e-sn-3",
+      "source": "sentry",
+      "kind": "issue_new",
+      "thread": "sentry:acme/WORKER-1B2",
+      "title": "QueueError: the message is larger than 256 KB",
+      "url": "https://sentry.io/organizations/acme/issues/4409911/",
+      "ts": "2026-11-05T11:45:00Z",
+      "detail": {
+        "body": "QueueError: the message is larger than 256 KB\n  at Producer.send (src/queue/producer.ts:51:13)\n  at exportInvoices (src/jobs/export.ts:77:9)\n3 events, 1 user.",
+        "state": "unresolved",
+        "repo": "acme/billing-service"
+      }
+    },
+    {
+      "id": "e-gh-6",
+      "source": "github",
+      "kind": "assigned",
+      "thread": "gh:acme/web#503",
+      "title": "The booking page shows the wrong currency for Swiss customers",
+      "url": "https://github.com/acme/web/issues/503",
+      "ts": "2026-11-04T22:10:00Z",
+      "detail": {
+        "author": "support-bot",
+        "body": "Three customers from Switzerland told support that the booking page shows prices in EUR, but the invoice is in CHF. It started after the release on Monday. The locale is de-CH, and the currency map has only de-DE and de-AT.",
+        "state": "open",
+        "repo": "acme/web"
+      }
+    },
+    {
+      "id": "e-gh-7",
+      "source": "github",
+      "kind": "review",
+      "thread": "gh:acme/api#1188",
+      "title": "Drop the unused audit columns",
+      "url": "https://github.com/acme/api/pull/1188#pullrequestreview-7",
+      "ts": "2026-11-04T19:00:00Z",
+      "detail": {
+        "author": "jlee",
+        "body": "Approved. Merge after the backup.",
+        "state": "merged",
+        "repo": "acme/api"
+      }
+    },
+    {
+      "id": "e-sn-4",
+      "source": "sentry",
+      "kind": "issue_regression",
+      "thread": "sentry:acme/API-7TT",
+      "title": "IntegrityError: duplicate key value violates unique constraint \"users_email_key\"",
+      "url": "https://sentry.io/organizations/acme/issues/4398820/",
+      "ts": "2026-11-04T09:30:00Z",
+      "detail": {
+        "state": "unresolved",
+        "repo": "acme/api"
+      }
+    },
+    {
+      "id": "e-gh-8",
+      "source": "github",
+      "kind": "pr_comment",
+      "thread": "gh:helvetici/hellstack#40",
+      "title": "factory: a board for the inbox",
+      "url": "https://github.com/helvetici/hellstack/pull/40#issuecomment-3",
+      "ts": "2026-11-03T12:00:00Z"
+    }
+  ],
+  "invalid": 1,
+  "sources": [
+    {
+      "source": "factoryd",
+      "ok": true,
+      "ts": "2026-11-05T18:41:00Z",
+      "summary": "tick"
+    },
+    {
+      "source": "github",
+      "ok": true,
+      "ts": "2026-11-05T18:40:00Z",
+      "summary": "3 new"
+    },
+    {
+      "source": "sentry",
+      "ok": false,
+      "ts": "2026-11-05T18:39:00Z",
+      "summary": "sentry: 502 bad gateway"
+    }
+  ],
+  "feed": [
+    {
+      "ts": "2026-11-05T17:02:00Z",
+      "source": "factoryd",
+      "summary": "started worker t-0412"
+    },
+    {
+      "ts": "2026-11-05T17:40:00Z",
+      "source": "github",
+      "summary": "2 new, 1 routed to t-0409"
+    },
+    {
+      "ts": "2026-11-05T18:00:00Z",
+      "source": "factoryd",
+      "summary": "pruned 3 done inbox items"
+    },
+    {
+      "ts": "2026-11-05T18:31:00Z",
+      "source": "sentry",
+      "summary": "1 new: WEB-3KD regressed"
+    },
+    {
+      "ts": "2026-11-05T18:39:00Z",
+      "source": "sentry",
+      "summary": "sentry: 502 bad gateway"
+    }
+  ]
+}

@@ -1,285 +1,192 @@
-// The board views: "needs you", the task groups, the inbox, the source health, and the feed.
+// The board: a header with the power switch and the source health, the tasks, the inbox, and the
+// feed. It uses two columns when it is wide.
 
-import { div, svg } from "gpui-kit";
+import { div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { run, terminals } from "herdr";
 
-import {
-  ROLE_ACCENTS,
-  age,
-  clock,
-  inboxCount,
-  inboxPage,
-  inboxThreads,
-  kindLabel,
-  openable,
-  progress,
-  repoName,
-  sections,
-  threadLabel,
-} from "./model.js";
+import { powerState } from "./actions.js";
+import { inboxColumn } from "./inbox.js";
+import { age, clock } from "./model.js";
+import { taskColumn } from "./tasks.js";
+import { actionLine, button, dot, heading, pill, some, spinner } from "./ui.js";
 
-/** Returns a small bold heading. */
-export function heading(t, text, color) {
-  return div()
-    .text_size(10)
-    .font_weight(700)
-    .text_color(color ?? t.dim)
-    .child(text);
-}
+/** The board width, in px, from which the tasks and the inbox are side by side. */
+export const TWO_COLUMNS_PX = 760;
 
-function countHeading(t, label, count) {
-  return heading(t, `${label.toUpperCase()} · ${count}`, count > 0 ? t.muted : t.dim);
-}
+const PADDING = 16;
+const GAP = 20;
 
-/** Returns a small label on a faint background of `color`. */
-export function pill(text, color) {
-  return div()
-    .flex_none()
-    .px(5)
-    .h(16)
-    .flex()
-    .items_center()
-    .rounded(4)
-    .bg(color + "26")
-    .text_size(10)
-    .text_color(color)
-    .child(text);
-}
+const START = ["up", "start"];
+const STOP = ["down", "stop"];
 
-/** Returns the turning spinner that shows a working agent. */
-export function spinner(color) {
-  return svg("mods/workspace-chrome/spinner.svg").size(11).text_color(color).spin(900);
-}
+const POWER = {
+  running: { text: "running", color: "done", buttons: [STOP] },
+  partial: { text: "partly running", color: "ansi3", buttons: [START, STOP] },
+  stopped: { text: "stopped", color: "dim", buttons: [START] },
+  unknown: { text: "…", color: "dim", buttons: [] },
+};
 
-function stateIcon(t, task, status) {
-  if (task.paused) return pill("paused", t.muted);
-  if (status === "working") return spinner(t.working);
-  if (status === "blocked") return div().size(6).rounded_full().bg(t.blocked);
-  return null;
-}
-
-function clickable(el, t, onClick) {
-  return el
-    .cursor_pointer()
-    .hover((s) => s.bg(t.hover))
-    .on_click(onClick);
-}
-
-/**
- * Returns a function that gives the agent status of a task: the live status of its terminal, else
- * `working` from the last board load.
- */
-export function liveStatus() {
-  const live = new Map(terminals().map((terminal) => [terminal.address, terminal.status]));
-  return (task) => (live.has(task.terminal) ? live.get(task.terminal) : task.working && "working");
-}
-
-function frame(el, ctx, task) {
-  const { t, shown } = ctx;
-  const accent = t[ROLE_ACCENTS.worker];
-  return el
-    .when(task.paused, (el) => el.opacity(0.5))
-    .when(task.id === shown, (el) =>
-      el
-        .border_1()
-        .border_color(accent)
-        .bg(accent + "1a"),
-    )
-    .when(Boolean(task.terminal), (el) =>
-      clickable(el, t, () => run("agent.focus", { terminal: task.terminal })),
-    );
-}
-
-function cardTop(ctx, task) {
-  const { t } = ctx;
-  const icon = stateIcon(t, task, ctx.statusOf(task));
-  return h_flex()
-    .gap(6)
-    .items_center()
-    .text_size(11)
-    .text_color(t.dim)
-    .child(div().flex_1().truncate().child(repoName(task.repo)))
-    .child(div().flex_none().text_color(t.muted).child(progress(task)))
-    .when(Boolean(icon), (el) => el.child(icon));
-}
-
-function card(ctx, task) {
-  const { t } = ctx;
-  const el = v_flex()
-    .id(`fb-${task.id}`)
-    .gap(2)
-    .px(9)
-    .py(7)
-    .rounded(7)
-    .bg(t.foreground + "08")
-    .child(cardTop(ctx, task))
-    .child(div().truncate().text_color(t.foreground).child(task.title))
-    .when(Boolean(task.now), (el) => el.child(div().truncate().text_color(t.dim).child(task.now)));
-  return frame(el, ctx, task);
-}
-
-function line(ctx, task) {
-  const { t } = ctx;
-  const icon = stateIcon(t, task, ctx.statusOf(task));
-  const el = h_flex()
-    .id(`fb-${task.id}`)
-    .gap(8)
-    .px(9)
-    .py(3)
-    .rounded(5)
-    .items_center()
-    .child(div().flex_none().w(120).truncate().text_color(t.dim).child(repoName(task.repo)))
-    .child(div().flex_1().min_w(0).truncate().text_color(t.muted).child(task.title))
-    .when(Boolean(icon), (el) => el.child(icon));
-  return frame(el, ctx, task);
-}
-
-function needsYou(ctx, tasks) {
-  const { t } = ctx;
-  if (tasks.length === 0) return heading(t, "NEEDS YOU · 0");
-  return v_flex()
-    .gap(6)
-    .p(8)
-    .rounded(9)
-    .border_1()
-    .border_color(t.blocked + "88")
-    .bg(t.blocked + "1a")
-    .child(heading(t, `NEEDS YOU · ${tasks.length}`, t.blocked))
-    .children(
-      tasks.map((task) => card(ctx, task).child(div().text_color(t.blocked).child(task.needs_you))),
-    );
-}
-
-function group(ctx, { label, size, tasks }) {
-  const draw = size === "full" ? card : line;
-  return v_flex()
-    .gap(size === "full" ? 5 : 1)
-    .child(countHeading(ctx.t, label, tasks.length))
-    .children(tasks.map((task) => draw(ctx, task)));
-}
-
-function inboxCells(ctx, { latest, count }) {
-  const { t } = ctx;
-  const color = latest.source === "sentry" ? t.ansi3 : t.accent;
-  const thread = threadLabel(latest.thread);
-  return [
-    div()
-      .flex_none()
-      .w(76)
-      .child(pill(kindLabel(latest.kind), color)),
-    div().flex_none().max_w(170).truncate().text_color(t.muted).child(thread),
-    div().flex_1().min_w(0).truncate().text_color(t.foreground).child(latest.title),
-    div()
-      .flex_none()
-      .text_color(t.dim)
-      .child(count > 1 ? `×${count}` : ""),
-    div().flex_none().w(30).text_color(t.dim).child(age(latest.ts, ctx.now)),
+function partText(running) {
+  if (!running) return "";
+  const parts = [
+    ["factoryd", running.factoryd],
+    ["coordinator", running.coordinator],
   ];
+  return parts.map(([name, on]) => `${name} ${on ? "runs" : "is stopped"}`).join(", ");
 }
 
-function inboxRow(ctx, thread) {
-  const { latest } = thread;
+function powerButton(ctx, [next, label]) {
+  const { t } = ctx;
+  const solid = next === "up";
+  return button(ctx, {
+    id: `fb-power-${next}`,
+    text: label,
+    color: solid ? t.done : t.muted,
+    solid,
+    tooltip: `bun run factory ${next}`,
+    onClick: (_e, cx) => ctx.power(next, cx),
+  });
+}
+
+function powerFrame(color, running) {
   return h_flex()
-    .id(`fb-in-${latest.id ?? latest.thread}`)
+    .id("fb-power-state")
+    .flex_none()
     .gap(8)
-    .px(6)
-    .py(3)
-    .rounded(5)
     .items_center()
-    .when(openable(latest.url), (el) => clickable(el, ctx.t, (_e, cx) => cx.open_url(latest.url)))
-    .children(inboxCells(ctx, thread));
-}
-
-function inbox(ctx, items) {
-  const { t } = ctx;
-  const { shown, more } = inboxPage(inboxThreads(items), ctx.inboxOpen);
-  const toggle = div()
-    .id("fb-in-more")
-    .px(6)
+    .pl(10)
+    .pr(4)
     .py(3)
-    .rounded(5)
-    .text_color(t.dim)
-    .child(more > 0 ? `+${more} more` : "show less");
-  const color = items.length > 0 ? t.muted : t.dim;
-  return v_flex()
-    .gap(1)
-    .child(heading(t, `INBOX · ${inboxCount(items)}`, color))
-    .children(shown.map((thread) => inboxRow(ctx, thread)))
-    .when(more > 0 || ctx.inboxOpen, (el) => el.child(clickable(toggle, t, ctx.toggleInbox)));
+    .rounded(8)
+    .border_1()
+    .border_color(color + "66")
+    .bg(color + "14")
+    .tooltip(partText(running));
 }
 
-function source(t, s, now) {
-  return h_flex()
-    .gap(4)
-    .child(div().text_color(t.muted).child(s.source))
-    .child(
-      div()
-        .text_color(s.ok ? t.done : t.blocked)
-        .child(s.ok ? "✓" : "✗"),
-    )
-    .child(
-      div()
-        .text_color(t.dim)
-        .child(`${age(s.ts, now)} ago`),
-    );
+function powerText(ctx, color, text) {
+  return div().text_size(ctx.fs.small).font_weight(600).text_color(color).child(text);
 }
 
-function health(ctx, sources) {
+function power(ctx, running) {
   const { t } = ctx;
-  if (sources.length === 0) return div().text_color(t.dim).child("no source has polled yet");
+  const spec = POWER[powerState(running)];
+  const frame = powerFrame(t[spec.color], running);
+  const state = ctx.actions.get("power");
+  if (state?.phase === "busy") {
+    return frame
+      .pr(10)
+      .child(spinner(t.working))
+      .child(powerText(ctx, t.working, state.text));
+  }
+  return frame
+    .child(dot(t[spec.color], 8))
+    .child(powerText(ctx, t[spec.color], spec.text))
+    .children(spec.buttons.map((pair) => powerButton(ctx, pair)));
+}
+
+function source(ctx, s) {
+  const { t } = ctx;
+  const color = s.ok ? t.done : t.blocked;
+  const text = div().text_color(s.ok ? t.dim : t.blocked);
+  return h_flex()
+    .id(`fb-src-${s.source}`)
+    .flex_none()
+    .gap(4)
+    .items_center()
+    .tooltip(s.summary)
+    .child(dot(color, 6))
+    .child(text.child(`${s.source} ${age(s.ts, ctx.now)}`));
+}
+
+function sources(ctx, board) {
+  return h_flex()
+    .flex_none()
+    .gap(12)
+    .text_size(ctx.fs.tiny)
+    .children(board.sources.map((s) => source(ctx, s)));
+}
+
+function title(ctx) {
+  const { t, fs } = ctx;
+  return div().flex_none().text_size(fs.big).font_weight(700).text_color(t.foreground);
+}
+
+function headerRow(ctx, board) {
+  const bad = board.invalid > 0 && pill(ctx, `${board.invalid} bad task files`, ctx.t.blocked);
   return h_flex()
     .flex_wrap()
     .gap(12)
-    .text_size(11)
-    .children(sources.map((s) => source(t, s, ctx.now)));
+    .items_center()
+    .child(title(ctx).child("Factory"))
+    .child(power(ctx, board.running))
+    .child(div().flex_1())
+    .children(some(bad))
+    .child(sources(ctx, board));
 }
 
-function feedLine(t, item) {
-  return h_flex()
+function header(ctx, board) {
+  const action = ctx.actions.get("power");
+  const loadError = div().text_size(ctx.fs.small).text_color(ctx.t.blocked).child(ctx.error);
+  return v_flex()
     .gap(6)
+    .child(headerRow(ctx, board))
+    .children(some(action?.phase !== "busy" && actionLine(ctx, "power")))
+    .children(some(Boolean(ctx.error) && loadError));
+}
+
+function feedLine(ctx, item) {
+  const { t } = ctx;
+  return h_flex()
+    .gap(8)
     .items_start()
-    .text_size(11)
+    .text_size(ctx.fs.tiny)
     .child(div().flex_none().text_color(t.dim).child(clock(item.ts)))
+    .child(div().flex_none().w(64).truncate().text_color(t.dim).child(item.source))
     .child(div().flex_1().min_w(0).text_color(t.muted).child(item.summary));
 }
 
 function feed(ctx, items) {
-  const { t } = ctx;
-  if (items.length === 0) return heading(t, "FEED · 0");
+  if (items.length === 0) return heading(ctx, "Feed · 0");
   return v_flex()
-    .gap(4)
-    .child(heading(t, "FEED", t.muted))
-    .children([...items].reverse().map((item) => feedLine(t, item)));
+    .gap(3)
+    .child(heading(ctx, "Feed", ctx.t.muted))
+    .children([...items].reverse().map((item) => feedLine(ctx, item)));
 }
 
-function stack(blocks) {
-  return v_flex().flex_1().min_w(0).gap(16).children(blocks);
+function column(width, blocks) {
+  return v_flex().flex_none().w(width).min_w(0).gap(20).children(blocks);
 }
 
-function blocks(ctx, board) {
-  const { needsYou: asks, groups } = sections(board);
-  const active = groups.filter((g) => g.status !== "landed");
-  const landed = groups.filter((g) => g.status === "landed");
-  return {
-    tasks: [needsYou(ctx, asks), ...active.map((g) => group(ctx, g))],
-    landed: landed.map((g) => group(ctx, g)),
-    inbox: inbox(ctx, board.inbox),
-    rest: [health(ctx, board.sources), feed(ctx, board.feed)],
-  };
+function narrow(ctx, board, width) {
+  const blocks = [taskColumn(ctx, board), inboxColumn(ctx, board, width), feed(ctx, board.feed)];
+  return column(width, blocks);
+}
+
+function wide(ctx, board, width) {
+  const left = Math.floor((width - GAP) * 0.4);
+  const right = width - GAP - left;
+  return h_flex()
+    .items_start()
+    .gap(GAP)
+    .child(column(left, [taskColumn(ctx, board), feed(ctx, board.feed)]))
+    .child(column(right, [inboxColumn(ctx, board, right)]));
 }
 
 /**
- * Returns the board content. `ctx`: `{ t, now, statusOf, shown, wide, inboxOpen, toggleInbox }`.
- * When `wide` is true, the tasks are in the left column and the inbox, the source health, and the
- * feed are in the right column.
+ * Returns the board content for `width` px. `ctx` has the theme `t`, the text sizes `fs`, the
+ * action states, and the click handlers (see main.js). When the board is
+ * {@link TWO_COLUMNS_PX} or wider, the tasks and the feed are on the left (two fifths) and the
+ * inbox is on the right.
  */
-export function boardBody(ctx, board) {
-  const { tasks, landed, inbox, rest } = blocks(ctx, board);
-  if (!ctx.wide) return stack([...tasks, inbox, ...landed, ...rest]);
-  return h_flex()
-    .items_start()
-    .gap(20)
-    .child(stack([...tasks, ...landed]))
-    .child(stack([inbox, ...rest]));
+export function boardBody(ctx, board, width) {
+  const inner = Math.max(0, width - 2 * PADDING);
+  const body = inner < TWO_COLUMNS_PX - 2 * PADDING ? narrow : wide;
+  return v_flex()
+    .gap(18)
+    .child(header(ctx, board))
+    .child(body(ctx, board, inner));
 }
+
+/** The padding of the board, in px. */
+export const BOARD_PADDING = PADDING;

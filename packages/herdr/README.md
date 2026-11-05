@@ -19,21 +19,35 @@ the macOS menus or keyboard shortcuts for window controls.
 ## Factory
 
 `herdr-app do layout.switch --name factory` shows the shown tab on the left and the factory board on
-the right. The keys and the tabs are the same as in the personal layout. Go to the space `factory`
-to talk to the coordinator, or to the tab of a task to talk to its worker.
+the right, half and half. The keys and the tabs are the same as in the personal layout. Go to the
+space `factory` to talk to the coordinator, or to the tab of a task to talk to its agent.
 
-The banner over the tab names who you talk to: COORDINATOR or WORKER with the task, each in its own
-accent of the theme (`ansi5` and `ansi6`). "← coordinator" goes back to the coordinator.
+The banner over the tab names who you talk to, in your UI font: COORDINATOR, WORKER, or DESIGN with
+the task, each in its own accent of the theme (`ansi5`, `ansi6`, `ansi3`). On other tabs it is one
+dim line. "← coordinator" goes back to the coordinator.
 
-The board (`mods/factory-board`) shows the tasks that need you, the working and landing tasks, ready
-and sketch, the inbox, the tasks that landed today, the health of each source, and the feed. Click a
-card with a terminal to go to its worker. Click an inbox row to open it in the browser. Drag the
-edge of the board to resize it. When it is wide, it uses two columns.
+The board (`mods/factory-board`):
 
-The board runs `bun packages/factory/src/cli.ts board --json` in this repository when the ledger
-changes and every 20 seconds. It finds the repository through the link of its mod folder. Layout
-props `repo` and `factoryHome` override the repository and the ledger. The banner is the same mod
-with the prop `view: "banner"`; give it the same `factoryHome`.
+- **Power**: shows if factoryd and the coordinator run. "start" runs `factory up`, "stop" runs
+  `factory down`.
+- **Tasks**: "needs you", then a lane for each status. A card shows the status, the title, the
+  folder (hover for the full path), and the agent. Click a task to go to its agent, or to start it
+  (`factory open <id>`).
+- **Inbox**: one card for each thread, with the author, the state, and the text of the newest event.
+  Filter by source. Click a card to open it in the browser. "design →" makes a sketch task and
+  starts a design agent (`factory inbox design`). "dismiss" / "resolve" asks first, then marks the
+  GitHub notification done or resolves the Sentry issue (`factory inbox dismiss`).
+- The source health and the feed.
+
+When the board is wide, the tasks are on the left and the inbox is on the right, with as many card
+columns as fit.
+
+The board runs `bun packages/factory/src/cli.ts` in this repository. It loads the board when the
+ledger changes, after each action, and every 20 seconds. It finds the repository through the link of
+its mod folder. Layout props `repo` and `factoryHome` override the repository and the ledger. With
+the prop `boardFile`, it reads the board from a JSON file and only logs the actions (for
+development; see `tests/mods/factory-board/fixtures`). The banner is the same mod with the prop
+`view: "banner"`; give it the same `factoryHome`.
 
 ## Panes
 
