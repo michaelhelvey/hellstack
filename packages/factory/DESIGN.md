@@ -26,8 +26,8 @@ daemon and the CLI run with bun and can use `Bun` APIs, but prefer the core func
 
 ## Ledger
 
-The ledger is global for one machine. `FACTORY_HOME` selects it. The default is `~/.factory`. Tests
-always set `FACTORY_HOME` to a temporary folder.
+The ledger is global for one machine. `FACTORY_HOME` selects it (core makes it absolute). The
+default is `~/.factory`. Tests always set `FACTORY_HOME` to a temporary folder.
 
 ```
 ~/.factory/
@@ -99,7 +99,11 @@ Status values: `sketch`, `ready`, `working`, `landing`, `landed`, `dropped`.
 ```
 sketch → ready → working → landing → landed
   any  → dropped
+ready → sketch, landing → working
 ```
+
+`updateTask` accepts only these changes (`statusTransitions` in core). `landed` and `dropped` are
+final.
 
 - `sketch`: someone works on the contract. Nothing acts on it.
 - `ready`: the contract is complete. The coordinator dispatches it.
@@ -113,9 +117,12 @@ design agent, a coordinator proposal, or a file that someone wrote by hand.
 
 **Landing progress** is the count of checked items and all items in the Landing section.
 
-Core functions read and write task files. They keep unknown sections and prose. Agents can edit the
-prose with their edit tools. Agents change front matter and the log through the `factory_task` tool,
-so that `updated` stays correct.
+Core functions read and write task files. They keep unknown sections, unknown front matter fields,
+and prose. Headings and checkboxes in fenced code blocks do not count. Each core write takes the
+lock file `tasks/<id>.md.lock`, so writes of different processes do not lose an update. The file
+name must be `<id>.md`; else the task is not valid. Agents can edit the prose with their edit tools.
+Agents change front matter and the log through the `factory_task` tool, so that `updated` stays
+correct.
 
 ## Thread keys
 

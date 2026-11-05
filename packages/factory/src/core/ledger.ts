@@ -1,8 +1,8 @@
 import { mkdir, readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { defaultConfig } from "./config.ts";
-import { errorCode, readIfExists, writeAtomic, writeIfMissing } from "./files.ts";
+import { errorCode, readIfExists, withLock, writeAtomic, writeIfMissing } from "./files.ts";
 import { ledgerPaths, promptPath, taskPath, type LedgerPaths } from "./paths.ts";
 import {
   appendLogEntry,
@@ -11,15 +11,17 @@ import {
   newTaskId,
   parseTask,
   serializeTask,
+  statusTransitions,
   validateHandoff,
   type Task,
   type TaskMeta,
+  type TaskStatus,
 } from "./task.ts";
 
-/** The front matter fields that `updateTask` can change. */
-export type TaskPatch = Partial<
-  Pick<TaskMeta, "status" | "now" | "needs_you" | "threads" | "paused" | "title">
->;
+type PatchField = "status" | "now" | "needs_you" | "threads" | "paused" | "title";
+
+/** The front matter fields that `updateTask` can change. An undefined field does not change. */
+export type TaskPatch = { [K in PatchField]?: TaskMeta[K] | undefined };
 
 /** The result of a handoff: the ready task, or the parts that the task needs. */
 export type HandoffResult = { ok: true; task: Task } | { ok: false; missing: string[] };
@@ -53,9 +55,17 @@ export async function initLedger(paths: LedgerPaths = ledgerPaths()): Promise<st
   return files.map(([path]) => path).filter((_, index) => written[index]);
 }
 
+function parseTaskFile(path: string, text: string): Task {
+  const task = parseTask(text);
+  const stem = basename(path, ".md");
+  if (stem !== task.meta.id)
+    throw new Error(`the file name ${stem} does not match the id ${task.meta.id}`);
+  return task;
+}
+
 async function readTaskFile(path: string): Promise<Task | InvalidTask> {
   try {
-    return parseTask(await readFile(path, "utf8"));
+    return parseTaskFile(path, await readFile(path, "utf8"));
   } catch (error) {
     return { path, error: error instanceof Error ? error.message : String(error) };
   }
@@ -70,28 +80,29 @@ export async function listTasks(paths: LedgerPaths = ledgerPaths()): Promise<Tas
   const files = names.filter((name) => name.endsWith(".md")).map((name) => join(paths.tasks, name));
   const results = await Promise.all(files.map(readTaskFile));
   const tasks = results.filter((result): result is Task => "meta" in result);
-  tasks.sort((a, b) => a.meta.created.localeCompare(b.meta.created));
+  tasks.sort((a, b) => Date.parse(a.meta.created) - Date.parse(b.meta.created));
   return { tasks, invalid: results.filter((result): result is InvalidTask => "error" in result) };
 }
 
-/** Returns task `id`. Throws when it does not exist or is not valid. */
+/**
+ * Returns task `id`. Throws when it does not exist, is not valid, or its file name is not its id.
+ */
 export async function getTask(id: string, paths: LedgerPaths = ledgerPaths()): Promise<Task> {
-  const text = await readIfExists(taskPath(paths, id));
+  const path = taskPath(paths, id);
+  const text = await readIfExists(path);
   if (text === undefined) throw new Error(`no task ${id}`);
-  return parseTask(text);
+  return parseTaskFile(path, text);
 }
 
-/** Writes `task` atomically and sets `updated` to the current time. Returns the written task. */
+/**
+ * Writes `task` atomically and sets `updated` to the current time. Returns the written task. It does
+ * not take the task lock; the other write functions do.
+ */
 export async function writeTask(task: Task, paths: LedgerPaths = ledgerPaths()): Promise<Task> {
   const written = { ...task, meta: { ...task.meta, updated: new Date().toISOString() } };
   await mkdir(paths.tasks, { recursive: true });
   await writeAtomic(taskPath(paths, task.meta.id), serializeTask(written));
   return written;
-}
-
-async function unusedTaskId(paths: LedgerPaths): Promise<string> {
-  const id = newTaskId();
-  return (await readIfExists(taskPath(paths, id))) === undefined ? id : unusedTaskId(paths);
 }
 
 /** The fields of a task that `createTask` makes. */
@@ -106,17 +117,46 @@ export async function createTask(
   paths: LedgerPaths = ledgerPaths(),
 ): Promise<Task> {
   const template = await readFile(promptPath("task-template.md"), "utf8");
-  const id = await unusedTaskId(paths);
-  return writeTask(newTask({ ...fields, id, template, now: new Date().toISOString() }), paths);
+  const task = newTask({ ...fields, id: newTaskId(), template, now: new Date().toISOString() });
+  await mkdir(paths.tasks, { recursive: true });
+  const path = taskPath(paths, task.meta.id);
+  const created = await withLock(path, async () =>
+    (await readIfExists(path)) === undefined ? writeTask(task, paths) : undefined,
+  );
+  return created ?? createTask(fields, paths);
 }
 
-async function editTask(id: string, edit: (task: Task) => Task, paths: LedgerPaths): Promise<Task> {
-  return writeTask(edit(await getTask(id, paths)), paths);
+async function editTask(
+  id: string,
+  edit: (task: Task) => Task | Promise<Task>,
+  paths: LedgerPaths,
+): Promise<Task> {
+  return withLock(taskPath(paths, id), async () =>
+    writeTask(await edit(await getTask(id, paths)), paths),
+  );
+}
+
+function definedFields(patch: TaskPatch): Partial<Pick<TaskMeta, PatchField>> {
+  return Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined));
+}
+
+function allowed(from: TaskStatus, to: TaskStatus): boolean {
+  return to === from || statusTransitions[from].includes(to);
+}
+
+function assertTransition(id: string, from: TaskStatus, to: TaskStatus | undefined): void {
+  if (to === undefined || allowed(from, to)) return;
+  throw new Error(`task ${id} cannot go from ${from} to ${to}${transitionHint(from, to)}`);
+}
+
+function transitionHint(from: TaskStatus, to: TaskStatus): string {
+  return from === "sketch" && to === "ready" ? "; use handoff to make it ready" : "";
 }
 
 /**
- * Changes front matter fields of task `id`. Throws when the change moves a `sketch` to `ready`:
- * only {@link handoff} can do that.
+ * Changes front matter fields of task `id`. Fields that are undefined do not change. Throws when the
+ * status change is not in {@link statusTransitions}: for example, only {@link handoff} moves a
+ * `sketch` to `ready`.
  */
 export async function updateTask(
   id: string,
@@ -126,10 +166,8 @@ export async function updateTask(
   return editTask(
     id,
     (task) => {
-      if (task.meta.status === "sketch" && patch.status === "ready") {
-        throw new Error(`task ${id} is a sketch; use handoff to make it ready`);
-      }
-      return { ...task, meta: { ...task.meta, ...patch } };
+      assertTransition(id, task.meta.status, patch.status);
+      return { ...task, meta: { ...task.meta, ...definedFields(patch) } };
     },
     paths,
   );
@@ -154,6 +192,22 @@ export async function checkLanding(
   return editTask(id, (task) => ({ ...task, body: checkLandingItem(task.body, number) }), paths);
 }
 
+class HandoffFailed extends Error {
+  readonly missing: string[];
+
+  constructor(missing: string[]) {
+    super(missing.join("; "));
+    this.missing = missing;
+  }
+}
+
+async function readyTask(task: Task): Promise<Task> {
+  const missing = await validateHandoff(task);
+  if (task.meta.status !== "sketch") missing.unshift(`status is ${task.meta.status}, not sketch`);
+  if (missing.length > 0) throw new HandoffFailed(missing);
+  return { ...task, meta: { ...task.meta, status: "ready" } };
+}
+
 /**
  * Moves task `id` from `sketch` to `ready` when its contract is complete. Else it returns the parts
  * that the task needs and does not change the file.
@@ -162,12 +216,10 @@ export async function handoff(
   id: string,
   paths: LedgerPaths = ledgerPaths(),
 ): Promise<HandoffResult> {
-  const task = await getTask(id, paths);
-  const missing = await validateHandoff(task);
-  if (task.meta.status !== "sketch") missing.unshift(`status is ${task.meta.status}, not sketch`);
-  if (missing.length > 0) return { ok: false, missing };
-  return {
-    ok: true,
-    task: await writeTask({ ...task, meta: { ...task.meta, status: "ready" } }, paths),
-  };
+  try {
+    return { ok: true, task: await editTask(id, readyTask, paths) };
+  } catch (error) {
+    if (error instanceof HandoffFailed) return { ok: false, missing: error.missing };
+    throw error;
+  }
 }

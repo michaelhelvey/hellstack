@@ -3,9 +3,12 @@ import { z } from "zod";
 /** The sources that make events. */
 export const eventSourceSchema = z.enum(["github", "sentry"]);
 
+/** An event id. It is safe to use as a file name: it does not start with a dot. */
+export const eventIdSchema = z.string().regex(/^[\w-][\w.-]*$/, "not a valid event id");
+
 /** A normalized record from a source. `id` is unique and safe to use as a file name. */
 export const eventSchema = z.object({
-  id: z.string().regex(/^[\w.-]+$/),
+  id: eventIdSchema,
   source: eventSourceSchema,
   thread: z.string().min(1),
   kind: z.string().min(1),
