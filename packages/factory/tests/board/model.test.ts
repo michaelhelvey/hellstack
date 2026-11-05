@@ -21,6 +21,7 @@ function task(id: string, meta: Partial<TaskMeta> = {}): Task {
     now: "",
     created: now.toISOString(),
     updated: now.toISOString(),
+    landed_at: null,
   };
   return { meta: { ...base, ...meta }, body: completeBody };
 }
@@ -53,8 +54,10 @@ describe("buildBoard tasks", () => {
       task("t-0002", { status: "landed", updated: yesterday }),
       task("t-0003", { status: "landed" }),
       task("t-0004", { status: "sketch", updated: yesterday }),
+      task("t-0005", { status: "landed", landed_at: yesterday }),
+      task("t-0006", { status: "landed", landed_at: now.toISOString(), updated: yesterday }),
     ];
-    expect(board({ tasks }).tasks.map((card) => card.id)).toEqual(["t-0003", "t-0004"]);
+    expect(board({ tasks }).tasks.map((card) => card.id)).toEqual(["t-0003", "t-0004", "t-0006"]);
   });
 
   test("a card has the landing progress and the fields of the front matter", () => {

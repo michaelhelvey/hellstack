@@ -45,6 +45,7 @@ export const taskMetaSchema = z.looseObject({
   now: z.string().default(""),
   created: z.iso.datetime({ offset: true }),
   updated: z.iso.datetime({ offset: true }),
+  landed_at: z.iso.datetime({ offset: true }).nullable().default(null),
 });
 
 /** The lifecycle state of a task. */

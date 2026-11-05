@@ -20,3 +20,14 @@ test("readFeed returns the last records and skips bad lines", async () => {
   expect((await readFeed(10, paths)).map((r) => r.summary)).toEqual(["one", "two", "three"]);
   expect(await readFeed(0, paths)).toEqual([]);
 });
+
+test("readFeed reads the end of the feed in small blocks", async () => {
+  const paths = await tempLedger();
+  const summaries = Array.from({ length: 30 }, (_, i) => `record ${i} · ünïcode ✓`);
+  for (const summary of summaries) await appendFeed(record(summary), paths);
+  await appendFile(paths.feed, "not json\n");
+  for (const chunk of [7, 100, 1 << 20]) {
+    expect((await readFeed(3, paths, chunk)).map((r) => r.summary)).toEqual(summaries.slice(-3));
+    expect((await readFeed(50, paths, chunk)).map((r) => r.summary)).toEqual(summaries);
+  }
+});

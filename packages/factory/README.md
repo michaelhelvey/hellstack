@@ -8,8 +8,11 @@ no build step.
 ## Usage
 
 ```sh
-bun run factory init   # make the ledger in $FACTORY_HOME (default ~/.factory)
+bun run factory init           # make the ledger in $FACTORY_HOME (default ~/.factory)
+bun run factory board --json   # print the board model (tasks, inbox, source health, feed)
 ```
+
+The Herdr `factory` layout shows the board. See `packages/herdr/README.md`.
 
 `bun run sync` also runs `init`. It does not replace files that exist. Edit `~/.factory/config.json`
 to set the models and the event sources. Other parts of the factory use the modules in `src/core`

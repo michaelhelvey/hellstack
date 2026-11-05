@@ -97,6 +97,22 @@ describe("tasks", () => {
     expect(fromDropped).toContain("cannot go from dropped to sketch");
   });
 
+  test("the change to landed sets landed_at one time", async () => {
+    const paths = await tempLedger();
+    const task = await sketch(paths);
+    const { meta } = await writeTask({ ...task, body: completeBody }, paths);
+    expect(meta.landed_at).toBeNull();
+    expect((await handoff(meta.id, paths)).ok).toBe(true);
+    for (const status of ["working", "landing"] as const)
+      await updateTask(meta.id, { status }, paths);
+    const landed = await updateTask(meta.id, { status: "landed" }, paths);
+    expect(landed.meta.landed_at).toBe(landed.meta.updated);
+    await Bun.sleep(5);
+    const again = await updateTask(meta.id, { status: "landed", now: "deployed" }, paths);
+    expect(again.meta.landed_at).toBe(landed.meta.landed_at);
+    expect(again.meta.updated).not.toBe(landed.meta.updated);
+  });
+
   test("parallel writes do not lose an update", async () => {
     const paths = await tempLedger();
     const { meta } = await sketch(paths);
