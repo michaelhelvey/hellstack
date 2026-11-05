@@ -29,9 +29,9 @@ describe("power", () => {
 
 describe("commands", () => {
   test("a dismiss and a design of a thread use its newest event", () => {
-    expect(COMMANDS.dismiss(["e2", "e1"])).toEqual([["inbox", "dismiss", "e2", "--json"]]);
-    expect(COMMANDS.design(["e2", "e1"])).toEqual([["inbox", "design", "e2", "--json"]]);
-    expect(COMMANDS.open("t-1")).toEqual([["open", "t-1", "--json"]]);
+    expect(COMMANDS.dismiss(["e2", "e1"])).toEqual(["inbox", "dismiss", "e2", "--json"]);
+    expect(COMMANDS.design(["e2", "e1"])).toEqual(["inbox", "design", "e2", "--json"]);
+    expect(COMMANDS.open("t-1")).toEqual(["open", "t-1", "--json"]);
   });
 
   test("the confirm button names what the dismiss does at the source", () => {
@@ -70,11 +70,10 @@ describe("Actions", () => {
     expect(calls).toEqual([["up"]]);
   });
 
-  test("the commands stop at the first error, and the error stays", async () => {
-    const { calls, runCli } = runner([{ ok: false, text: "gh: 404" }]);
+  test("the error of a failed action stays", async () => {
+    const { runCli } = runner([{ ok: false, text: "gh: 404" }]);
     const actions = new Actions(runCli);
-    expect(await actions.run("thread:x", "dismiss", [["a"], ["b"]])).toBe(false);
-    expect(calls).toHaveLength(1);
+    expect(await actions.run("thread:x", "dismiss", COMMANDS.dismiss(["a", "b"]))).toBe(false);
     expect(actions.get("thread:x")).toEqual({ phase: "error", kind: "dismiss", text: "gh: 404" });
   });
 

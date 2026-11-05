@@ -71,7 +71,8 @@ async function readFixture(file) {
 async function readBoard(repo, factoryHome) {
   if (props()?.boardFile) return readFixture(props().boardFile);
   const result = await runCli(repo, factoryHome, ["board", "--json"]);
-  if (result.code !== 0) throw new Error(result.stderr.trim() || `board exited ${result.code}`);
+  const { ok, text } = cliResult(result);
+  if (!ok) throw new Error(text);
   return parseBoard(result.stdout);
 }
 
@@ -130,7 +131,7 @@ export default class FactoryBoard extends View {
   async cli(args) {
     if (props()?.boardFile) return devAction(args);
     try {
-      return cliResult(await runCli(this.repo, props()?.factoryHome, args));
+      return cliResult(await runCli(this.repo, this.ledger, args));
     } catch (error) {
       return { ok: false, text: String(error?.message ?? error) };
     }
@@ -189,9 +190,9 @@ export default class FactoryBoard extends View {
     this.closed = true;
   }
 
-  act(cx, { key, kind, commands, gone = [] }) {
+  act(cx, { key, kind, args, gone = [] }) {
     cx.spawn(async (cx) => {
-      const done = this.actions.run(key, kind, commands);
+      const done = this.actions.run(key, kind, args);
       cx.notify();
       if (await done) for (const id of gone) this.gone.add(id);
       this.refresh(cx);
@@ -201,14 +202,14 @@ export default class FactoryBoard extends View {
 
   handlers() {
     return {
-      power: (next, cx) => this.act(cx, { key: "power", kind: next, commands: COMMANDS[next]() }),
+      power: (next, cx) => this.act(cx, { key: "power", kind: next, args: COMMANDS[next]() }),
       openTask: (id, cx) =>
-        this.act(cx, { key: `task:${id}`, kind: "open", commands: COMMANDS.open(id) }),
+        this.act(cx, { key: `task:${id}`, kind: "open", args: COMMANDS.open(id) }),
       inboxAction: (thread, kind, cx) =>
         this.act(cx, {
           key: `thread:${thread.key}`,
           kind,
-          commands: COMMANDS[kind](thread.ids),
+          args: COMMANDS[kind](thread.ids),
           gone: thread.ids,
         }),
       ask: (key, kind, cx) => update(cx, () => this.actions.ask(key, kind)),

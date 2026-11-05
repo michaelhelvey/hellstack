@@ -40,11 +40,11 @@ export function powerState(running) {
  * first. The CLI removes all events of the thread, so the newest event is enough.
  */
 export const COMMANDS = {
-  up: () => [["up"]],
-  down: () => [["down"]],
-  open: (id) => [["open", id, "--json"]],
-  dismiss: (ids) => [["inbox", "dismiss", ids[0], "--json"]],
-  design: (ids) => [["inbox", "design", ids[0], "--json"]],
+  up: () => ["up"],
+  down: () => ["down"],
+  open: (id) => ["open", id, "--json"],
+  dismiss: (ids) => ["inbox", "dismiss", ids[0], "--json"],
+  design: (ids) => ["inbox", "design", ids[0], "--json"],
 };
 
 function noteOf(value) {
@@ -103,17 +103,13 @@ export class Actions {
   }
 
   /**
-   * Runs the CLI commands of `kind` in order and stops at the first error. Does nothing while an
-   * action of `key` runs. Resolves with true when all commands succeed.
+   * Runs the CLI with `args` for an action of `kind`. Does nothing while an action of `key` runs.
+   * Resolves with true when the CLI succeeds.
    */
-  async run(key, kind, commands) {
+  async run(key, kind, args) {
     if (this.get(key)?.phase === "busy") return false;
     this.states.set(key, { phase: "busy", kind, text: BUSY_TEXT[kind] });
-    let result = { ok: true, text: "" };
-    for (const args of commands) {
-      result = await this.runCli(args);
-      if (!result.ok) break;
-    }
+    const result = await this.runCli(args);
     this.finish(key, kind, result);
     return result.ok;
   }
