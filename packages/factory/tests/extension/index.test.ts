@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 
 import { getTask, listTasks } from "../../src/core/ledger.ts";
 import { ledgerPaths } from "../../src/core/paths.ts";
@@ -27,9 +27,9 @@ function recorder() {
   const state = emptyState();
   const api = {
     on: (event: string, handler: Handler) => state.handlers.set(event, handler),
-    registerTool: (tool: { name: string; executionMode?: string }) => {
+    registerTool: (tool: { name: string; executionMode?: string; defaultActive?: boolean }) => {
       state.modes.push(tool.executionMode);
-      state.active = [...state.active, tool.name];
+      if (tool.defaultActive !== false) state.active = [...state.active, tool.name];
     },
     registerCommand: (name: string, cmd: FactoryCommand) => state.commands.set(name, cmd),
     getActiveTools: () => state.active,
@@ -43,14 +43,14 @@ function recorder() {
 
 function fakePi(env: NodeJS.ProcessEnv) {
   const { state, api } = recorder();
-  factoryExtension(api, env);
+  factoryExtension(api, { ...env, FACTORY_HOME: home });
   const ui = { notify: (text: string) => state.notes.push(text) };
   return {
     ...state,
     active: () => state.active,
     emit: (event: string, payload: unknown = {}) => state.handlers.get(event)?.(payload, {}),
-    start: (branch: unknown[] = []) =>
-      state.handlers.get("session_start")?.({}, { sessionManager: { getBranch: () => branch } }),
+    start: (branch: unknown[] = [], event = "session_start") =>
+      state.handlers.get(event)?.({}, { sessionManager: { getBranch: () => branch } }),
     run: async (name: string, args: string, cwd: string) =>
       state.commands.get(name)?.handler(args, { cwd, ui } as never),
   };
@@ -66,10 +66,6 @@ function bashTimeout(pi: ReturnType<typeof fakePi>, timeout?: number): number | 
 let home = "";
 beforeEach(async () => {
   home = await tempFolder();
-  process.env.FACTORY_HOME = home;
-});
-afterEach(() => {
-  delete process.env.FACTORY_HOME;
 });
 
 describe("the coordinator", () => {
@@ -88,17 +84,24 @@ describe("the coordinator", () => {
     expect(pi.modes).toEqual(tools.map(() => "sequential"));
     expect(pi.emit("resources_discover")).toEqual({ skillPaths: [FACTORY_SKILL_DIR] });
   });
+
+  test("cannot use /sketch or /handoff", async () => {
+    const pi = fakePi({ FACTORY_ROLE: "coordinator" });
+    pi.start();
+    await pi.run("sketch", "Another task", "/");
+    expect(pi.notes.at(-1)).toContain("this session is the factory coordinator");
+    await pi.run("handoff", "", "/");
+    expect(pi.notes.at(-1)).toBe("only a factory design session can do this");
+  });
 });
 
-test("a worker gets factory_task, /park, and no bash limit", async () => {
+test("a worker gets factory_task, /park, and no bash limit", () => {
   const pi = fakePi({ FACTORY_ROLE: "worker", FACTORY_TASK: "t-7f3a" });
   pi.start();
   expect(pi.active()).toEqual(["read", "bash", "factory_task"]);
-  expect([...pi.commands.keys()]).toEqual(["sketch", "park", "unpark"]);
+  expect([...pi.commands.keys()]).toEqual(["sketch", "handoff", "park", "unpark"]);
   expect(bashTimeout(pi)).toBeUndefined();
   expect(pi.emit("resources_discover")).toEqual({});
-  await pi.run("sketch", "Another task", "/");
-  expect(pi.notes.at(-1)).toContain("this session is the factory worker");
 });
 
 describe("/sketch", () => {
@@ -136,6 +139,14 @@ describe("/sketch", () => {
     pi.start(pi.entries);
     expect(pi.active()).toContain("factory_handoff");
     pi.start([]);
+    expect(pi.active()).toEqual(["read", "bash"]);
+  });
+
+  test("a move in the session tree to before /sketch drops the design role", async () => {
+    const pi = fakePi({});
+    pi.start();
+    await pi.run("sketch", "Fix it", await tempFolder());
+    pi.start([], "session_tree");
     expect(pi.active()).toEqual(["read", "bash"]);
   });
 });

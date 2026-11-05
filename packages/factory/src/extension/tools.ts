@@ -1,8 +1,13 @@
 import { defineTool, type AgentToolResult } from "@earendil-works/pi-coding-agent";
 import type { Static, TSchema } from "typebox";
 
-import { ledgerPaths } from "../core/paths.ts";
-import { runDispatch, runHandoff, runInboxAction, runTaskAction } from "./actions.ts";
+import {
+  runDispatch,
+  runHandoff,
+  runInboxAction,
+  runTaskAction,
+  type ActionContext,
+} from "./actions.ts";
 import type { Role } from "./role.ts";
 import {
   dispatchParamsSchema,
@@ -53,6 +58,7 @@ function makeTool<T extends TSchema>(spec: ToolSpec<T>): FactoryTool {
     description: spec.description,
     parameters: spec.parameters,
     executionMode: "sequential",
+    defaultActive: false,
     execute: async (_id, params): Promise<AgentToolResult<undefined>> => ({
       content: [{ type: "text", text: await spec.run(params) }],
       details: undefined,
@@ -60,45 +66,48 @@ function makeTool<T extends TSchema>(spec: ToolSpec<T>): FactoryTool {
   });
 }
 
-const builders: Record<ToolName, (getRole: () => Role) => FactoryTool> = {
-  factory_task: (getRole) =>
+const builders: Record<ToolName, (context: () => ActionContext) => FactoryTool> = {
+  factory_task: (context) =>
     makeTool({
       name: "factory_task",
       label: "Factory task",
       description:
         "Read and change factory task files: list, get, create, update (status, now, needs_you, threads, paused, title), log, check. Edit the prose sections of a task file with the edit tools; change the front matter and the Log only with this tool. A worker acts only on its own task.",
       parameters: taskParamsSchema,
-      run: (params) => runTaskAction({ role: getRole(), paths: ledgerPaths() }, params),
+      run: (params) => runTaskAction(context(), params),
     }),
-  factory_inbox: () =>
+  factory_inbox: (context) =>
     makeTool({
       name: "factory_inbox",
       label: "Factory inbox",
       description: "List the events that no factory task owns, or dismiss one of them.",
       parameters: inboxParamsSchema,
-      run: (params) => runInboxAction(ledgerPaths(), params),
+      run: (params) => runInboxAction(context().paths, params),
     }),
-  factory_dispatch: () =>
+  factory_dispatch: (context) =>
     makeTool({
       name: "factory_dispatch",
       label: "Factory dispatch",
       description:
         "Start the worker of a ready factory task in its own terminal and set the task to working.",
       parameters: dispatchParamsSchema,
-      run: (params) => runDispatch(ledgerPaths(), params.id),
+      run: (params) => runDispatch(context().paths, params.id),
     }),
-  factory_handoff: (getRole) =>
+  factory_handoff: (context) =>
     makeTool({
       name: "factory_handoff",
       label: "Factory handoff",
       description:
         "Move a factory sketch to ready. It fails and names the missing parts unless Goal, Verification, Output, and Constraints have text, Landing has checkbox items, and repo is a folder.",
       parameters: handoffParamsSchema,
-      run: (params) => runHandoff({ role: getRole(), paths: ledgerPaths() }, params.id),
+      run: (params) => runHandoff(context(), params.id),
     }),
 };
 
-/** Returns the definition of factory tool `name`. The tool reads the session role at each call. */
-export function createTool(name: ToolName, getRole: () => Role): FactoryTool {
-  return builders[name](getRole);
+/**
+ * Returns the definitions of all factory tools. They are not active at first; the extension
+ * activates the tools of the session role. `context` gives the role and the ledger of each call.
+ */
+export function createTools(context: () => ActionContext): FactoryTool[] {
+  return TOOL_NAMES.map((name) => builders[name](context));
 }

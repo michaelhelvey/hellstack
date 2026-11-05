@@ -1,26 +1,16 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 
-import { createTask, handoff, logTask, updateTask } from "../core/ledger.ts";
-import { ledgerPaths, taskPath } from "../core/paths.ts";
+import { createTask, logTask, updateTask } from "../core/ledger.ts";
+import { taskPath, type LedgerPaths } from "../core/paths.ts";
+import { runHandoff } from "./actions.ts";
 import { ROLE_ENTRY, type Role } from "./role.ts";
 
-/** Reads and changes the role of the session. */
+/** Reads and changes the role of the session, and gives the ledger of the session. */
 export interface RoleState {
   get(): Role;
   set(role: Role): void;
+  paths: LedgerPaths;
 }
-
-/** The names of the commands that only some roles have. */
-export type RoleCommandName = "handoff" | "park" | "unpark";
-
-/** The role commands of each role. `/sketch` is in every session. */
-export const ROLE_COMMANDS: Record<Role["kind"], readonly RoleCommandName[]> = {
-  none: [],
-  subagent: [],
-  coordinator: [],
-  worker: ["park", "unpark"],
-  design: ["handoff"],
-};
 
 /** A command as `pi.registerCommand` takes it. */
 export interface FactoryCommand {
@@ -43,14 +33,14 @@ function command(description: string, run: Handler): FactoryCommand {
   };
 }
 
-function ownTask(role: Role, kind: "worker" | "design"): string {
+function requireRole(role: Role, kind: "worker" | "design"): string {
   if (role.kind !== kind) throw new Error(`only a factory ${kind} session can do this`);
   return role.task;
 }
 
 /** Returns the message that starts a design conversation about task `id`. */
-export function sketchMessage(id: string, title: string): string {
-  return `I started the factory sketch ${id} "${title}". The task file is ${taskPath(ledgerPaths(), id)}. Help me write it.`;
+export function sketchMessage(paths: LedgerPaths, id: string, title: string): string {
+  return `I started the factory sketch ${id} "${title}". The task file is ${taskPath(paths, id)}. Help me write it.`;
 }
 
 /**
@@ -68,35 +58,36 @@ export function sketchCommand(pi: ExtensionAPI, roles: RoleState): FactoryComman
     }
     const title = args.trim();
     if (!title) throw new Error("usage: /sketch <title>");
-    const task = await createTask({ title, repo: ctx.cwd });
+    const task = await createTask({ title, repo: ctx.cwd }, roles.paths);
     const role = { kind: "design", task: task.meta.id } as const;
     pi.appendEntry(ROLE_ENTRY, role);
     roles.set(role);
-    const content = sketchMessage(task.meta.id, title);
+    const content = sketchMessage(roles.paths, task.meta.id, title);
     pi.sendMessage({ customType: "factory", content, display: true }, { triggerTurn: true });
     return `Factory sketch ${task.meta.id} started.`;
   });
 }
 
-async function runHandoffCommand(roles: RoleState): Promise<string> {
-  const result = await handoff(ownTask(roles.get(), "design"));
-  if (!result.ok) throw new Error(`handoff failed:\n- ${result.missing.join("\n- ")}`);
-  return `Task ${result.task.meta.id} is ready. The coordinator dispatches it.`;
+/** Returns the `/handoff` command. Only a design session can use it. */
+export function handoffCommand(roles: RoleState): FactoryCommand {
+  return command("Hand off this factory sketch: make it ready", () => {
+    const role = roles.get();
+    return runHandoff({ role, paths: roles.paths }, requireRole(role, "design"));
+  });
 }
 
 async function setPaused(roles: RoleState, paused: boolean): Promise<string> {
-  const id = ownTask(roles.get(), "worker");
-  await updateTask(id, { paused });
-  await logTask(id, { who: "user", text: paused ? "parked" : "unparked" });
+  const id = requireRole(roles.get(), "worker");
+  await updateTask(id, { paused }, roles.paths);
+  await logTask(id, { who: "user", text: paused ? "parked" : "unparked" }, roles.paths);
   return paused
     ? `Task ${id} is parked. factoryd does not restart this worker.`
     : `Task ${id} is not parked.`;
 }
 
-/** Returns the role commands by name. */
-export function roleCommands(roles: RoleState): Record<RoleCommandName, FactoryCommand> {
+/** Returns the `/park` and `/unpark` commands of a worker session. */
+export function parkCommands(roles: RoleState): Record<"park" | "unpark", FactoryCommand> {
   return {
-    handoff: command("Hand off this factory sketch: make it ready", () => runHandoffCommand(roles)),
     park: command("Park this factory task: factoryd does not restart it", () =>
       setPaused(roles, true),
     ),

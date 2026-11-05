@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { loadConfig } from "../core/config.ts";
 import { listInbox, removeInbox } from "../core/inbox.ts";
 import {
@@ -12,7 +14,7 @@ import {
 } from "../core/ledger.ts";
 import { taskPath, type LedgerPaths } from "../core/paths.ts";
 import { startWorker, workerTerminal, type SpawnDeps } from "../core/spawn.ts";
-import { landingProgress, serializeTask, type Task } from "../core/task.ts";
+import { landingProgress, serializeTask, taskIdSchema, type Task } from "../core/task.ts";
 import type { Role } from "./role.ts";
 import type { InboxParams, TaskParams } from "./schemas.ts";
 
@@ -27,7 +29,7 @@ function required<T>(value: T | undefined, name: string): T {
   return value;
 }
 
-function ownTask(role: Extract<Role, { kind: "worker" }>, id: string | undefined): string {
+function workerTask(role: Extract<Role, { kind: "worker" }>, id: string | undefined): string {
   if (id !== undefined && id !== role.task) {
     throw new Error(`a worker acts only on its own task ${role.task}, not ${id}`);
   }
@@ -39,8 +41,14 @@ function ownTask(role: Extract<Role, { kind: "worker" }>, id: string | undefined
  * acts on its own task when the call does not give an id.
  */
 export function targetTask(role: Role, id: string | undefined): string {
-  if (role.kind === "worker") return ownTask(role, id);
-  return required(id ?? (role.kind === "design" ? role.task : undefined), "id");
+  if (role.kind === "worker") return workerTask(role, id);
+  return parseTaskId(required(id ?? (role.kind === "design" ? role.task : undefined), "id"));
+}
+
+function parseTaskId(id: string): string {
+  const result = taskIdSchema.safeParse(id);
+  if (!result.success) throw new Error(`id ${id}: ${z.prettifyError(result.error)}`);
+  return result.data;
 }
 
 function notWorker(role: Role, action: string): void {
@@ -86,6 +94,7 @@ async function createAction(ctx: ActionContext, params: TaskParams): Promise<str
 export function taskPatch(params: TaskParams): TaskPatch {
   const { status, now, threads, paused, title } = params;
   const needs_you = params.needs_you === "" ? null : params.needs_you;
+  if (title?.trim() === "") throw new Error("title cannot be empty");
   const patch = { status, now, threads, paused, title, needs_you };
   if (Object.values(patch).every((value) => value === undefined)) {
     throw new Error("update needs at least one field to change");
@@ -149,21 +158,26 @@ export async function runHandoff(ctx: ActionContext, id: string | undefined): Pr
 }
 
 /**
- * Starts the worker of the `ready` task `id` and sets the task to `working`. `deps` replaces the
- * spawn dependencies in tests.
+ * Sets the `ready` task `id` to `working`, then starts its worker. The task is `working` before the
+ * worker can change it. When the start fails, the task stays `working`, so the factoryd reconciler
+ * starts the worker again. `deps` replaces the spawn dependencies in tests.
  */
 export async function runDispatch(
   paths: LedgerPaths,
   id: string,
   deps: Partial<SpawnDeps> = {},
 ): Promise<string> {
-  const task = await getTask(id, paths);
-  if (task.meta.status !== "ready") throw new Error(`task ${id} is ${task.meta.status}, not ready`);
+  const status = (await getTask(id, paths)).meta.status;
+  if (status !== "ready") throw new Error(`task ${id} is ${status}, not ready`);
+  const task = await updateTask(id, { status: "working", now: "the worker starts" }, paths);
+  await logTask(id, { who: "coordinator", text: `dispatched to ${workerTerminal(id)}` }, paths);
   const started = await startWorker(task, await loadConfig(paths), {
     restart: false,
     deps: { ...deps, paths },
+  }).catch((error: unknown) => {
+    throw new Error(
+      `task ${id} is working, but its worker did not start (factoryd tries again): ${String(error)}`,
+    );
   });
-  await updateTask(id, { status: "working", now: "the worker started" }, paths);
-  await logTask(id, { who: "coordinator", text: `dispatched to ${workerTerminal(id)}` }, paths);
   return `Started ${started.terminal.name ?? workerTerminal(id)} (Herdr: ${started.herdr}). Task ${id} is working.`;
 }

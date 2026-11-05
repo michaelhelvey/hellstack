@@ -61,6 +61,10 @@ describe("factory_task", () => {
     expect(await failure(ctx, { action: "get" })).toContain("id is required");
     expect(await failure(ctx, { action: "create", title: "x" })).toContain("repo is required");
     expect(await failure(ctx, { action: "update", id: "t-0000" })).toContain("at least one");
+    expect(await failure(ctx, { action: "update", id: "t-0000", title: " " })).toBe(
+      "Error: title cannot be empty",
+    );
+    expect(await failure(ctx, { action: "get", id: "T-1" })).toContain("not a valid task id");
   });
 
   test("a worker acts only on its own task", async () => {
@@ -128,54 +132,71 @@ describe("factory_inbox", () => {
   });
 });
 
-describe("factory_dispatch", () => {
-  function fakeHc() {
-    const runs: HcRunOptions[] = [];
-    function reply(): Promise<Record<string, unknown>> {
-      return Promise.resolve({});
-    }
-    const hc: Hc = {
+function fakeHc(fail = false) {
+  const runs: { options: HcRunOptions; status: string }[] = [];
+  function reply(): Promise<Record<string, unknown>> {
+    return Promise.resolve({});
+  }
+  return {
+    runs,
+    hc: (paths: LedgerPaths): Hc => ({
       ls: () => Promise.resolve([]),
       get: () => Promise.resolve(undefined),
-      run: (options) => {
-        runs.push(options);
-        return Promise.resolve({
-          address: "t1",
-          name: options.name,
-          cwd: "/",
-          state: "live",
-          turn: 0,
-        });
+      run: async (options) => {
+        const id = options.env?.FACTORY_TASK ?? "";
+        runs.push({ options, status: (await getTask(id, paths)).meta.status });
+        if (fail) throw new Error("hc is down");
+        return { address: "t1", name: options.name, cwd: "/", state: "live", turn: 0 };
       },
       ...{ send: reply, interrupt: reply, kill: reply, rm: reply },
-    };
-    return { hc, runs };
-  }
-  const herdr = { spaces: () => Promise.resolve(NO_WINDOW), rename: () => Promise.resolve(true) };
+    }),
+  };
+}
 
-  test("starts the worker of a ready task and sets it to working", async () => {
+const herdr = { spaces: () => Promise.resolve(NO_WINDOW), rename: () => Promise.resolve(true) };
+
+async function readyTask(paths: LedgerPaths) {
+  const base = await sketch(paths);
+  return writeTask({ ...base, meta: { ...base.meta, status: "ready" } }, paths);
+}
+
+describe("factory_dispatch", () => {
+  test("sets a ready task to working, then starts its worker", async () => {
     const paths = await tempLedger();
-    const base = await sketch(paths);
-    const task = await writeTask({ ...base, meta: { ...base.meta, status: "ready" } }, paths);
-    const { hc, runs } = fakeHc();
-    const text = await runDispatch(paths, task.meta.id, { hc, herdr, pi: ["pi"] });
+    const task = await readyTask(paths);
+    const fake = fakeHc();
+    const text = await runDispatch(paths, task.meta.id, { hc: fake.hc(paths), herdr, pi: ["pi"] });
     expect(text).toContain(`factory-${task.meta.id}`);
-    expect(runs[0]?.env).toEqual({
+    expect(fake.runs[0]?.status).toBe("working");
+    expect(fake.runs[0]?.options.env).toEqual({
       FACTORY_ROLE: "worker",
       FACTORY_TASK: task.meta.id,
       FACTORY_HOME: paths.home,
     });
-    const working = await getTask(task.meta.id, paths);
-    expect(working.meta.status).toBe("working");
-    expect(sectionText(working.body, "Log")).toContain("coordinator: dispatched");
+    expect(sectionText((await getTask(task.meta.id, paths)).body, "Log")).toContain(
+      "coordinator: dispatched",
+    );
+  });
+
+  test("leaves the task working for factoryd when the worker does not start", async () => {
+    const paths = await tempLedger();
+    const task = await readyTask(paths);
+    const fake = fakeHc(true);
+    const error = await runDispatch(paths, task.meta.id, { hc: fake.hc(paths), herdr }).catch(
+      String,
+    );
+    expect(error).toContain("factoryd tries again");
+    expect((await getTask(task.meta.id, paths)).meta.status).toBe("working");
   });
 
   test("does not start the worker of a task that is not ready", async () => {
     const paths = await tempLedger();
     const task = await sketch(paths);
-    const { hc, runs } = fakeHc();
-    const error = await runDispatch(paths, task.meta.id, { hc, herdr }).catch(String);
+    const fake = fakeHc();
+    const error = await runDispatch(paths, task.meta.id, { hc: fake.hc(paths), herdr }).catch(
+      String,
+    );
     expect(error).toContain("is sketch, not ready");
-    expect(runs).toEqual([]);
+    expect(fake.runs).toEqual([]);
   });
 });
