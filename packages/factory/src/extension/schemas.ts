@@ -17,11 +17,16 @@ function id(description: string) {
 export const taskParamsSchema = Type.Object({
   action: stringEnum(
     ["list", "get", "create", "update", "log", "check"] as const,
-    "list: all tasks. get: the task file. create: a new sketch (title, repo). update: front matter. log: add a Log line (text). check: check a Landing item (item).",
+    "list: all tasks. get: the task file. create: a new sketch (title, cwd). update: front matter. log: add a Log line (text). check: check a Landing item (item).",
   ),
   id: id("The task id, for example t-7f3a. A worker and a design session can leave it out."),
   title: Type.Optional(Type.String({ description: "create, update: the short title" })),
-  repo: Type.Optional(Type.String({ description: "create: the absolute path of the repository" })),
+  cwd: Type.Optional(
+    Type.String({
+      description:
+        "create, update: the absolute folder where the task's agents work, usually a repository. update can change it only in sketch or ready.",
+    }),
+  ),
   status: Type.Optional(stringEnum(taskStatusSchema.options, "update: the new status")),
   now: Type.Optional(Type.String({ description: "update: one line that tells what happens now" })),
   needs_you: Type.Optional(

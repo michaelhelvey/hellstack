@@ -1,23 +1,41 @@
 import type { FactoryEvent } from "../core/events.ts";
 import type { FeedRecord } from "../core/feed.ts";
-import type { HcTerminal } from "../core/hc.ts";
-import { workerTerminal } from "../core/spawn.ts";
+import { isRunningPi, type HcTerminal } from "../core/hc.ts";
+import {
+  COORDINATOR_TERMINAL,
+  DAEMON_TERMINAL,
+  taskTerminal,
+  type TaskAgentRole,
+} from "../core/spawn.ts";
 import { landingProgress, type LandingProgress, type Task, type TaskStatus } from "../core/task.ts";
+
+/** The live agent terminal of a task. */
+export interface BoardAgent {
+  /** The terminal name, for example `factory-t-7f3a` or `factory-design-t-7f3a`. */
+  terminal: string;
+  role: TaskAgentRole;
+  /** True when the agent reports the status `working`. */
+  working: boolean;
+}
 
 /** One task card on the board. */
 export interface BoardTask {
   id: string;
   title: string;
   status: TaskStatus;
-  repo: string;
+  cwd: string;
   needs_you: string | null;
   now: string;
   paused: boolean;
   landing: LandingProgress;
-  /** The address of the live worker terminal. */
-  terminal?: string;
-  /** True when the worker reports the agent status `working`. */
-  working?: boolean;
+  /** The live worker, else the live design agent. */
+  agent?: BoardAgent;
+}
+
+/** What runs: the `factoryd` terminal is live, and the coordinator terminal runs pi. */
+export interface BoardRunning {
+  factoryd: boolean;
+  coordinator: boolean;
 }
 
 /** The health of one source: its last feed record. */
@@ -35,14 +53,12 @@ export interface BoardFeedItem {
   summary: string;
 }
 
-/** One inbox event on the board. */
-export type BoardInboxItem = Pick<
-  FactoryEvent,
-  "id" | "source" | "kind" | "thread" | "title" | "url" | "ts"
->;
+/** One inbox event on the board, with its detail. */
+export type BoardInboxItem = FactoryEvent;
 
 /** The data that the board mod shows. DESIGN.md (Board) is the contract. */
 export interface Board {
+  running: BoardRunning;
   tasks: BoardTask[];
   /** The inbox events, newest first. */
   inbox: BoardInboxItem[];
@@ -80,12 +96,31 @@ function terminalsByName(terminals: HcTerminal[]): Map<string, HcTerminal> {
   return new Map(live.map((terminal) => [terminal.name ?? "", terminal]));
 }
 
-function boardTask(task: Task, terminal: HcTerminal | undefined): BoardTask {
-  const { id, title, status, repo, needs_you, now, paused } = task.meta;
+const AGENT_ORDER: readonly TaskAgentRole[] = ["worker", "design"];
+
+function taskAgent(id: string, byName: Map<string, HcTerminal>): BoardAgent | undefined {
+  for (const role of AGENT_ORDER) {
+    const terminal = byName.get(taskTerminal(role, id));
+    if (terminal)
+      return { terminal: taskTerminal(role, id), role, working: terminal.status === "working" };
+  }
+  return undefined;
+}
+
+function boardTask(task: Task, byName: Map<string, HcTerminal>): BoardTask {
+  const { id, title, status, cwd, needs_you, now, paused } = task.meta;
   const landing = landingProgress(task.body);
-  const card: BoardTask = { id, title, status, repo, needs_you, now, paused, landing };
-  if (!terminal) return card;
-  return { ...card, terminal: terminal.address, working: terminal.status === "working" };
+  const card: BoardTask = { id, title, status, cwd, needs_you, now, paused, landing };
+  const agent = taskAgent(id, byName);
+  return agent ? { ...card, agent } : card;
+}
+
+function running(byName: Map<string, HcTerminal>): BoardRunning {
+  const coordinator = byName.get(COORDINATOR_TERMINAL);
+  return {
+    factoryd: byName.has(DAEMON_TERMINAL),
+    coordinator: coordinator !== undefined && isRunningPi(coordinator),
+  };
 }
 
 function lastPerSource(feed: FeedRecord[]): BoardSource[] {
@@ -100,17 +135,7 @@ function onFeed(record: FeedRecord): boolean {
 }
 
 function newestFirst(inbox: FactoryEvent[]): BoardInboxItem[] {
-  return [...inbox]
-    .sort((a, b) => b.ts.localeCompare(a.ts))
-    .map(({ id, source, kind, thread, title, url, ts }) => ({
-      id,
-      source,
-      kind,
-      thread,
-      title,
-      url,
-      ts,
-    }));
+  return [...inbox].sort((a, b) => b.ts.localeCompare(a.ts));
 }
 
 /**
@@ -121,9 +146,10 @@ function newestFirst(inbox: FactoryEvent[]): BoardInboxItem[] {
 export function buildBoard(input: BoardInput): Board {
   const byName = terminalsByName(input.terminals);
   return {
+    running: running(byName),
     tasks: input.tasks
       .filter((task) => onBoard(task, input.now))
-      .map((task) => boardTask(task, byName.get(workerTerminal(task.meta.id)))),
+      .map((task) => boardTask(task, byName)),
     inbox: newestFirst(input.inbox),
     invalid: input.invalid,
     sources: lastPerSource(input.feed),

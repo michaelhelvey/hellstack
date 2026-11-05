@@ -38,8 +38,8 @@ function registerCommands(pi: ExtensionAPI, envRole: Role, roles: RoleState): vo
 
 /**
  * The factory extension. `env` gives the role (`FACTORY_ROLE`, `FACTORY_TASK`) and the ledger
- * (`FACTORY_HOME`). `/sketch` gives a session without a role the `design` role, and the session
- * branch keeps it. Each role gets its prompt sections and tools. The coordinator also gets the
+ * (`FACTORY_HOME`). A design agent gets the `design` role from the env. `/sketch` gives a session
+ * without a role the `design` role, and the session branch keeps it. Each role gets its prompt sections and tools. The coordinator also gets the
  * `factory` skill and a 10 second bash limit.
  */
 export function factoryExtension(pi: ExtensionAPI, env: NodeJS.ProcessEnv): void {
@@ -51,6 +51,7 @@ export function factoryExtension(pi: ExtensionAPI, env: NodeJS.ProcessEnv): void
       role = next;
       activateRoleTools(pi, role);
     },
+    env: envRole,
     paths: ledgerPaths(factoryHome(env)),
   };
   function syncRole(_event: unknown, ctx: ExtensionContext): void {

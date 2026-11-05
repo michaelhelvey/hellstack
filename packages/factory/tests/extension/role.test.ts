@@ -3,6 +3,13 @@ import { describe, expect, test } from "bun:test";
 import { resolveRole, ROLE_ENTRY, roleFromEnv } from "../../src/extension/role.ts";
 
 describe("roleFromEnv", () => {
+  test("reads the role and the task of a design agent", () => {
+    expect(roleFromEnv({ FACTORY_ROLE: "design", FACTORY_TASK: "t-7f3a" })).toEqual({
+      kind: "design",
+      task: "t-7f3a",
+    });
+  });
+
   test("reads the role and the task of a worker", () => {
     expect(roleFromEnv({})).toEqual({ kind: "none" });
     expect(roleFromEnv({ FACTORY_ROLE: "" })).toEqual({ kind: "none" });

@@ -18,7 +18,7 @@ import { landingProgress, sectionText } from "../../src/core/task.ts";
 import { completeBody, tempFolder, tempLedger } from "./helpers.ts";
 
 async function sketch(paths: LedgerPaths) {
-  return createTask({ title: "Add the router", repo: await tempFolder() }, paths);
+  return createTask({ title: "Add the router", cwd: await tempFolder() }, paths);
 }
 
 describe("initLedger", () => {
@@ -95,6 +95,29 @@ describe("tasks", () => {
     await updateTask(meta.id, { status: "dropped" }, paths);
     const fromDropped = await updateTask(meta.id, { status: "sketch" }, paths).catch(String);
     expect(fromDropped).toContain("cannot go from dropped to sketch");
+  });
+
+  test("updateTask changes cwd only in sketch and ready", async () => {
+    const paths = await tempLedger();
+    const task = await sketch(paths);
+    const { meta } = await writeTask({ ...task, body: completeBody }, paths);
+    expect((await updateTask(meta.id, { cwd: "/a" }, paths)).meta.cwd).toBe("/a");
+    const relative = await updateTask(meta.id, { cwd: "a" }, paths).catch(String);
+    expect(relative).toContain("absolute");
+    await updateTask(meta.id, { cwd: meta.cwd }, paths);
+    expect((await handoff(meta.id, paths)).ok).toBe(true);
+    expect((await updateTask(meta.id, { cwd: "/b" }, paths)).meta.cwd).toBe("/b");
+    await updateTask(meta.id, { status: "working", cwd: "/b" }, paths);
+    const working = await updateTask(meta.id, { cwd: "/c" }, paths).catch(String);
+    expect(working).toContain("cwd can change only in sketch or ready");
+  });
+
+  test("createTask can set threads and a Goal draft", async () => {
+    const paths = await tempLedger();
+    const fields = { title: "x", cwd: paths.home, threads: ["gh:a/b#1"], goal: "Fix [b#1](u)." };
+    const task = await createTask(fields, paths);
+    expect(task.meta.threads).toEqual(["gh:a/b#1"]);
+    expect(sectionText(task.body, "Goal")).toBe("Fix [b#1](u).");
   });
 
   test("the change to landed sets landed_at one time", async () => {

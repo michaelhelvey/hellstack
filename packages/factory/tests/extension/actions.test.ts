@@ -17,7 +17,7 @@ import type { TaskParams } from "../../src/extension/schemas.ts";
 import { completeBody, tempFolder, tempLedger } from "../core/helpers.ts";
 
 async function sketch(paths: LedgerPaths, body?: string) {
-  const task = await createTask({ title: "Add the router", repo: await tempFolder() }, paths);
+  const task = await createTask({ title: "Add the router", cwd: await tempFolder() }, paths);
   return body === undefined ? task : writeTask({ ...task, body }, paths);
 }
 
@@ -27,21 +27,23 @@ function failure(ctx: ActionContext, params: TaskParams): Promise<unknown> {
 
 async function coordinatorTask() {
   const ctx: ActionContext = { role: { kind: "coordinator" }, paths: await tempLedger() };
-  const repo = await tempFolder();
-  const created = await runTaskAction(ctx, { action: "create", title: "Fix login", repo });
+  const cwd = await tempFolder();
+  const created = await runTaskAction(ctx, { action: "create", title: "Fix login", cwd });
   const id = /sketch (t-[0-9a-f]+)/.exec(created)?.[1] ?? "";
   await writeTask({ ...(await getTask(id, ctx.paths)), body: completeBody }, ctx.paths);
-  return { ctx, id, repo };
+  return { ctx, id, cwd };
 }
 
 describe("factory_task", () => {
   test("the coordinator creates, updates, logs, and checks tasks", async () => {
-    const { ctx, id, repo } = await coordinatorTask();
-    await runTaskAction(ctx, { action: "update", id, needs_you: "approve?", threads: ["t:1"] });
+    const { ctx, id } = await coordinatorTask();
+    const cwd = await tempFolder();
+    const patch = { needs_you: "approve?", threads: ["t:1"], cwd };
+    await runTaskAction(ctx, { action: "update", id, ...patch });
     await runTaskAction(ctx, { action: "log", id, text: "proposed" });
     await runTaskAction(ctx, { action: "check", id, item: 2 });
     const task = await getTask(id, ctx.paths);
-    expect(task.meta).toMatchObject({ needs_you: "approve?", threads: ["t:1"], repo });
+    expect(task.meta).toMatchObject(patch);
     expect(sectionText(task.body, "Log")).toMatch(/coordinator: proposed$/);
     expect(landingProgress(task.body)).toEqual({ done: 2, total: 2 });
   });
@@ -59,7 +61,7 @@ describe("factory_task", () => {
   test("a call fails without its required fields", async () => {
     const ctx: ActionContext = { role: { kind: "coordinator" }, paths: await tempLedger() };
     expect(await failure(ctx, { action: "get" })).toContain("id is required");
-    expect(await failure(ctx, { action: "create", title: "x" })).toContain("repo is required");
+    expect(await failure(ctx, { action: "create", title: "x" })).toContain("cwd is required");
     expect(await failure(ctx, { action: "update", id: "t-0000" })).toContain("at least one");
     expect(await failure(ctx, { action: "update", id: "t-0000", title: " " })).toBe(
       "Error: title cannot be empty",
@@ -79,7 +81,7 @@ describe("factory_task", () => {
       `only on its own task ${own.meta.id}`,
     );
     expect(await failure(ctx, { action: "list" })).toContain("cannot list");
-    expect(await failure(ctx, { action: "create", title: "x", repo: "/" })).toContain(
+    expect(await failure(ctx, { action: "create", title: "x", cwd: "/" })).toContain(
       "cannot create",
     );
     expect((await getTask(other.meta.id, paths)).meta.now).toBe("");
@@ -153,7 +155,11 @@ function fakeHc(fail = false) {
   };
 }
 
-const herdr = { spaces: () => Promise.resolve(NO_WINDOW), rename: () => Promise.resolve(true) };
+const herdr = {
+  spaces: () => Promise.resolve(NO_WINDOW),
+  rename: () => Promise.resolve(true),
+  focus: () => Promise.resolve(true),
+};
 
 async function readyTask(paths: LedgerPaths) {
   const base = await sketch(paths);

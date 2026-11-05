@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 
 import { z } from "zod";
@@ -7,23 +7,20 @@ import { sentrySourceSchema } from "../../src/core/config.ts";
 import {
   createSentrySource,
   sentryEvent,
-  sentryIssuesUrl,
+  sentryInbox,
+  sentryIssuesArgs,
   sentryIssueSchema,
 } from "../../src/daemon/sentry.ts";
+import { event, fakeRunner } from "./helpers.ts";
 
 const fixtureText = await readFile(new URL("fixtures/sentry-issues.json", import.meta.url), "utf8");
 const issues = z.array(sentryIssueSchema).parse(JSON.parse(fixtureText));
-const config = sentrySourceSchema.parse({
-  type: "sentry",
-  org: "acme",
-  projects: ["api", "web"],
-  tokenEnv: "TEST_SENTRY_TOKEN",
-});
+const config = sentrySourceSchema.parse({ type: "sentry", org: "acme", projects: ["api", "web"] });
 const since = "2026-11-05T14:00:00.000Z";
 
-afterEach(() => {
-  delete process.env.TEST_SENTRY_TOKEN;
-});
+function sentryEventOf(id: string, shortId: string, org = "acme") {
+  return event({ id: `sentry-${id}-new`, source: "sentry", thread: `sentry:${org}/${shortId}` });
+}
 
 describe("sentry normalization", () => {
   test("new and regressed issues are events; other issues are not", () => {
@@ -38,41 +35,82 @@ describe("sentry normalization", () => {
         "api: TypeError: Cannot read properties of undefined (reading 'id') in src/orders/handler.ts in getOrder (12 events)",
       url: "https://acme.sentry.io/issues/4100000001/",
       ts: "2026-11-05T14:20:44.101Z",
+      detail: {
+        body: "in src/orders/handler.ts in getOrder\n12 events",
+        state: "unresolved",
+        repo: "api",
+      },
     });
   });
 
-  test("the URL filters by project and last seen time", () => {
-    const url = new URL(sentryIssuesUrl(config, since));
-    expect(url.pathname).toBe("/api/0/organizations/acme/issues/");
-    expect(url.searchParams.get("query")).toBe(
-      `is:unresolved lastSeen:>${since} project:[api,web]`,
-    );
+  test("the arguments filter by project and last seen time", () => {
+    expect(sentryIssuesArgs(config, since)).toEqual([
+      "organizations/acme/issues/",
+      ...["-X", "GET", "-f", `query=is:unresolved lastSeen:>${since} project:[api,web]`],
+      ...["-f", "sort=date", "-f", "limit=50"],
+    ]);
   });
 });
 
 describe("sentry source", () => {
-  test("sends the token and moves the cursor to the poll time", async () => {
-    process.env.TEST_SENTRY_TOKEN = "secret";
-    const headers: Record<string, string>[] = [];
-    const urls: string[] = [];
-    function fetcher(_url: string, init: { headers: Record<string, string> }): Promise<Response> {
-      headers.push(init.headers);
-      urls.push(_url);
-      return Promise.resolve(new Response(fixtureText));
-    }
+  test("runs sentry api and moves the cursor to the poll time", async () => {
+    const { runner, calls } = fakeRunner({ stdout: fixtureText });
     const now = new Date("2026-11-05T15:00:00.000Z");
-    const poll = await createSentrySource(config, fetcher).poll({ since }, now);
-    expect(headers).toEqual([{ Authorization: "Bearer secret" }]);
-    expect(new URL(urls[0] ?? "").searchParams.get("query")).toContain(
-      "lastSeen:>2026-11-05T13:55:00.000Z",
+    const poll = await createSentrySource(config, runner).poll({ since }, now);
+    expect(calls[0]?.slice(0, 3)).toEqual(["sentry", "api", "organizations/acme/issues/"]);
+    expect(calls[0]).toContain(
+      "query=is:unresolved lastSeen:>2026-11-05T13:55:00.000Z project:[api,web]",
     );
     expect(poll.events).toHaveLength(2);
     expect(poll.cursor).toEqual({ since: now.toISOString() });
   });
 
-  test("fails when the token variable is not set", async () => {
-    const source = createSentrySource(config, () => Promise.reject(new Error("no call")));
-    const error = await source.poll(undefined, new Date()).catch((e: unknown) => e);
-    expect(String(error)).toContain("TEST_SENTRY_TOKEN is not set");
+  test("fails with the CLI error", async () => {
+    const { runner } = fakeRunner({ code: 60, stdout: '{"detail":"Not found"}' });
+    const error = await createSentrySource(config, runner)
+      .poll(undefined, new Date())
+      .catch(String);
+    expect(error).toContain("sentry api failed");
+    expect(error).toContain("Not found");
+  });
+});
+
+describe("sentry inbox", () => {
+  test("dismiss resolves the issue of the thread", async () => {
+    const { runner, calls } = fakeRunner({ stdout: "{}" });
+    await sentryInbox(runner).dismiss(sentryEventOf("41", "API-1A"));
+    expect(calls).toEqual([
+      ["sentry", "api", "organizations/acme/issues/API-1A/", "-X", "PUT", "-F", "status=resolved"],
+    ]);
+  });
+
+  test("isDone asks once per org and returns the resolved and ignored issues", async () => {
+    const statuses = [
+      { id: "41", status: "resolved" },
+      { id: "42", status: "unresolved" },
+      { id: "43", status: "ignored" },
+    ];
+    const { runner, calls } = fakeRunner({ stdout: JSON.stringify(statuses) }, { stdout: "[]" });
+    const events = [
+      sentryEventOf("41", "API-1"),
+      sentryEventOf("42", "API-2"),
+      sentryEventOf("43", "API-3"),
+      sentryEventOf("44", "WEB-1", "other"),
+    ];
+    expect(await sentryInbox(runner).isDone(events)).toEqual(["sentry-41-new", "sentry-43-new"]);
+    expect(calls.map((call) => call[2])).toEqual([
+      "organizations/acme/issues/",
+      "organizations/other/issues/",
+    ]);
+    expect(calls[0]).toContain("query=issue.id:[41,42,43]");
+  });
+
+  test("detail is the detail of the poll", async () => {
+    const detail = { state: "unresolved", repo: "api" };
+    const { runner, calls } = fakeRunner();
+    expect(await sentryInbox(runner).detail({ ...sentryEventOf("41", "A"), detail })).toEqual(
+      detail,
+    );
+    expect(calls).toEqual([]);
   });
 });

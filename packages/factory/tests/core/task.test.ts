@@ -21,7 +21,7 @@ const fileText = `---
 id: t-7f3a
 title: Add the factory router
 status: working
-repo: /Users/me/dev/hellstack
+cwd: /Users/me/dev/hellstack
 threads: [gh:helvey/hellstack#88]
 paused: false
 needs_you: null
@@ -35,8 +35,8 @@ async function template(): Promise<string> {
   return readFile(promptPath("task-template.md"), "utf8");
 }
 
-function withRepo(task: Task, repo: string): Task {
-  return { ...task, meta: { ...task.meta, repo } };
+function withCwd(task: Task, cwd: string): Task {
+  return { ...task, meta: { ...task.meta, cwd } };
 }
 
 describe("parseTask and serializeTask", () => {
@@ -46,6 +46,14 @@ describe("parseTask and serializeTask", () => {
     expect(task.meta.needs_you).toBeNull();
     expect(task.body).toBe(completeBody);
     expect(parseTask(serializeTask(task))).toEqual(task);
+  });
+
+  test("read an old file with repo as cwd, and write cwd", () => {
+    const task = parseTask(fileText.replace("cwd:", "repo:"));
+    expect(task.meta.cwd).toBe("/Users/me/dev/hellstack");
+    const text = serializeTask(task);
+    expect(text).toContain("\ncwd: /Users/me/dev/hellstack\n");
+    expect(text).not.toContain("repo:");
   });
 
   test("give defaults to optional fields", () => {
@@ -126,7 +134,7 @@ describe("appendLogEntry", () => {
 
 describe("validateHandoff", () => {
   test("returns nothing for a complete task", async () => {
-    const task = withRepo(parseTask(fileText), await tempFolder());
+    const task = withCwd(parseTask(fileText), await tempFolder());
     expect(await validateHandoff(task)).toEqual([]);
   });
 
@@ -135,7 +143,7 @@ describe("validateHandoff", () => {
     const task = newTask({
       id: newTaskId(),
       title: "x",
-      repo: "/no/such/folder",
+      cwd: "/no/such/folder",
       template: await template(),
       now,
     });
@@ -145,7 +153,7 @@ describe("validateHandoff", () => {
       "Output has no text",
       "Constraints has no text",
       "Landing has no checkbox items",
-      "repo is not a folder: /no/such/folder",
+      "cwd is not a folder: /no/such/folder",
     ]);
   });
 });

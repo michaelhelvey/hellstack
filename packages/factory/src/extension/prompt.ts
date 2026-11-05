@@ -44,7 +44,7 @@ export function designPrompt(role: TaskRole, paths: LedgerPaths): string {
     "The task is a `sketch`: nothing acts on it before handoff. After handoff, a worker that has only this file does the work. The file must make sense without this conversation.",
     "",
     "- The HTML comments in the file tell what each section needs. Ask the user what you cannot find out yourself, a few questions at a time.",
-    "- Write into the file as the conversation goes. Replace each comment with real text. Edit the prose with your edit tools. Change the title with `factory_task` `update`.",
+    "- Write into the file as the conversation goes. Replace each comment with real text. Edit the prose with your edit tools. Change the title and the `cwd` (the folder where the worker works) with `factory_task` `update`.",
     "- When the user says that the task is ready, run `factory_handoff`. When it fails, tell the user what is missing.",
     "- Do not do the task yourself.",
   ].join("\n");

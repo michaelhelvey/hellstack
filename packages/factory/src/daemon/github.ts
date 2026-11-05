@@ -7,7 +7,14 @@ import {
   type CommandRunner,
   type FactoryEvent,
 } from "../core/index.ts";
-import { oneLine, pollStart, type Cursor, type PollResult, type Source } from "./source.ts";
+import {
+  excerpt,
+  oneLine,
+  pollStart,
+  type Cursor,
+  type PollResult,
+  type Source,
+} from "./source.ts";
 
 /** A notification of `gh api notifications`. */
 export const notificationSchema = z.object({
@@ -30,6 +37,9 @@ const commentSchema = z.object({
   body: z.string().nullish(),
   user: z.object({ login: z.string() }),
 });
+
+/** A comment, a review comment, an issue, or a pull request: its author and its text. */
+export type GithubComment = z.infer<typeof commentSchema>;
 
 /** An HTTP response that `gh api -i` prints. */
 export interface GhResponse {
@@ -139,21 +149,33 @@ export function notificationUrl(n: Notification): string {
   return `https://github.com/${subject.owner}/${subject.repo}/${path}/${subject.number}`;
 }
 
-/**
- * Returns the event of a notification. `summary` is the text of the last comment, when the daemon
- * got it. The id has the update time, so that a new update on the same thread is a new event.
- */
-export function githubEvent(n: Notification, summary?: string): FactoryEvent {
+function commentFields(comment: GithubComment | undefined): Partial<FactoryEvent> {
+  if (!comment) return {};
+  const body = comment.body ?? "";
   return {
+    summary: oneLine(`@${comment.user.login}: ${body}`),
+    detail: { author: comment.user.login, body: excerpt(body) },
+  };
+}
+
+/**
+ * Returns the event of a notification. `comment` is the last comment, when the daemon got it: it
+ * gives the summary and the detail. The id has the notification thread id and the update time, so
+ * that a new update on the same thread is a new event.
+ */
+export function githubEvent(n: Notification, comment?: GithubComment): FactoryEvent {
+  const event: FactoryEvent = {
     id: `gh-${n.id}-${n.updated_at.replace(/[^\dTZ]/g, "")}`,
     source: "github",
     thread: notificationThread(n),
     kind: githubKind(n),
     title: n.subject.title,
-    summary: summary ?? `${n.reason.replace(/_/g, " ")}: ${n.subject.title}`,
+    summary: `${n.reason.replace(/_/g, " ")}: ${n.subject.title}`,
     url: notificationUrl(n),
     ts: n.updated_at,
+    ...commentFields(comment),
   };
+  return { ...event, detail: { ...event.detail, repo: n.repository.full_name } };
 }
 
 /** Returns the URL of the last comment of a notification, or undefined when it is not a comment. */
@@ -217,13 +239,26 @@ async function laterPages(
   return all;
 }
 
-async function commentSummary(runner: CommandRunner, url: string): Promise<string | undefined> {
+/**
+ * Reads the notifications that changed after `since`, read ones too, up to {@link MAX_PAGES} pages.
+ * The list does not have the notifications that the user marked done.
+ */
+export async function listNotifications(
+  runner: CommandRunner,
+  since: string,
+  now: Date,
+): Promise<Notification[]> {
+  const first = await readPage(runner, ["api", ...queryArgs({ since }, now)]);
+  return laterPages(runner, first, { since }, now);
+}
+
+async function fetchComment(
+  runner: CommandRunner,
+  url: string,
+): Promise<GithubComment | undefined> {
   const result = await runner("gh", ["api", url], 15_000).catch(() => undefined);
   if (result?.code !== 0) return undefined;
-  const parsed = commentSchema.safeParse(parseJson(result.stdout));
-  return parsed.success
-    ? oneLine(`@${parsed.data.user.login}: ${parsed.data.body ?? ""}`)
-    : undefined;
+  return commentSchema.safeParse(parseJson(result.stdout)).data;
 }
 
 async function toEvents(
@@ -233,7 +268,7 @@ async function toEvents(
   return Promise.all(
     notifications.map(async (n, index) => {
       const url = index < MAX_COMMENT_FETCHES ? commentUrl(n) : undefined;
-      return githubEvent(n, url ? await commentSummary(runner, url) : undefined);
+      return githubEvent(n, url ? await fetchComment(runner, url) : undefined);
     }),
   );
 }

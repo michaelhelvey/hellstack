@@ -31,11 +31,12 @@ import {
 } from "../core/index.ts";
 import { emptyDigest, factoryBlock, flushDigest, queueLines, type Digest } from "./digest.ts";
 import { filterEvents } from "./filter.ts";
+import { pruneInbox, withDetail } from "./inbox.ts";
 import { acquireLock } from "./lock.ts";
 import { reconcile, type Close } from "./reconcile.ts";
 import { eventLine, INBOX, ownedInbox, routeEvent, runningPi, type Route } from "./route.ts";
-import type { PollResult, Source } from "./source.ts";
-import { checkSources, createSource, sourceKey } from "./sources.ts";
+import type { InboxSources, PollResult, Source } from "./source.ts";
+import { checkSources, createInboxSources, createSource, sourceKey } from "./sources.ts";
 import {
   emptyState,
   loadState,
@@ -49,6 +50,9 @@ import { watch, type WatchState } from "./watchdog.ts";
 
 /** The time between two reconcile, keepalive, and watchdog steps, in milliseconds. */
 export const HOUSEKEEPING_MS = 30_000;
+
+/** The time between two inbox prune steps, in milliseconds. */
+export const PRUNE_MS = 5 * 60_000;
 
 /** What the daemon uses. Tests and the CLI give their own values. */
 export interface DaemonOptions {
@@ -65,6 +69,8 @@ export interface DaemonOptions {
   /** Runs the summary model. */
   runner: CommandRunner;
   createSource: (config: SourceConfig) => Source;
+  /** The inbox actions of each source type: detail and prune. */
+  inbox: InboxSources;
   log: (line: string) => void;
   /** The time between two loop steps, in milliseconds. */
   tickMs: number;
@@ -80,6 +86,7 @@ export interface Daemon {
   watch: WatchState | undefined;
   nextPoll: Map<string, number>;
   lastHousekeeping: number;
+  lastPrune: number;
 }
 
 /** Returns the default daemon options for the ledger. */
@@ -96,6 +103,7 @@ export function daemonOptions(
     herdr: createHerdr(),
     runner: runCommand,
     createSource,
+    inbox: createInboxSources(),
     log: (line) => console.log(line),
     tickMs: 5_000,
   };
@@ -172,7 +180,7 @@ async function deliver(daemon: Daemon, events: FactoryEvent[]): Promise<Route[]>
   const running = runningPi(await daemon.options.hc.ls());
   const routes = events.flatMap((event) => routeEvent(event, tasks, running));
   for (const route of routes.filter((r) => r.to === INBOX))
-    await writeInbox(route.event, daemon.options.paths);
+    await writeInbox(await withDetail(daemon.options.inbox, route.event), daemon.options.paths);
   for (const [terminal, lines] of linesByTerminal(routes)) {
     if (terminal === COORDINATOR_TERMINAL) daemon.digest = queueLines(daemon.digest, lines);
     else await sendToWorker(daemon, terminal, lines);
@@ -404,13 +412,38 @@ async function pollDue(daemon: Daemon, now: number): Promise<void> {
   for (const source of due) await guard(daemon, "poll", () => pollCycle(daemon, source, now));
 }
 
-/** Runs one loop step: config reload, due polls, housekeeping, and the coordinator digest. */
+function threadList(events: FactoryEvent[]): string {
+  const threads = [...new Set(events.map((event) => event.thread))];
+  const more = threads.length > 5 ? `, and ${threads.length - 5} more` : "";
+  return `${threads.slice(0, 5).join(", ")}${more}`;
+}
+
+/**
+ * Removes the inbox events whose subject is done. It writes one feed record when it removed
+ * something. Throws the errors of the sources that failed; their events stay.
+ */
+export async function prune(daemon: Daemon): Promise<void> {
+  const { removed, errors } = await pruneInbox(daemon.options.paths, daemon.options.inbox);
+  if (removed.length > 0) {
+    await feedAction(
+      daemon,
+      `Removed ${removed.length} done inbox events: ${threadList(removed)}.`,
+    );
+  }
+  if (errors.length > 0) throw new Error(errors.join("; "));
+}
+
+/** Runs one loop step: config reload, due polls, housekeeping, prune, and the coordinator digest. */
 export async function tick(daemon: Daemon, now: number): Promise<void> {
   await guard(daemon, "config", () => reloadConfig(daemon));
   await pollDue(daemon, now);
   if (now - daemon.lastHousekeeping >= HOUSEKEEPING_MS) {
     daemon.lastHousekeeping = now;
     await guard(daemon, "reconcile", () => housekeeping(daemon, now));
+  }
+  if (now - daemon.lastPrune >= PRUNE_MS) {
+    daemon.lastPrune = now;
+    await guard(daemon, "prune", () => prune(daemon));
   }
   await guard(daemon, "message", () => flush(daemon, now));
 }
@@ -428,6 +461,7 @@ export async function createDaemon(options: DaemonOptions): Promise<Daemon> {
     digest: { ...emptyDigest(), lines: state.pending },
     nextPoll: new Map(),
     lastHousekeeping: Number.NEGATIVE_INFINITY,
+    lastPrune: Number.NEGATIVE_INFINITY,
   };
   if (loaded instanceof Error)
     await feedAction(

@@ -12,10 +12,8 @@ import { tempLedger } from "./helpers.ts";
 const sentryDefaults: SourceConfig = {
   type: "sentry",
   everySeconds: 300,
-  url: "https://sentry.io",
   org: "acme",
   projects: [],
-  tokenEnv: "SENTRY_AUTH_TOKEN",
   default: "candidate",
   rules: [{ kind: "issue_new", action: "ignore" }],
 };
@@ -28,16 +26,23 @@ describe("config", () => {
       summaryModel: "haiku",
       staleAfterMinutes: 120,
       closeAfterMinutes: 60,
+      repoRoots: ["~/dev"],
       sources: [{ type: "github", everySeconds: 60, default: "candidate", rules: [] }],
     });
   });
 
-  test("fills the defaults of nested fields", () => {
+  test("fills the defaults of nested fields and ignores the old Sentry fields", () => {
     const config = parseConfig(
       JSON.stringify({
         worker: { thinking: "max" },
         sources: [
-          { type: "sentry", org: "acme", rules: [{ kind: "issue_new", action: "ignore" }] },
+          {
+            type: "sentry",
+            org: "acme",
+            url: "https://sentry.io",
+            tokenEnv: "SENTRY_AUTH_TOKEN",
+            rules: [{ kind: "issue_new", action: "ignore" }],
+          },
         ],
       }),
     );

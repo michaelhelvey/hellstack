@@ -1,11 +1,9 @@
 import { z } from "zod";
 
-import { taskMetaSchema } from "../core/task.ts";
+import { taskIdSchema as taskId } from "../core/task.ts";
 
 /** The custom session entry type that keeps the role that `/sketch` gives a session. */
 export const ROLE_ENTRY = "factory-role";
-
-const taskId = taskMetaSchema.shape.id;
 
 /** The role of a session that `/sketch` makes. Pi keeps it in a session entry. */
 export const designRoleSchema = z.object({ kind: z.literal("design"), task: taskId });
@@ -27,13 +25,13 @@ const envSchema = z.union([
     .object({ FACTORY_ROLE: z.enum(["coordinator", "subagent"]) })
     .transform((env): Role => ({ kind: env.FACTORY_ROLE })),
   z
-    .object({ FACTORY_ROLE: z.literal("worker"), FACTORY_TASK: taskId })
-    .transform((env): Role => ({ kind: "worker", task: env.FACTORY_TASK })),
+    .object({ FACTORY_ROLE: z.enum(["worker", "design"]), FACTORY_TASK: taskId })
+    .transform((env): Role => ({ kind: env.FACTORY_ROLE, task: env.FACTORY_TASK })),
 ]);
 
 /**
- * Returns the role that `FACTORY_ROLE` (and `FACTORY_TASK` for a worker) sets. Returns `none` when
- * `FACTORY_ROLE` is not set. Throws when the values are not valid.
+ * Returns the role that `FACTORY_ROLE` (and `FACTORY_TASK` for a worker or a design agent) sets.
+ * Returns `none` when `FACTORY_ROLE` is not set. Throws when the values are not valid.
  *
  * @example roleFromEnv({ FACTORY_ROLE: "worker", FACTORY_TASK: "t-7f3a" }) // { kind: "worker", task: "t-7f3a" }
  */

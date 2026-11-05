@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   COORDINATOR_TERMINAL,
+  DAEMON_TERMINAL,
   initLedger,
   listInbox,
   listTasks,
@@ -19,8 +20,7 @@ import {
 } from "../core/index.ts";
 import { runningPi } from "./route.ts";
 
-/** The name of the daemon terminal. */
-export const DAEMON_TERMINAL = "factoryd";
+export { DAEMON_TERMINAL } from "../core/index.ts";
 
 /** What `up`, `down`, and `status` use. Tests give fakes. */
 export interface ControlDeps {
@@ -39,8 +39,8 @@ export function repoRoot(): string {
 
 /**
  * Returns the `hc run` options of the daemon terminal. `hc run` does not give the environment of
- * the caller to the terminal, so the daemon starts in a login shell of the user: it gets the tokens
- * that the shell files export (for example `SENTRY_AUTH_TOKEN`), and the tokens are not in argv.
+ * the caller to the terminal, so the daemon starts in a login shell of the user: it gets the `PATH`
+ * and the variables that the shell files export (for example the paths of `gh` and `sentry`).
  */
 export function daemonRun(paths: LedgerPaths, root: string, shell = "/bin/zsh"): HcRunOptions {
   return {
@@ -51,7 +51,8 @@ export function daemonRun(paths: LedgerPaths, root: string, shell = "/bin/zsh"):
   };
 }
 
-function findLive(terminals: HcTerminal[], name: string): HcTerminal | undefined {
+/** Returns the live terminal with the name `name`, or undefined. */
+export function findLive(terminals: HcTerminal[], name: string): HcTerminal | undefined {
   return terminals.find((terminal) => terminal.name === name && terminal.state === "live");
 }
 

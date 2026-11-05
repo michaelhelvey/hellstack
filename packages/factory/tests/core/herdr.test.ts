@@ -5,7 +5,7 @@ import {
   coordinatorPlacement,
   createHerdr,
   NO_WINDOW,
-  workerPlacement,
+  taskPlacement,
   type Herdr,
   type HerdrName,
   type HerdrSpace,
@@ -23,23 +23,34 @@ describe("createHerdr", () => {
     );
     expect(await herdr.spaces()).toBe(NO_WINDOW);
   });
+
+  test("focus runs agent.focus with the terminal address", async () => {
+    const calls: string[][] = [];
+    const herdr = createHerdr((_program, args) => {
+      calls.push(args);
+      return Promise.resolve({ code: 0, stdout: "{}", stderr: "" });
+    });
+    expect(await herdr.focus("t12")).toBe(true);
+    expect(calls).toEqual([["do", "agent.focus", "--terminal", "t12"]]);
+  });
 });
 
-describe("workerPlacement", () => {
-  test("uses the space of the repo folder and a tab of the task", async () => {
-    const repo = await tempFolder();
-    const spaces = [space("sp1", "other", "/elsewhere"), space("sp2", "repo", repo)];
-    const placement = await workerPlacement(spaces, { id: "t-7f3a", repo, tabName: "t-7f3a x" });
+describe("taskPlacement", () => {
+  test("uses the space of the cwd folder and the tab of the agent", async () => {
+    const cwd = await tempFolder();
+    const spaces = [space("sp1", "other", "/elsewhere"), space("sp2", "repo", cwd)];
+    const tab = { cwd, tab: "tbfactory-t-7f3a", tabName: "t-7f3a x" };
+    const placement = await taskPlacement(spaces, tab);
     expect(placement).toEqual({
       labels: { "herdr.space": "sp2", "herdr.tab": "tbfactory-t-7f3a" },
       names: [{ kind: "tab", id: "tbfactory-t-7f3a", name: "t-7f3a x" }],
     });
   });
 
-  test("makes the same new space id for the same repo", async () => {
-    const repo = await tempFolder();
-    const first = await workerPlacement([], { id: "t-0001", repo, tabName: "a" });
-    const second = await workerPlacement([], { id: "t-0002", repo, tabName: "b" });
+  test("makes the same new space id for the same folder", async () => {
+    const cwd = await tempFolder();
+    const first = await taskPlacement([], { cwd, tab: "tbfactory-t-0001", tabName: "a" });
+    const second = await taskPlacement([], { cwd, tab: "tbfactory-t-0002", tabName: "b" });
     expect(first.labels["herdr.space"]).toMatch(/^spfactory-[0-9a-f]{12}$/);
     expect(second.labels["herdr.space"]).toBe(first.labels["herdr.space"]);
   });
@@ -60,6 +71,7 @@ function renameAfter(known: Record<string, number>) {
   const tries: string[] = [];
   const herdr: Herdr = {
     spaces: () => Promise.resolve([]),
+    focus: () => Promise.resolve(true),
     rename: (target: HerdrName) => {
       tries.push(target.id);
       return Promise.resolve(

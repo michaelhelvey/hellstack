@@ -3,10 +3,34 @@ import { z } from "zod";
 /** The sources that make events. */
 export const eventSourceSchema = z.enum(["github", "sentry"]);
 
+/** A source that makes events. */
+export type FactoryEventSource = z.infer<typeof eventSourceSchema>;
+
 /** An event id. It is safe to use as a file name: it does not start with a dot. */
 export const eventIdSchema = z.string().regex(/^[\w-][\w.-]*$/, "not a valid event id");
 
-/** A normalized record from a source. `id` is unique and safe to use as a file name. */
+/** The maximum length of {@link EventDetail.body}. */
+export const MAX_DETAIL_BODY = 1500;
+
+/**
+ * What the board shows about an inbox event without a network call: the author, a plain text
+ * excerpt of the comment, review, or issue, the state of the subject (for example `open`, `merged`,
+ * `closed`, `unresolved`, `resolved`), and the repository or project.
+ */
+export const eventDetailSchema = z.object({
+  author: z.string().optional(),
+  body: z.string().max(MAX_DETAIL_BODY).optional(),
+  state: z.string().optional(),
+  repo: z.string().optional(),
+});
+
+/** What the board shows about an inbox event. */
+export type EventDetail = z.infer<typeof eventDetailSchema>;
+
+/**
+ * A normalized record from a source. `id` is unique and safe to use as a file name. A source can
+ * set `detail` when it polls; factoryd completes it before it writes the event to the inbox.
+ */
 export const eventSchema = z.object({
   id: eventIdSchema,
   source: eventSourceSchema,
@@ -16,6 +40,7 @@ export const eventSchema = z.object({
   summary: z.string(),
   url: z.string(),
   ts: z.iso.datetime(),
+  detail: eventDetailSchema.optional(),
 });
 
 /** A normalized record from a source. */

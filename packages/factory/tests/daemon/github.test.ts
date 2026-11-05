@@ -112,9 +112,15 @@ describe("github source", () => {
       since: "2026-11-05T14:29:27Z",
       lastModified: "Thu, 05 Nov 2026 14:30:00 GMT",
     });
-    expect(poll.events.find((e) => e.id.startsWith("gh-100005"))?.summary).toBe(
-      "@someone: Please rename x",
-    );
+  });
+
+  test("a comment gives the summary and the detail of its event", async () => {
+    const { runner } = fakeGh("200 OK");
+    const poll = await createGithubSource(runner).poll(undefined, new Date());
+    const commented = poll.events.find((e) => e.id.startsWith("gh-100005"));
+    expect(commented?.summary).toBe("@someone: Please rename x");
+    expect(commented?.detail).toMatchObject({ author: "someone", body: "Please\nrename x" });
+    expect(poll.events.every((e) => e.detail?.repo?.startsWith("acme/repo-"))).toBe(true);
   });
 
   test("a 304 has no events and keeps the cursor", async () => {

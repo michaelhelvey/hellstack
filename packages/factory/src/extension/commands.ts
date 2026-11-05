@@ -5,10 +5,14 @@ import { taskPath, type LedgerPaths } from "../core/paths.ts";
 import { runHandoff } from "./actions.ts";
 import { ROLE_ENTRY, type Role } from "./role.ts";
 
-/** Reads and changes the role of the session, and gives the ledger of the session. */
+/**
+ * Reads and changes the role of the session, and gives the ledger of the session. `env` is the role
+ * that the environment sets.
+ */
 export interface RoleState {
   get(): Role;
   set(role: Role): void;
+  env: Role;
   paths: LedgerPaths;
 }
 
@@ -44,21 +48,21 @@ export function sketchMessage(paths: LedgerPaths, id: string, title: string): st
 }
 
 /**
- * Returns the `/sketch <title>` command. It makes a `sketch` task with `repo` set to the session
+ * Returns the `/sketch <title>` command. It makes a `sketch` task with `cwd` set to the session
  * folder, makes the session the `design` role of that task, and starts a turn. A session with a
  * `FACTORY_ROLE` cannot use it.
  */
 export function sketchCommand(pi: ExtensionAPI, roles: RoleState): FactoryCommand {
   return command("Start a factory task sketch: /sketch <title>", async (args, ctx) => {
-    const kind = roles.get().kind;
-    if (kind !== "none" && kind !== "design") {
+    const kind = roles.env.kind;
+    if (kind !== "none") {
       throw new Error(
         `this session is the factory ${kind}; /sketch needs a session without a role`,
       );
     }
     const title = args.trim();
     if (!title) throw new Error("usage: /sketch <title>");
-    const task = await createTask({ title, repo: ctx.cwd }, roles.paths);
+    const task = await createTask({ title, cwd: ctx.cwd }, roles.paths);
     const role = { kind: "design", task: task.meta.id } as const;
     pi.appendEntry(ROLE_ENTRY, role);
     roles.set(role);

@@ -114,7 +114,7 @@ describe("/sketch", () => {
 
     const { tasks } = await listTasks(ledgerPaths(home));
     const task = tasks[0];
-    expect(task?.meta).toMatchObject({ title: "Fix the login bug", repo, status: "sketch" });
+    expect(task?.meta).toMatchObject({ title: "Fix the login bug", cwd: repo, status: "sketch" });
     const role = { kind: "design", task: task?.meta.id };
     expect(pi.entries).toEqual([{ type: "custom", customType: ROLE_ENTRY, data: role }]);
     expect(pi.active()).toEqual(["read", "bash", "factory_task", "factory_handoff"]);
@@ -149,6 +149,15 @@ describe("/sketch", () => {
     pi.start([], "session_tree");
     expect(pi.active()).toEqual(["read", "bash"]);
   });
+});
+
+test("a design agent gets its role from the env and cannot use /sketch", async () => {
+  const pi = fakePi({ FACTORY_ROLE: "design", FACTORY_TASK: "t-7f3a" });
+  pi.start();
+  expect(pi.active()).toEqual(["read", "bash", "factory_task", "factory_handoff"]);
+  await pi.run("sketch", "Another task", "/");
+  expect(pi.notes.at(-1)).toContain("this session is the factory design");
+  expect((await listTasks(ledgerPaths(home))).tasks).toEqual([]);
 });
 
 test("/park pauses the worker task", async () => {

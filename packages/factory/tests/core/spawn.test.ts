@@ -7,7 +7,9 @@ import { ledgerPaths, taskPath } from "../../src/core/paths.ts";
 import {
   coordinatorRun,
   startCoordinator,
+  startDesign,
   startWorker,
+  taskRun,
   WORKER_RESTART_PROMPT,
   workerRun,
 } from "../../src/core/spawn.ts";
@@ -18,7 +20,7 @@ const config = defaultConfig();
 
 function task(): Task {
   const now = "2026-11-05T14:00:00.000Z";
-  return newTask({ id: "t-7f3a", title: "Add the router", repo: "/repo", template: "", now });
+  return newTask({ id: "t-7f3a", title: "Add the router", cwd: "/repo", template: "", now });
 }
 
 function fakeHc(old?: Partial<HcTerminalDetail>) {
@@ -53,6 +55,7 @@ function fakeHerdr(window: boolean) {
   const names: HerdrName[] = [];
   const herdr: Herdr = {
     spaces: () => Promise.resolve(window ? [] : NO_WINDOW),
+    focus: () => Promise.resolve(true),
     rename: (target) => {
       names.push(target);
       return Promise.resolve(true);
@@ -71,6 +74,27 @@ describe("run options", () => {
       argv: [
         ...["pi", "--session-id", "t-7f3a", "--model", "claude-opus-5-5", "--thinking", "high"],
         `You are the factory worker of task t-7f3a. Your task file is ${taskPath(paths, "t-7f3a")}. Read it and do the task.`,
+      ],
+    });
+  });
+
+  test("the design agent runs pi in the task cwd with its own session", () => {
+    const run = taskRun("design", task(), config, { restart: false, pi: ["pi"], paths });
+    expect(run).toEqual({
+      name: "factory-design-t-7f3a",
+      cwd: "/repo",
+      env: { FACTORY_ROLE: "design", FACTORY_TASK: "t-7f3a", FACTORY_HOME: paths.home },
+      argv: [
+        ...[
+          "pi",
+          "--session-id",
+          "design-t-7f3a",
+          "--model",
+          "claude-opus-5-5",
+          "--thinking",
+          "high",
+        ],
+        `You are the factory design agent of task t-7f3a. Your task file is ${taskPath(paths, "t-7f3a")}. Read it, then help the user write its contract.`,
       ],
     });
   });
@@ -116,6 +140,17 @@ describe("startWorker", () => {
     expect(calls).toEqual(["get factory-t-7f3a"]);
     expect(runs[0]?.labels).toBeUndefined();
   });
+});
+
+test("startDesign uses a design tab in the space of the task cwd", async () => {
+  const { hc, runs } = fakeHc();
+  const { herdr, names } = fakeHerdr(true);
+  await startDesign(task(), config, { restart: false, deps: { hc, herdr, paths } });
+  expect(runs[0]?.name).toBe("factory-design-t-7f3a");
+  expect(runs[0]?.labels?.["herdr.tab"]).toBe("tbfactory-design-t-7f3a");
+  expect(names).toEqual([
+    { kind: "tab", id: "tbfactory-design-t-7f3a", name: "t-7f3a Add the router" },
+  ]);
 });
 
 test("startCoordinator names a new factory space", async () => {
