@@ -18,8 +18,8 @@ async function fillLedger(paths: LedgerPaths): Promise<string> {
   await updateTask(dropped.meta.id, { status: "dropped" }, paths);
   const kept = await createTask({ title: "Kept", repo: paths.home }, paths);
   await writeInbox({ ...event, id: "e-1", summary: "", url: "", ts }, paths);
-  const record = { ts, source: "github", ok: true, new: 0, routed: [], ignored: 0 };
-  await appendFeed({ ...record, summary: "quiet" }, paths);
+  const record = { ts, source: "github", ok: true, new: 1, routed: [], ignored: 1 };
+  await appendFeed({ ...record, summary: "one ignored" }, paths);
   await writeFile(join(paths.tasks, "t-bad0.md"), "no front matter\n");
   return kept.meta.id;
 }
@@ -36,8 +36,8 @@ test("loadBoard reads tasks, bad task files, inbox, feed, and terminals", async 
   expect(board.tasks.map((card) => [card.id, card.terminal])).toEqual([[id, "t9"]]);
   expect(board.inbox).toEqual([{ ...event, id: "e-1", url: "", ts }]);
   expect(board.invalid).toBe(1);
-  expect(board.sources.map((source) => source.summary)).toEqual(["quiet"]);
-  expect(board.feed).toEqual([{ ts, source: "github", summary: "quiet" }]);
+  expect(board.sources.map((source) => source.summary)).toEqual(["one ignored"]);
+  expect(board.feed).toEqual([{ ts, source: "github", summary: "one ignored" }]);
 });
 
 test("loadBoard shows no terminals when hc fails", async () => {

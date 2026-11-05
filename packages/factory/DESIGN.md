@@ -102,6 +102,7 @@ Status values: `sketch`, `ready`, `working`, `landing`, `landed`, `dropped`.
 sketch → ready → working → landing → landed
   any  → dropped
 ready → sketch, landing → working
+working → landed   (the landing completes at once, for example a local commit)
 ```
 
 `updateTask` accepts only these changes (`statusTransitions` in core). `landed` and `dropped` are
@@ -335,8 +336,11 @@ A Herdr mod that reads `factory board --json`:
   invalid: number;                          // task files that are not valid
   sources: { source; ok; ts; summary }[];   // the last record of each source in the last
                                             // 2000 records, factoryd too
-  feed: { ts; source; summary }[] }          // the last 20 records
+  feed: { ts; source; summary }[] }          // the last 20 records that are not empty polls
 ```
+
+An empty poll is a record that is not from `factoryd` and has `ok: true`, `new: 0`, and no `routed`
+items; the feed leaves it out, but the source health uses it.
 
 The Herdr layout `factory` shows the shown tab on the left, with a banner over it, and the board as
 a sidebar on the right (one third of the window, resizable).

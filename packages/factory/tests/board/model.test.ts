@@ -44,6 +44,10 @@ function record(source: string, ts: string, fields: Partial<FeedRecord> = {}): F
   };
 }
 
+function minute(i: number): string {
+  return new Date(Date.UTC(2026, 10, 5, 0, i)).toISOString();
+}
+
 function board(input: Partial<BoardInput>) {
   return buildBoard({ tasks: [], invalid: 0, inbox: [], feed: [], terminals: [], now, ...input });
 }
@@ -137,10 +141,25 @@ describe("buildBoard sources and feed", () => {
 
   test("the feed has the last records, oldest first", () => {
     const feed = Array.from({ length: BOARD_FEED_SIZE + 5 }, (_, i) =>
-      record("github", new Date(Date.UTC(2026, 10, 5, 0, i)).toISOString()),
+      record("github", minute(i), { new: 1 }),
     );
     const items = board({ feed });
     const last = feed.slice(5).map(({ ts, source, summary }) => ({ ts, source, summary }));
     expect(items.feed).toEqual(last);
+  });
+
+  test("the feed leaves out empty polls, the sources do not", () => {
+    const kept = [
+      record("github", minute(0), { new: 1 }),
+      record("sentry", minute(1), { routed: [{ thread: "t", kind: "issue", to: "inbox" }] }),
+      record("github", minute(2), { ok: false, error: "boom" }),
+      record("factoryd", minute(3)),
+    ];
+    const empty = Array.from({ length: BOARD_FEED_SIZE }, (_, i) =>
+      record("github", minute(10 + i)),
+    );
+    const items = board({ feed: [...kept, ...empty] });
+    expect(items.feed.map(({ ts }) => ts)).toEqual(kept.map(({ ts }) => ts));
+    expect(items.sources[0]).toMatchObject({ source: "github", ok: true, ts: minute(29) });
   });
 });

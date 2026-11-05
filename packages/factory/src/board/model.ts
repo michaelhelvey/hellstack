@@ -94,6 +94,11 @@ function lastPerSource(feed: FeedRecord[]): BoardSource[] {
   return [...last.values()].map(({ source, ok, ts, summary }) => ({ source, ok, ts, summary }));
 }
 
+function onFeed(record: FeedRecord): boolean {
+  if (record.source === "factoryd" || !record.ok) return true;
+  return record.new > 0 || record.routed.length > 0;
+}
+
 function newestFirst(inbox: FactoryEvent[]): BoardInboxItem[] {
   return [...inbox]
     .sort((a, b) => b.ts.localeCompare(a.ts))
@@ -111,7 +116,7 @@ function newestFirst(inbox: FactoryEvent[]): BoardInboxItem[] {
 /**
  * Returns the board model. It leaves out dropped tasks and tasks that did not land today (local
  * time, from `landed_at`, else `updated`). `feed` must be in file order; the sources use all of
- * it, the feed only the last records.
+ * it, the feed only the last records that are not empty polls.
  */
 export function buildBoard(input: BoardInput): Board {
   const byName = terminalsByName(input.terminals);
@@ -123,6 +128,7 @@ export function buildBoard(input: BoardInput): Board {
     invalid: input.invalid,
     sources: lastPerSource(input.feed),
     feed: input.feed
+      .filter(onFeed)
       .slice(-BOARD_FEED_SIZE)
       .map(({ ts, source, summary }) => ({ ts, source, summary })),
   };
