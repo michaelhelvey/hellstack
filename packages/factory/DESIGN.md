@@ -408,27 +408,24 @@ A Herdr mod that reads `factory board --json`:
 An empty poll is a record that is not from `factoryd` and has `ok: true`, `new: 0`, and no `routed`
 items; the feed leaves it out, but the source health uses it.
 
-The Herdr layout `factory` shows the shown tab on the left, with a banner over it, and the board as
-a sidebar on the right (one third of the window, resizable).
+The Herdr layout `factory` shows the shown tab on the left, with a one-line banner over it, and the
+board on the right. The two halves are 50/50 and resizable.
 
-The banner tells who the shown tab talks to. Herdr tab `tbfactory` is the coordinator (accent
-`ansi5`): the banner shows the counts of tasks that wait on you, working, landing, ready, and the
-inbox. Tab `tbfactory-<id>` is the worker of task `<id>` (accent `ansi6`): the banner shows the task
-id, title, cwd, status, landing progress, and `now`, and a button back to the coordinator. The board
-shows the card of that task with the same accent. The board gives the banner its tasks, the inbox
-count, and its load error through Herdr `shared()`; the banner tells when the board cannot load.
+The banner tells who the shown tab talks to, in the user's UI font size. The role comes from the
+focused terminal name: `factory` is the coordinator (accent `ansi5`), `factory-<id>` is a worker
+(accent `ansi6`), and `factory-design-<id>` is a design agent (accent `ansi3`). For a worker or a
+design agent, the banner shows the task id, title, cwd, status, landing progress, and `now`, and a
+button back to the coordinator. Another tab shows one dim line. The board shows the card of the
+shown task with the same accent.
 
-The board shows, from top to bottom: "needs you" (tasks with `needs_you`; a coordinator proposal is
-a `sketch` with `needs_you` set), `working` and `landing` as cards with `now` and the landing
-progress, `ready` and `sketch` as one line each, the inbox, `landed` (today only, from `landed_at`;
-else `updated` for files without it), the source health, and the feed. An empty section is one line.
-When the board is 680 px or wider, it has two columns: the tasks on the left; the inbox, the source
-health, and the feed on the right.
-
-The inbox joins events of one thread into one row: the kind of the newest event, `repo#n` (or the
-Sentry short id), the title, the count, and the age. It shows 15 rows and "+N more". The inbox
-counts are counts of threads, with the count of events when it is larger. A click on a row opens its
-`url` in the browser. A click on a task with a terminal focuses that terminal. Colors come from the
+The board header has the power switch (from `running`; it runs `up` or `down`), the count of bad
+task files, and the source health. Under it, the tasks take two fifths of the width: "needs you"
+(tasks with `needs_you`; a coordinator proposal is a `sketch` with `needs_you` set), then a lane for
+each status, with the cwd folder, the agent role, and the landing progress; then the feed. A click
+on a task runs `open <id>`. The inbox takes three fifths: one card for each thread, in as many
+columns as fit, with the kind, `repo#n`, state, author, age, title, and body excerpt. Each card has
+`design →` (`inbox design`) and `dismiss` or `resolve` (`inbox dismiss`, after a confirm step). A
+click on the card opens its `url`. When the board is narrow, it has one column. Colors come from the
 Herdr theme (`theme()`), so the board follows the theme-picker themes.
 
 ## CLI
