@@ -106,16 +106,38 @@ export function busyLine(ctx, text) {
     .child(text);
 }
 
-/** Returns the text of a failed action, in the blocked color. */
-export function errorLine(ctx, text) {
-  return div().text_size(ctx.fs.small).text_color(ctx.t.blocked).child(text);
+function closeButton(ctx, key) {
+  return div()
+    .id(`fb-x-${key}`)
+    .flex_none()
+    .px(4)
+    .rounded(4)
+    .text_color(ctx.t.dim)
+    .cursor_pointer()
+    .hover((s) => s.bg(ctx.t.hover).text_color(ctx.t.foreground))
+    .on_click((_e, cx) => {
+      cx.stop_propagation();
+      ctx.clear(key, cx);
+    })
+    .child("✕");
 }
 
-/** Returns a line for the state of an action (`Actions.get`): busy, error, or a note. */
-export function actionLine(ctx, state) {
+function messageLine(ctx, key, state) {
+  const color = state.phase === "error" ? ctx.t.blocked : ctx.t.muted;
+  return h_flex()
+    .gap(6)
+    .items_start()
+    .text_size(ctx.fs.small)
+    .child(div().flex_1().min_w(0).text_color(color).child(state.text))
+    .child(closeButton(ctx, key));
+}
+
+/**
+ * Returns a line for the state of the action `key`: a spinner while it runs, else its error or
+ * note with a button that clears it. Returns false when there is nothing to show.
+ */
+export function actionLine(ctx, key) {
+  const state = ctx.actions.get(key);
   if (state?.phase === "busy") return busyLine(ctx, state.text);
-  if (state?.phase === "error") return errorLine(ctx, state.text);
-  if (state?.phase === "note")
-    return div().text_size(ctx.fs.small).text_color(ctx.t.muted).child(state.text);
-  return false;
+  return ["error", "note"].includes(state?.phase) && messageLine(ctx, key, state);
 }

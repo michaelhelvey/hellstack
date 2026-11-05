@@ -5,7 +5,7 @@
   },
   "tasks": [
     {
-      "id": "t0412",
+      "id": "t-0412",
       "title": "Retry the webhook delivery with a backoff",
       "status": "working",
       "cwd": "/Users/me/dev/acme/api",
@@ -23,7 +23,7 @@
       }
     },
     {
-      "id": "t0415",
+      "id": "t-0415",
       "title": "Move the invoice export to the job queue",
       "status": "working",
       "cwd": "/Users/me/dev/acme/billing-service",
@@ -41,7 +41,7 @@
       }
     },
     {
-      "id": "t0409",
+      "id": "t-0409",
       "title": "Fix the flaky login test on CI",
       "status": "landing",
       "cwd": "/Users/me/dev/acme/web",
@@ -59,7 +59,7 @@
       }
     },
     {
-      "id": "t0418",
+      "id": "t-0418",
       "title": "Show the plan limits on the settings page",
       "status": "ready",
       "cwd": "/Users/me/dev/acme/web",
@@ -72,7 +72,7 @@
       }
     },
     {
-      "id": "t0420",
+      "id": "t-0420",
       "title": "Upgrade the queue client to v5",
       "status": "ready",
       "cwd": "/Users/me/dev/acme/api",
@@ -85,7 +85,7 @@
       }
     },
     {
-      "id": "t0421",
+      "id": "t-0421",
       "title": "TypeError: cannot read properties of undefined (reading 'plan') in checkout",
       "status": "sketch",
       "cwd": "/Users/me/dev/acme/web",
@@ -103,7 +103,7 @@
       }
     },
     {
-      "id": "t0422",
+      "id": "t-0422",
       "title": "Proposal: delete the old v1 export endpoints",
       "status": "sketch",
       "cwd": "/Users/me/dev/acme/api",
@@ -116,7 +116,7 @@
       }
     },
     {
-      "id": "t0423",
+      "id": "t-0423",
       "title": "A sketch with a very long title that does not fit on one line of the card at all",
       "status": "sketch",
       "cwd": "/Users/me/.factory",
@@ -129,7 +129,7 @@
       }
     },
     {
-      "id": "t0401",
+      "id": "t-0401",
       "title": "Rate limit the public search endpoint",
       "status": "landed",
       "cwd": "/Users/me/dev/acme/api",
@@ -142,7 +142,7 @@
       }
     },
     {
-      "id": "t0403",
+      "id": "t-0403",
       "title": "Add the dark mode toggle",
       "status": "landed",
       "cwd": "/Users/me/dev/acme/web",
@@ -379,12 +379,12 @@
     {
       "ts": "2026-11-05T17:02:00Z",
       "source": "factoryd",
-      "summary": "started worker t0412"
+      "summary": "started worker t-0412"
     },
     {
       "ts": "2026-11-05T17:40:00Z",
       "source": "github",
-      "summary": "2 new, 1 routed to t0409"
+      "summary": "2 new, 1 routed to t-0409"
     },
     {
       "ts": "2026-11-05T18:00:00Z",

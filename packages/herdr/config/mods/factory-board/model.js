@@ -120,9 +120,18 @@ function validTask(task) {
   return fields && [task.landing?.done, task.landing?.total].every((n) => typeof n === "number");
 }
 
+const DETAIL_FIELDS = ["author", "body", "state", "repo"];
+
+function validDetail(detail) {
+  if (detail === undefined) return true;
+  const fields = DETAIL_FIELDS.map((key) => detail?.[key]);
+  return (
+    typeof detail === "object" && fields.every((v) => v === undefined || typeof v === "string")
+  );
+}
+
 function validItem(item) {
-  const detail = item?.detail === undefined || typeof item.detail === "object";
-  return detail && INBOX_FIELDS.every((key) => typeof item?.[key] === "string");
+  return validDetail(item?.detail) && INBOX_FIELDS.every((key) => typeof item?.[key] === "string");
 }
 
 function validBoard(board) {
@@ -236,19 +245,30 @@ export function excerpt(body, open) {
   return { text: `${text.slice(0, EXCERPT_CHARS).trimEnd()}…`, cut: true };
 }
 
+const TASK_ID = "t-[0-9a-f]{4,8}";
+
+const ROLE_NAMES = [
+  [new RegExp(`^factory-design-(${TASK_ID})$`), "design"],
+  [new RegExp(`^factory-(${TASK_ID})$`), "worker"],
+  [new RegExp(`^${COORDINATOR_TAB}-design-(${TASK_ID})$`), "design"],
+  [new RegExp(`^${COORDINATOR_TAB}-(${TASK_ID})$`), "worker"],
+];
+
+function idRole(name) {
+  for (const [pattern, role] of ROLE_NAMES) {
+    const match = pattern.exec(name);
+    if (match) return { role, id: match[1] };
+  }
+  return null;
+}
+
 function nameRole(name) {
-  if (name === COORDINATOR_TERMINAL) return { role: "coordinator" };
-  const design = /^factory-design-(.+)$/.exec(name);
-  if (design) return { role: "design", id: design[1] };
-  const worker = /^factory-(.+)$/.exec(name);
-  return worker ? { role: "worker", id: worker[1] } : null;
+  return name === COORDINATOR_TERMINAL ? { role: "coordinator" } : idRole(name);
 }
 
 function tabRole(tab) {
   if (tab === COORDINATOR_TAB) return { role: "coordinator" };
-  const prefix = `${COORDINATOR_TAB}-`;
-  const id = tab?.startsWith(prefix) ? tab.slice(prefix.length) : "";
-  return id ? { role: "worker", id } : { role: "other" };
+  return idRole(tab ?? "") ?? { role: "other" };
 }
 
 /**

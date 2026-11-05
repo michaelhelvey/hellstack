@@ -44,10 +44,14 @@ export const COMMANDS = {
   design: (ids) => [["inbox", "design", ids[0], "--json"]],
 };
 
+function noteOf(value) {
+  if (typeof value?.message === "string") return value.message;
+  return value?.terminal === null ? "nothing to open" : "";
+}
+
 function note(stdout) {
   try {
-    const value = JSON.parse(stdout);
-    return typeof value?.message === "string" ? value.message : "";
+    return noteOf(JSON.parse(stdout));
   } catch {
     return "";
   }
@@ -55,7 +59,8 @@ function note(stdout) {
 
 /**
  * Returns the result of a CLI run (`exec`): `{ ok, text }`. `text` is the error when the exit code
- * is not 0, else the `message` of the JSON output, if there is one.
+ * is not 0, else the `message` of the JSON output, or "nothing to open" when its `terminal` is
+ * null.
  */
 export function cliResult({ code, stdout, stderr }) {
   if (code === 0) return { ok: true, text: note(stdout) };

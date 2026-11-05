@@ -95,14 +95,14 @@ function frame(ctx, el, task) {
   const accent = t[ROLE_ACCENTS[shown.role]];
   const key = `task:${task.id}`;
   return clickable(el, t, (_e, cx) => ctx.openTask(task.id, cx))
-    .tooltip(`open the ${task.status === "sketch" ? "design agent" : "worker"} of ${task.id}`)
+    .tooltip(`open the agent of ${task.id}`)
     .when(task.id === shown.id, (el) =>
       el
         .border_1()
         .border_color(accent)
         .bg(accent + "1a"),
     )
-    .children(some(actionLine(ctx, ctx.actions.get(key))));
+    .children(some(actionLine(ctx, key)));
 }
 
 function meta(ctx, task) {

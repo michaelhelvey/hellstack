@@ -55,6 +55,8 @@ describe("commands", () => {
       text: "no design agent runs",
     });
     expect(cliResult({ code: 0, stdout: "started\n", stderr: "" })).toEqual({ ok: true, text: "" });
+    const none = JSON.stringify({ terminal: null, started: false });
+    expect(cliResult({ code: 0, stdout: none, stderr: "" }).text).toBe("nothing to open");
   });
 });
 

@@ -160,14 +160,20 @@ describe("banner", () => {
     expect(shownRole(worker)).toEqual({ role: "worker", id: "t-1a2b3c" });
   });
 
-  test("the terminal names in the tab tell the role before the tab id", () => {
+  test("the terminal names tell the role before the tab id; the first name wins", () => {
     expect(shownRole("tb1", [undefined, COORDINATOR_TERMINAL])).toEqual({ role: "coordinator" });
-    expect(shownRole("tb1", ["zsh", workerTerminal("t-9")])).toEqual({ role: "worker", id: "t-9" });
-    expect(shownRole("tbfactory-t-9", ["factory-design-t-9"])).toEqual({
-      role: "design",
-      id: "t-9",
-    });
+    const worker = { role: "worker", id: "t-00a9" };
+    expect(shownRole("tb1", ["zsh", workerTerminal("t-00a9")])).toEqual(worker);
+    const design = { role: "design", id: "t-00a9" };
+    expect(shownRole("tbfactory-t-00a9", ["factory-design-t-00a9"])).toEqual(design);
+    expect(shownRole("tb1", [workerTerminal("t-00a9"), "factory-design-t-00a9"])).toEqual(worker);
+    expect(shownRole("tbfactory-design-t-00a9")).toEqual(design);
     expect(shownRole("tb1", ["zsh"])).toEqual({ role: "other" });
+  });
+
+  test("a terminal or tab name that only starts with factory is not a factory agent", () => {
+    expect(shownRole("tb1", ["factory-logs", "factory-board-dev"])).toEqual({ role: "other" });
+    expect(shownRole("tbfactory-notes")).toEqual({ role: "other" });
   });
 
   test("the names of a tab come from its panes and the live terminals", () => {
@@ -262,8 +268,12 @@ describe("loading", () => {
     expect(() => parseBoard('{"inbox":8}')).toThrow("unknown shape");
     const { url: _url, ...noUrl } = event("1", "gh:a/b#1");
     expect(() => parseBoard(JSON.stringify({ inbox: [noUrl] }))).toThrow("unknown shape");
-    const badDetail = event("1", "gh:a/b#1", { detail: "text" });
-    expect(() => parseBoard(JSON.stringify({ inbox: [badDetail] }))).toThrow("unknown shape");
+    for (const detail of ["text", { body: 42 }, { state: { open: true } }]) {
+      const bad = event("1", "gh:a/b#1", { detail });
+      expect(() => parseBoard(JSON.stringify({ inbox: [bad] }))).toThrow("unknown shape");
+    }
+    const good = event("1", "gh:a/b#1", { detail: { author: "a", body: "b" } });
+    expect(parseBoard(JSON.stringify({ inbox: [good] })).inbox).toHaveLength(1);
   });
 
   test("old output with repo and terminal gets cwd and a worker agent", () => {

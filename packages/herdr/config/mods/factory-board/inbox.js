@@ -130,7 +130,7 @@ function confirm(ctx, thread) {
 }
 
 function buttons(ctx, thread, state) {
-  if (state?.phase === "busy") return actionLine(ctx, state);
+  if (state?.phase === "busy") return actionLine(ctx, `thread:${thread.key}`);
   const row = state?.phase === "confirm" ? confirm(ctx, thread) : triage(ctx, thread);
   return h_flex().flex_wrap().gap(6).items_center().children(row);
 }
@@ -160,7 +160,7 @@ function card(ctx, thread) {
     .children(some(body(ctx, thread)))
     .children(some(older(ctx, thread)))
     .child(buttons(ctx, thread, state))
-    .children(some(state?.phase === "error" && actionLine(ctx, state)));
+    .children(some(state?.phase === "error" && actionLine(ctx, `thread:${thread.key}`)));
   if (!openable(latest.url)) return el;
   return clickable(el, t, (_e, cx) => cx.open_url(latest.url)).tooltip(latest.url);
 }

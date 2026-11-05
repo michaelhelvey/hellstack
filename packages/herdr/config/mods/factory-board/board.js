@@ -16,11 +16,14 @@ export const TWO_COLUMNS_PX = 760;
 const PADDING = 16;
 const GAP = 20;
 
+const START = ["up", "start"];
+const STOP = ["down", "stop"];
+
 const POWER = {
-  running: { text: "running", color: "done", next: "down", label: "stop" },
-  partial: { text: "partly running", color: "ansi3", next: "up", label: "start all" },
-  stopped: { text: "stopped", color: "dim", next: "up", label: "start" },
-  unknown: { text: "…", color: "dim", next: "", label: "" },
+  running: { text: "running", color: "done", buttons: [STOP] },
+  partial: { text: "partly running", color: "ansi3", buttons: [START, STOP] },
+  stopped: { text: "stopped", color: "dim", buttons: [START] },
+  unknown: { text: "…", color: "dim", buttons: [] },
 };
 
 function partText(running) {
@@ -32,17 +35,16 @@ function partText(running) {
   return parts.map(([name, on]) => `${name} ${on ? "runs" : "is stopped"}`).join(", ");
 }
 
-function powerButton(ctx, spec) {
-  if (!spec.next) return false;
+function powerButton(ctx, [next, label]) {
   const { t } = ctx;
-  const solid = spec.next === "up";
+  const solid = next === "up";
   return button(ctx, {
-    id: "fb-power",
-    text: spec.label,
+    id: `fb-power-${next}`,
+    text: label,
     color: solid ? t.done : t.muted,
     solid,
-    tooltip: `bun run factory ${spec.next}`,
-    onClick: (_e, cx) => ctx.power(spec.next, cx),
+    tooltip: `bun run factory ${next}`,
+    onClick: (_e, cx) => ctx.power(next, cx),
   });
 }
 
@@ -80,7 +82,7 @@ function power(ctx, running) {
   return frame
     .child(dot(t[spec.color], 8))
     .child(powerText(ctx, t[spec.color], spec.text))
-    .children(some(powerButton(ctx, spec)));
+    .children(spec.buttons.map((pair) => powerButton(ctx, pair)));
 }
 
 function source(ctx, s) {
@@ -129,7 +131,7 @@ function header(ctx, board) {
   return v_flex()
     .gap(6)
     .child(headerRow(ctx, board))
-    .children(some(action?.phase !== "busy" && actionLine(ctx, action)))
+    .children(some(action?.phase !== "busy" && actionLine(ctx, "power")))
     .children(some(Boolean(ctx.error) && loadError));
 }
 
