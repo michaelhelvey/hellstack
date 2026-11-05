@@ -286,11 +286,12 @@ a model, except the feed summary, which has a timeout.
 
 The daemon reloads `config.json` when it changes. The messages for the coordinator are in
 `state/daemon.json` until they are sent, so they survive a restart; at most 50 lines wait, and a
-line tells how many older lines were dropped. The daemon sends them before it stops. The `factoryd`
-terminal runs the daemon in a login shell of the user (`$SHELL -lic`), because `hc run` does not
-give the caller's environment to the terminal; the shell files give the tokens. `--no-agents` runs
-the loop without agents: it does not start, message, or interrupt agents, and prints the messages
-instead.
+line tells how many older lines were dropped. When `hc send` fails with the kind `unavailable` (the
+coordinator is still starting), the lines wait for a later tick and the feed gets no error record.
+The daemon sends them before it stops. The `factoryd` terminal runs the daemon in a login shell of
+the user (`$SHELL -lic`), because `hc run` does not give the caller's environment to the terminal;
+the shell files give the tokens. `--no-agents` runs the loop without agents: it does not start,
+message, or interrupt agents, and prints the messages instead.
 
 ## Extension
 

@@ -15,6 +15,7 @@ import {
   startCoordinator,
   startWorker,
   writeInbox,
+  HcError,
   type CommandRunner,
   type Config,
   type FactoryEvent,
@@ -318,6 +319,10 @@ export async function housekeeping(daemon: Daemon, now: number): Promise<void> {
   await guard(daemon, "watchdog", () => watchdog(daemon, now));
 }
 
+function stillStarting(error: unknown): boolean {
+  return error instanceof HcError && error.kind === "unavailable";
+}
+
 async function flush(daemon: Daemon, now: number): Promise<void> {
   const before = daemon.digest;
   const { digest, block } = flushDigest(before, now);
@@ -329,7 +334,7 @@ async function flush(daemon: Daemon, now: number): Promise<void> {
       lines: [...before.lines, ...daemon.digest.lines],
       dropped: before.dropped,
     };
-    throw error;
+    if (!stillStarting(error)) throw error;
   });
   await persist(daemon);
 }

@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 
 import {
   defaultConfig,
+  HcError,
   listInbox,
   readFeed,
   writeTask,
@@ -18,6 +19,7 @@ import {
   tick,
   type DaemonOptions,
 } from "../../src/daemon/daemon.ts";
+import { DIGEST_MS } from "../../src/daemon/digest.ts";
 import type { Source } from "../../src/daemon/source.ts";
 import { statePath } from "../../src/daemon/state.ts";
 import { STUCK_MS } from "../../src/daemon/watchdog.ts";
@@ -182,6 +184,22 @@ describe("daemon tick", () => {
     expect((await readFeed(50, paths)).some((r) => r.error === "the coordinator is gone")).toBe(
       true,
     );
+  });
+
+  test("a coordinator that is still starting keeps the messages and writes no error", async () => {
+    const { paths, fake, daemon } = await setup({ agents: true });
+    const send = fake.hc.send.bind(fake.hc);
+    let starting = true;
+    fake.hc.send = (to, text) =>
+      starting && to === "factory"
+        ? Promise.reject(new HcError("unavailable", "t4r is still starting"))
+        : send(to, text);
+    await tick(daemon, 0);
+    expect((await readFeed(50, paths)).filter((r) => !r.ok)).toEqual([]);
+    starting = false;
+    await tick(daemon, DIGEST_MS);
+    expect(fake.sent.at(-1)).toMatchObject({ to: "factory" });
+    expect(fake.sent.at(-1)?.text).toContain("- event free");
   });
 
   test("a state file that is not valid gives an empty state and an error record", async () => {
