@@ -311,8 +311,17 @@ in the session with `appendEntry`, so it survives a resume.
 - `factory_dispatch`: start the worker of a `ready` task and set it to `working`.
 - `factory_handoff`: validate a `sketch` and set it to `ready`. Return the missing parts when it
   fails.
-- Commands: `/sketch <title>` (any session), `/handoff` (design), `/park` and `/unpark` (worker).
-- Only the coordinator role loads the `factory` skill.
+- A worker acts only on its own task: `factory_task` refuses `list`, `create`, and other ids. A
+  design session acts on its own task when a call gives no id.
+- `update` with an empty `needs_you` clears it (pi drops `null` tool arguments).
+- The factory tools are `sequential` in pi, so pi does not run them at the same time as an `edit` of
+  the same task file in the same assistant message.
+- Commands: `/sketch <title>` (every session that has no `FACTORY_ROLE`, or is already `design`; a
+  coordinator, worker, or sub-agent must not lose its role), `/handoff` (design), `/park` and
+  `/unpark` (worker).
+- The coordinator bash limit is code: a `tool_call` handler sets the bash `timeout` to at most 10
+  seconds.
+- Only the coordinator role loads the `factory` skill. Its body is also in the coordinator prompt.
 
 ## Board
 
