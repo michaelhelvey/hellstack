@@ -4,7 +4,7 @@ import { describe, expect, test } from "bun:test";
 
 import { createTask, initLedger, updateTask } from "../../src/core/ledger.ts";
 import { promptPath, taskPath } from "../../src/core/paths.ts";
-import { designDonePrompt, designPrompt, roleSections } from "../../src/extension/prompt.ts";
+import { designDonePrompt, roleSections } from "../../src/extension/prompt.ts";
 import { tempFolder, tempLedger } from "../core/helpers.ts";
 
 const rules = (await readFile(promptPath("chinchilla.md"), "utf8")).trim();
@@ -42,9 +42,11 @@ describe("roleSections", () => {
     const role = { kind: "design", task: task.meta.id } as const;
     const sketch = await roleSections(role, paths);
     expect(Object.keys(sketch)).toEqual(["factory_rules", "factory_design"]);
-    expect(sketch.factory_design).toBe(
-      `${designPrompt(role, paths)}\n\nThe task template:\n\n${(await readFile(promptPath("task-template.md"), "utf8")).trim()}`,
-    );
+    const design = (await readFile(promptPath("DESIGN-AGENT.md"), "utf8")).trim();
+    const template = (await readFile(promptPath("task-template.md"), "utf8")).trim();
+    expect(sketch.factory_design).toStartWith(design);
+    expect(sketch.factory_design).toContain(`Your task file is ${taskPath(paths, task.meta.id)}.`);
+    expect(sketch.factory_design).toEndWith(`The task template:\n\n${template}`);
 
     await updateTask(task.meta.id, { status: "dropped" }, paths);
     const done = await roleSections(role, paths);

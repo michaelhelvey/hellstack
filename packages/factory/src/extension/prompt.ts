@@ -35,21 +35,6 @@ function taskIntro(role: TaskRole, paths: LedgerPaths): string {
   return `Your task is ${role.task}. Your task file is ${taskPath(paths, role.task)}. The factory ledger is ${paths.home}.`;
 }
 
-/** Returns the prompt of a design session for the `sketch` task `role.task`. */
-export function designPrompt(role: TaskRole, paths: LedgerPaths): string {
-  return [
-    "# Factory design",
-    "",
-    `You help the user write the contract of a factory task. ${taskIntro(role, paths)}`,
-    "The task is a `sketch`: nothing acts on it before handoff. After handoff, a worker that has only this file does the work. The file must make sense without this conversation.",
-    "",
-    "- The HTML comments in the file tell what each section needs. Ask the user what you cannot find out yourself, a few questions at a time.",
-    "- Write into the file as the conversation goes. Replace each comment with real text. Edit the prose with your edit tools. Change the title and the `cwd` (the folder where the worker works) with `factory_task` `update`.",
-    "- When the user says that the task is ready, run `factory_handoff`. When it fails, tell the user what is missing.",
-    "- Do not do the task yourself.",
-  ].join("\n");
-}
-
 /** Returns the prompt of a design session whose task is no longer a `sketch`. */
 export function designDonePrompt(role: TaskRole, paths: LedgerPaths, status: string): string {
   return [
@@ -81,9 +66,12 @@ async function taskStatus(id: string, paths: LedgerPaths): Promise<TaskStatus | 
 async function designSections(role: TaskRole, paths: LedgerPaths): Promise<Sections> {
   const status = await taskStatus(role.task, paths);
   if (status !== "sketch") return { factory_design: designDonePrompt(role, paths, status) };
-  const template = await prompt("task-template.md");
+  const [design, template] = await Promise.all([
+    prompt("DESIGN-AGENT.md"),
+    prompt("task-template.md"),
+  ]);
   return {
-    factory_design: `${designPrompt(role, paths)}\n\nThe task template:\n\n${template}`,
+    factory_design: `${design}\n\n${taskIntro(role, paths)}\n\nThe task template:\n\n${template}`,
   };
 }
 

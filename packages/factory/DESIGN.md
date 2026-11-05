@@ -11,15 +11,15 @@ Keep the code small. Do not add process that a capable model does not need.
 
 ## Parts
 
-| Part       | Where                                        | Runtime | What it does                                                     |
-| ---------- | -------------------------------------------- | ------- | ---------------------------------------------------------------- |
-| core       | `src/core/`                                  | Node    | Ledger paths, config, task files, inbox, feed, hc, agent spawn   |
-| `factoryd` | `src/daemon/`                                | bun     | Poll, filter, route, reconcile, keepalive, watchdog, prune, feed |
-| extension  | `src/index.ts`, `src/extension/`             | Node    | Roles, prompt injection, tools, commands, bash timeout           |
-| CLI        | `src/cli.ts`                                 | bun     | `init`, `up`, `down`, `status`, `board`, `open`, `inbox`         |
-| prose      | `prompts/`, `skills/factory/`                | -       | `chinchilla.md`, `WORKER.md`, coordinator seed, task template    |
-| board      | `packages/herdr/config/mods/factory-board`   | Herdr   | The board mod                                                    |
-| layout     | `packages/herdr/config/layouts/factory.json` | Herdr   | The `factory` layout                                             |
+| Part       | Where                                        | Runtime | What it does                                                                     |
+| ---------- | -------------------------------------------- | ------- | -------------------------------------------------------------------------------- |
+| core       | `src/core/`                                  | Node    | Ledger paths, config, task files, inbox, feed, hc, agent spawn                   |
+| `factoryd` | `src/daemon/`                                | bun     | Poll, filter, route, reconcile, keepalive, watchdog, prune, feed                 |
+| extension  | `src/index.ts`, `src/extension/`             | Node    | Roles, prompt injection, tools, commands, bash timeout                           |
+| CLI        | `src/cli.ts`                                 | bun     | `init`, `up`, `down`, `status`, `board`, `open`, `inbox`                         |
+| prose      | `prompts/`, `skills/factory/`                | -       | `chinchilla.md`, `WORKER.md`, `DESIGN-AGENT.md`, coordinator seed, task template |
+| board      | `packages/herdr/config/mods/factory-board`   | Herdr   | The board mod                                                                    |
+| layout     | `packages/herdr/config/layouts/factory.json` | Herdr   | The `factory` layout                                                             |
 
 Pi runs the extension with Node, so `src/core` and `src/extension` must not use `Bun` APIs. The
 daemon and the CLI run with bun and can use `Bun` APIs, but prefer the core functions.
@@ -361,13 +361,13 @@ The extension reads `FACTORY_ROLE` and `FACTORY_TASK`. A design agent gets the `
 them. A session without a role can also become `design` with `/sketch`; pi keeps that in the session
 with `appendEntry`, so it survives a resume.
 
-| Role          | Prompt sections                                      | Tools                                                                                        |
-| ------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `coordinator` | `chinchilla.md`, `COORDINATOR.md` (live file), skill | `factory_task`, `factory_inbox`, `factory_dispatch`, `factory_handoff`; bash limited to 10 s |
-| `worker`      | `chinchilla.md`, `WORKER.md`, task id and path       | `factory_task` (own task)                                                                    |
-| `design`      | `chinchilla.md`, task template guidance, task path   | `factory_task`, `factory_handoff`                                                            |
-| `subagent`    | `chinchilla.md`                                      | none                                                                                         |
-| none          | nothing                                              | `/sketch` command only                                                                       |
+| Role          | Prompt sections                                                     | Tools                                                                                        |
+| ------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `coordinator` | `chinchilla.md`, `COORDINATOR.md` (live file), skill                | `factory_task`, `factory_inbox`, `factory_dispatch`, `factory_handoff`; bash limited to 10 s |
+| `worker`      | `chinchilla.md`, `WORKER.md`, task id and path                      | `factory_task` (own task)                                                                    |
+| `design`      | `chinchilla.md`, `DESIGN-AGENT.md`, task id and path, task template | `factory_task`, `factory_handoff`                                                            |
+| `subagent`    | `chinchilla.md`                                                     | none                                                                                         |
+| none          | nothing                                                             | `/sketch` command only                                                                       |
 
 - `factory_task`: `list`, `get`, `create` (title, cwd), `update` (status, now, needs_you, threads,
   paused, title, cwd), `log`, `check` (check a landing item by its 1-based number).

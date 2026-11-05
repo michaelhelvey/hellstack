@@ -42,13 +42,13 @@ The sources use the logins of `gh` (`gh auth login`) and `sentry` (`sentry auth 
 
 `FACTORY_ROLE` gives a pi session its role. Spawn sets it; you do not set it by hand.
 
-| `FACTORY_ROLE`                      | What the session gets                                                              |
-| ----------------------------------- | ---------------------------------------------------------------------------------- |
-| `coordinator`                       | the `factory` skill, `COORDINATOR.md`, all `factory_*` tools, bash limited to 10 s |
-| `worker` (with `FACTORY_TASK=<id>`) | `WORKER.md`, `factory_task` for its own task, `/park` and `/unpark`                |
-| `design` (with `FACTORY_TASK=<id>`) | the task template guidance, `factory_task` and `factory_handoff` for its own task  |
-| `subagent`                          | the chinchilla rules only                                                          |
-| not set                             | `/sketch` only                                                                     |
+| `FACTORY_ROLE`                      | What the session gets                                                                       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------- |
+| `coordinator`                       | the `factory` skill, `COORDINATOR.md`, all `factory_*` tools, bash limited to 10 s          |
+| `worker` (with `FACTORY_TASK=<id>`) | `WORKER.md`, `factory_task` for its own task, `/park` and `/unpark`                         |
+| `design` (with `FACTORY_TASK=<id>`) | `DESIGN-AGENT.md`, the task template, `factory_task` and `factory_handoff` for its own task |
+| `subagent`                          | the chinchilla rules only                                                                   |
+| not set                             | `/sketch` only                                                                              |
 
 `bun run sync` also runs `init`. It does not replace files that exist. Edit `~/.factory/config.json`
 to set the models and the event sources. Other parts of the factory use the modules in `src/core`
