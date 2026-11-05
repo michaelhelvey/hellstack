@@ -48,14 +48,15 @@ export interface Herdr {
 export function createHerdr(runner: CommandRunner = runCommand): Herdr {
   return {
     async spaces() {
-      const result = await runner("herdr-app", ["ls"], 10_000);
+      const result = await runner("herdr-app", ["ls"], 5_000);
       if (result.stderr.includes("no Herdr window")) return NO_WINDOW;
       if (result.code !== 0) throw new Error(`herdr-app ls failed: ${result.stderr.trim()}`);
       return lsSchema.parse(JSON.parse(result.stdout)).spaces;
     },
     async rename({ kind, id, name }) {
       const args = ["do", `${kind}.rename`, "--id", id, "--name", name];
-      return (await runner("herdr-app", args, 10_000)).code === 0;
+      const result = await runner("herdr-app", args, 2_000).catch(() => undefined);
+      return result?.code === 0;
     },
   };
 }
@@ -97,15 +98,17 @@ export function coordinatorPlacement(spaces: HerdrSpace[]): HerdrPlacement {
 
 /**
  * Gives each space and tab its name. Herdr shows a new terminal a short time after `hc run`, so
- * it tries again until Herdr knows the target or the attempts end.
+ * it tries again until Herdr knows the target. It stops trying after about `timeoutMs`.
  */
-export async function applyNames(herdr: Herdr, names: HerdrName[], attempts = 20): Promise<void> {
-  for (const target of names) await renameWhenKnown(herdr, target, attempts);
+export async function applyNames(
+  herdr: Herdr,
+  names: HerdrName[],
+  timeoutMs = 3_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  await Promise.all(names.map((target) => renameWhenKnown(herdr, target, deadline)));
 }
 
-async function renameWhenKnown(herdr: Herdr, target: HerdrName, attempts: number): Promise<void> {
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    if (await herdr.rename(target)) return;
-    await delay(250);
-  }
+async function renameWhenKnown(herdr: Herdr, target: HerdrName, deadline: number): Promise<void> {
+  while (!(await herdr.rename(target)) && Date.now() < deadline) await delay(250);
 }
