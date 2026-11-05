@@ -30,6 +30,14 @@ async function withFolders(run: (config: string, app: string) => Promise<void>):
   }
 }
 
+/** Tells if `file` exists. A broken link exists. */
+async function exists(file: string): Promise<boolean> {
+  return lstat(file).then(
+    () => true,
+    () => false,
+  );
+}
+
 test("linkConfig links files and mod folders, and makes the other folders", async () => {
   await withFolders(async (config, app) => {
     await linkConfig(app, config);
@@ -55,9 +63,38 @@ test("linkConfig keeps a file that Herdr wrote over a link as a backup", async (
   });
 });
 
+test("linkConfig removes links to config files that do not exist", async () => {
+  await withFolders(async (config, app) => {
+    await linkConfig(app, config);
+    await rm(path.join(config, "layouts", "main.json"));
+    await rm(path.join(config, "mods", "quiet"), { recursive: true });
+    await linkConfig(app, config);
+    expect(await exists(path.join(app, "layouts", "main.json"))).toBe(false);
+    expect(await exists(path.join(app, "mods", "quiet"))).toBe(false);
+    expect(await readlink(path.join(app, "keys.json"))).toBe(path.join(config, "keys.json"));
+  });
+});
+
+test("linkConfig keeps files, links out of the config folder, and Herdr folders", async () => {
+  await withFolders(async (config, app) => {
+    await mkdir(path.join(app, "layouts"), { recursive: true });
+    const other = path.join(path.dirname(config), "config-old", "gone.json");
+    await symlink(other, path.join(app, "layouts", "other.json"));
+    await writeFile(path.join(app, "layouts", "mine.json"), "{}\n");
+    await mkdir(path.join(app, "data"));
+    const missing = path.join(config, "data", "gone.json");
+    await symlink(missing, path.join(app, "data", "gone.json"));
+    await linkConfig(app, config);
+    expect(await readlink(path.join(app, "layouts", "other.json"))).toBe(other);
+    expect(await readlink(path.join(app, "data", "gone.json"))).toBe(missing);
+    expect(await readFile(path.join(app, "layouts", "mine.json"), "utf8")).toBe("{}\n");
+  });
+});
+
 test("linkConfig does not write through an app folder that is a link", async () => {
   await withFolders(async (config, app) => {
     await symlink(config, app);
-    expect(linkConfig(app, config)).rejects.toThrow("is a link");
+    const message = await linkConfig(app, config).catch((error: Error) => error.message);
+    expect(message).toContain("is a link");
   });
 });

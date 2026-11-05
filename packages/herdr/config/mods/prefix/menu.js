@@ -91,7 +91,7 @@ function header(t) {
         .child(div().text_size(11).text_color(t.muted).child("One key. Pick your next move.")),
     )
     .child(div().flex_1())
-    .child(div().text_size(10).text_color(t.dim).child("TMUX KEYS"));
+    .child(div().text_size(10).text_color(t.dim).child("PREFIX KEYS"));
 }
 
 function groups(t, choose) {

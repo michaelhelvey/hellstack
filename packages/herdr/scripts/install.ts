@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { type Dirent, existsSync } from "node:fs";
 import { lstat, mkdir, readdir, readlink, rename, rm, symlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
@@ -23,16 +23,11 @@ async function link(source: string, target: string): Promise<void> {
 }
 
 async function linkEntry(source: string, target: string, isDir: boolean): Promise<void> {
-  if (isDir && !existsSync(path.join(source, "mod.json"))) return linkConfig(target, source);
+  if (isDir && !existsSync(path.join(source, "mod.json"))) return linkFolder(target, source);
   await link(source, target);
 }
 
-/**
- * Links each file of `configDir` into `appDir`, at the same relative path. Herdr writes its own
- * files in the folders of `appDir`, so folders are made, not linked. A mod folder (a folder with
- * `mod.json`) is linked as one unit.
- */
-export async function linkConfig(appDir: string, configDir: string = CONFIG_DIR): Promise<void> {
+async function linkFolder(appDir: string, configDir: string): Promise<void> {
   if ((await lstat(appDir).catch(() => undefined))?.isSymbolicLink()) {
     throw new Error(`${appDir} is a link. Herdr owns this folder; make it a real folder.`);
   }
@@ -41,6 +36,47 @@ export async function linkConfig(appDir: string, configDir: string = CONFIG_DIR)
     const source = path.join(configDir, entry.name);
     await linkEntry(source, path.join(appDir, entry.name), entry.isDirectory());
   }
+}
+
+/** Removes `link` if it points into `root` at a path that does not exist. */
+async function removeIfStale(link: string, root: string): Promise<void> {
+  const source = await readlink(link);
+  if (!source.startsWith(root + path.sep) || existsSync(source)) return;
+  await rm(link);
+  console.log(`herdr: removed ${link}, because ${source} does not exist`);
+}
+
+/**
+ * Removes each link in `appDir` that points into `configDir` at a path that does not exist. Goes
+ * only into the folders that also exist in `configDir`, because Herdr owns the other folders.
+ */
+async function removeStaleLinks(appDir: string, configDir: string, root: string): Promise<void> {
+  for (const entry of await readdir(appDir, { withFileTypes: true })) {
+    await removeStaleEntry(entry, appDir, configDir, root);
+  }
+}
+
+async function removeStaleEntry(
+  entry: Dirent,
+  appDir: string,
+  configDir: string,
+  root: string,
+): Promise<void> {
+  const target = path.join(appDir, entry.name);
+  const source = path.join(configDir, entry.name);
+  if (entry.isSymbolicLink()) return removeIfStale(target, root);
+  if (entry.isDirectory() && existsSync(source)) await removeStaleLinks(target, source, root);
+}
+
+/**
+ * Links each file of `configDir` into `appDir`, at the same relative path. Herdr writes its own
+ * files in the folders of `appDir`, so folders are made, not linked. A mod folder (a folder with
+ * `mod.json`) is linked as one unit. Then removes each link into `configDir` whose source does
+ * not exist, for example after a file in `configDir` is removed or renamed.
+ */
+export async function linkConfig(appDir: string, configDir: string = CONFIG_DIR): Promise<void> {
+  await linkFolder(appDir, configDir);
+  await removeStaleLinks(appDir, configDir, configDir);
 }
 
 async function main(): Promise<void> {

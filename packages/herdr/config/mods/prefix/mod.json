@@ -1,6 +1,6 @@
 {
   "place": "none",
-  "title": "Tmux prefix",
+  "title": "Prefix",
   "overlay": {
     "kind": "popup",
     "at": "top",
