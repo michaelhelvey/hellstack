@@ -1,3 +1,4 @@
+import { loadBoard } from "./board/load.ts";
 import { initLedger, ledgerPaths } from "./core/index.ts";
 
 /** A CLI command. It gets the arguments after the command name. */
@@ -10,8 +11,16 @@ async function init(): Promise<void> {
   console.log(`the factory ledger is ready in ${paths.home}`);
 }
 
+async function board(args: string[]): Promise<void> {
+  if (!args.includes("--json")) throw new Error("usage: bun run factory board --json");
+  console.log(JSON.stringify(await loadBoard()));
+}
+
 /** The CLI commands by name. */
-export const commands = new Map<string, Command>([["init", init]]);
+export const commands = new Map<string, Command>([
+  ["init", init],
+  ["board", board],
+]);
 
 function usage(): string {
   return `usage: bun run factory <command>\ncommands: ${[...commands.keys()].join(", ")}`;
