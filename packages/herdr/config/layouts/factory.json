@@ -98,7 +98,7 @@
                         }
                       },
                       "size": {
-                        "px": 60
+                        "px": 34
                       }
                     },
                     {
@@ -132,7 +132,7 @@
                     }
                   ],
                   "size": {
-                    "weight": 2
+                    "weight": 1
                   },
                   "min": 420,
                   "background": "background",
@@ -184,8 +184,7 @@
                   "size": {
                     "weight": 1
                   },
-                  "min": 320,
-                  "max": 1600,
+                  "min": 360,
                   "background": "chrome",
                   "border": {
                     "width": 1,
