@@ -85,7 +85,7 @@ When the user says "watch for sentry issues", "stop telling me about dependabot"
 {
   "coordinator": { "model": "claude-sonnet-5-5", "thinking": "medium" },
   "worker": { "model": "claude-opus-5-5", "thinking": "high" },
-  "summaryModel": "claude-haiku-5-5",
+  "summaryModel": "haiku",
   "staleAfterMinutes": 120,
   "sources": [
     {
@@ -97,6 +97,7 @@ When the user says "watch for sentry issues", "stop telling me about dependabot"
     {
       "type": "sentry",
       "everySeconds": 300,
+      "url": "https://sentry.io",
       "org": "my-org",
       "projects": ["api"],
       "tokenEnv": "SENTRY_AUTH_TOKEN",

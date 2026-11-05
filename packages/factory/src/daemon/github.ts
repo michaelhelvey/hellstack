@@ -81,6 +81,20 @@ function parseHeaders(lines: string[]): Record<string, string> {
   );
 }
 
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
+/** The count of notifications on one page. */
+export const PAGE_SIZE = 50;
+
+/** The maximum count of pages that one poll reads. */
+export const MAX_PAGES = 5;
+
 /** The maximum count of comments that one poll gets for the event summaries. */
 export const MAX_COMMENT_FETCHES = 10;
 
@@ -162,18 +176,51 @@ export function nextGithubCursor(
   return { since, lastModified };
 }
 
-function notificationArgs(cursor: Cursor, now: Date): string[] {
+function queryArgs(cursor: Cursor, now: Date): string[] {
   const since = pollStart(cursor.since, now);
-  const args = ["api", "-i", "notifications", "-X", "GET", "-f", "all=true", "-f", "per_page=50"];
-  args.push("-f", `since=${since}`);
+  return [
+    "notifications",
+    "-X",
+    "GET",
+    "-f",
+    "all=true",
+    "-f",
+    `per_page=${PAGE_SIZE}`,
+    "-f",
+    `since=${since}`,
+  ];
+}
+
+function notificationArgs(cursor: Cursor, now: Date): string[] {
+  const args = ["api", "-i", ...queryArgs(cursor, now)];
   if (cursor.lastModified) args.push("-H", `If-Modified-Since: ${cursor.lastModified}`);
   return args;
+}
+
+async function readPage(runner: CommandRunner, args: string[]): Promise<Notification[]> {
+  const result = await runner("gh", args, 30_000);
+  if (result.code !== 0) throw new Error(`gh api notifications failed: ${oneLine(result.stderr)}`);
+  return z.array(notificationSchema).parse(JSON.parse(result.stdout));
+}
+
+/** Reads the pages after the first page while each page is full, up to {@link MAX_PAGES}. */
+async function laterPages(
+  runner: CommandRunner,
+  first: Notification[],
+  cursor: Cursor,
+  now: Date,
+): Promise<Notification[]> {
+  const all = [...first];
+  for (let page = 2; page <= MAX_PAGES && all.length === (page - 1) * PAGE_SIZE; page++) {
+    all.push(...(await readPage(runner, ["api", ...queryArgs(cursor, now), "-f", `page=${page}`])));
+  }
+  return all;
 }
 
 async function commentSummary(runner: CommandRunner, url: string): Promise<string | undefined> {
   const result = await runner("gh", ["api", url], 15_000).catch(() => undefined);
   if (result?.code !== 0) return undefined;
-  const parsed = commentSchema.safeParse(JSON.parse(result.stdout));
+  const parsed = commentSchema.safeParse(parseJson(result.stdout));
   return parsed.success
     ? oneLine(`@${parsed.data.user.login}: ${parsed.data.body ?? ""}`)
     : undefined;
@@ -203,7 +250,8 @@ export function createGithubSource(runner: CommandRunner = runCommand): Source {
     async poll(cursor = {}, now) {
       const result = await runner("gh", notificationArgs(cursor, now), 30_000);
       const response = parseGhResponse(result.stdout);
-      const events = await toEvents(runner, parseNotifications(response, result.stderr));
+      const first = parseNotifications(response, result.stderr);
+      const events = await toEvents(runner, await laterPages(runner, first, cursor, now));
       const interval = Number(response.headers["x-poll-interval"]);
       const poll: PollResult = { events, cursor: nextGithubCursor(cursor, response, events) };
       return Number.isFinite(interval) ? { ...poll, minIntervalSeconds: interval } : poll;

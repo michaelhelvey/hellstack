@@ -37,13 +37,17 @@ export function repoRoot(): string {
   return fileURLToPath(new URL("../../../..", import.meta.url));
 }
 
-/** Returns the `hc run` options of the daemon terminal. */
-export function daemonRun(paths: LedgerPaths, root: string): HcRunOptions {
+/**
+ * Returns the `hc run` options of the daemon terminal. `hc run` does not give the environment of
+ * the caller to the terminal, so the daemon starts in a login shell of the user: it gets the tokens
+ * that the shell files export (for example `SENTRY_AUTH_TOKEN`), and the tokens are not in argv.
+ */
+export function daemonRun(paths: LedgerPaths, root: string, shell = "/bin/zsh"): HcRunOptions {
   return {
     name: DAEMON_TERMINAL,
     cwd: root,
     env: { FACTORY_HOME: paths.home },
-    argv: ["bun", "packages/factory/src/cli.ts", "daemon"],
+    argv: [shell, "-lic", "exec bun packages/factory/src/cli.ts daemon"],
   };
 }
 
@@ -66,7 +70,7 @@ export async function up(deps: ControlDeps): Promise<string[]> {
   }
   if (findLive(terminals, DAEMON_TERMINAL)) return [...lines, "factoryd runs"];
   await removeTerminal(deps.hc, DAEMON_TERMINAL);
-  await deps.hc.run(daemonRun(deps.paths, deps.root));
+  await deps.hc.run(daemonRun(deps.paths, deps.root, process.env.SHELL));
   return [...lines, "started factoryd"];
 }
 

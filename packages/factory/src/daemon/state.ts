@@ -10,6 +10,7 @@ export const daemonStateSchema = z.object({
   cursors: z.record(z.string(), z.record(z.string(), z.string())).default({}),
   seen: z.array(z.string()).default([]),
   notices: z.array(z.string()).default([]),
+  pending: z.array(z.string()).default([]),
 });
 
 /** The daemon state that lives through a restart. */
@@ -21,6 +22,11 @@ export const MAX_SEEN = 5000;
 /** Returns the path of the daemon state file. */
 export function statePath(paths: LedgerPaths): string {
   return join(paths.state, "daemon.json");
+}
+
+/** Returns an empty daemon state. */
+export function emptyState(): DaemonState {
+  return daemonStateSchema.parse({});
 }
 
 /** Reads the daemon state. Returns an empty state when the file does not exist. */

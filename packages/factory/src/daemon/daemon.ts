@@ -32,8 +32,15 @@ import { acquireLock } from "./lock.ts";
 import { reconcile } from "./reconcile.ts";
 import { eventLine, INBOX, ownedInbox, routeEvent, runningPi, type Route } from "./route.ts";
 import type { PollResult, Source } from "./source.ts";
-import { createSource, sourceKey } from "./sources.ts";
-import { loadState, rememberSeen, saveState, unseen, type DaemonState } from "./state.ts";
+import { checkSources, createSource, sourceKey } from "./sources.ts";
+import {
+  emptyState,
+  loadState,
+  rememberSeen,
+  saveState,
+  unseen,
+  type DaemonState,
+} from "./state.ts";
 import { summarize, type FeedFacts } from "./summary.ts";
 import { watch, type WatchState } from "./watchdog.ts";
 
@@ -113,7 +120,7 @@ export async function reloadConfig(daemon: Daemon): Promise<void> {
   if (text === daemon.configText) return;
   daemon.configText = text;
   try {
-    daemon.config = text === undefined ? defaultConfig() : parseConfig(text);
+    daemon.config = checkSources(text === undefined ? defaultConfig() : parseConfig(text));
   } catch (error) {
     await feedAction(
       daemon,
@@ -184,7 +191,11 @@ async function remember(
     cursors: { ...cursors, [key]: poll.cursor },
     seen: rememberSeen(seen, ids),
   };
-  await saveState(daemon.options.paths, daemon.state);
+  await persist(daemon);
+}
+
+async function persist(daemon: Daemon): Promise<void> {
+  await saveState(daemon.options.paths, { ...daemon.state, pending: daemon.digest.lines });
 }
 
 function cycleFacts(source: SourceConfig, fields: Partial<FeedFacts>): FeedFacts {
@@ -203,7 +214,7 @@ async function handlePoll(
   daemon: Daemon,
   source: SourceConfig,
   poll: PollResult,
-): Promise<FeedFacts> {
+): Promise<{ facts: FeedFacts; titles: string[] }> {
   const fresh = unseen(poll.events, daemon.state.seen);
   const { passed, ignored } = filterEvents(source, fresh);
   const routes = await deliver(daemon, passed);
@@ -214,7 +225,8 @@ async function handlePoll(
     fresh.map((event) => event.id),
   );
   const routed = routes.map(({ event, to }) => ({ thread: event.thread, kind: event.kind, to }));
-  return cycleFacts(source, { new: fresh.length, routed, ignored });
+  const titles = passed.slice(0, 20).map((event) => event.title);
+  return { facts: cycleFacts(source, { new: fresh.length, routed, ignored }), titles };
 }
 
 function pollSource(
@@ -237,12 +249,8 @@ export async function pollCycle(daemon: Daemon, source: SourceConfig, now: numbe
     return writeCycle(daemon, cycleFacts(source, { ok: false, error: poll.message }), []);
   }
   schedule(daemon, source, now, poll.minIntervalSeconds);
-  const facts = await handlePoll(daemon, source, poll);
-  await writeCycle(
-    daemon,
-    facts,
-    poll.events.slice(0, 20).map((event) => event.title),
-  );
+  const { facts, titles } = await handlePoll(daemon, source, poll);
+  await writeCycle(daemon, facts, titles);
 }
 
 function spawnDeps({ options }: Daemon): Pick<SpawnDeps, "hc" | "herdr" | "paths"> {
@@ -303,7 +311,7 @@ export async function housekeeping(daemon: Daemon, now: number): Promise<void> {
   });
   daemon.state = { ...daemon.state, notices: plan.notices };
   daemon.digest = queueLines(daemon.digest, plan.notify);
-  await saveState(daemon.options.paths, daemon.state);
+  await persist(daemon);
   if (!daemon.options.agents) return;
   await startWorkers(daemon, plan.start);
   await guard(daemon, "keepalive", () => keepalive(daemon, terminals));
@@ -311,14 +319,25 @@ export async function housekeeping(daemon: Daemon, now: number): Promise<void> {
 }
 
 async function flush(daemon: Daemon, now: number): Promise<void> {
-  const { digest, block } = flushDigest(daemon.digest, now);
+  const before = daemon.digest;
+  const { digest, block } = flushDigest(before, now);
   if (block === undefined) return;
-  const lines = daemon.digest.lines;
   daemon.digest = digest;
-  await sendTo(daemon, COORDINATOR_TERMINAL, lines).catch((error: unknown) => {
-    daemon.digest = queueLines(daemon.digest, lines);
+  await sendBlock(daemon, block).catch((error: unknown) => {
+    daemon.digest = {
+      ...daemon.digest,
+      lines: [...before.lines, ...daemon.digest.lines],
+      dropped: before.dropped,
+    };
     throw error;
   });
+  await persist(daemon);
+}
+
+async function sendBlock(daemon: Daemon, block: string): Promise<void> {
+  if (!daemon.options.agents)
+    return daemon.options.log(`[no-agents] to ${COORDINATOR_TERMINAL}:\n${block}`);
+  await daemon.options.hc.send(COORDINATOR_TERMINAL, block);
 }
 
 async function pollDue(daemon: Daemon, now: number): Promise<void> {
@@ -339,30 +358,53 @@ export async function tick(daemon: Daemon, now: number): Promise<void> {
   await guard(daemon, "message", () => flush(daemon, now));
 }
 
-/** Makes the state of a daemon from the ledger. */
+/**
+ * Makes the state of a daemon from the ledger. The messages that waited for the coordinator when
+ * the daemon stopped wait again. A state file that is not valid gives an empty state and an error
+ * record.
+ */
 export async function createDaemon(options: DaemonOptions): Promise<Daemon> {
-  return {
-    options,
-    config: defaultConfig(),
-    configText: undefined,
-    state: await loadState(options.paths),
-    digest: emptyDigest(),
-    watch: undefined,
+  const loaded = await loadState(options.paths).catch((error: unknown) => asError(error));
+  const state = loaded instanceof Error ? emptyState() : loaded;
+  const daemon: Daemon = {
+    ...{ options, config: defaultConfig(), configText: undefined, state, watch: undefined },
+    digest: { ...emptyDigest(), lines: state.pending },
     nextPoll: new Map(),
     lastHousekeeping: Number.NEGATIVE_INFINITY,
   };
+  if (loaded instanceof Error)
+    await feedAction(
+      daemon,
+      "The daemon state is not valid; factoryd starts again from an empty state.",
+      loaded,
+    );
+  return daemon;
 }
 
-/** Runs the daemon loop until `signal` aborts. Only one daemon can run for a ledger. */
-export async function runDaemon(options: DaemonOptions, signal: AbortSignal): Promise<void> {
-  const release = await acquireLock(options.paths);
-  const daemon = await createDaemon(options);
-  await feedAction(daemon, `factoryd started${options.agents ? "" : " without agents"}.`);
+function asError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+async function runLoop(daemon: Daemon, signal: AbortSignal): Promise<void> {
+  await feedAction(daemon, `factoryd started${daemon.options.agents ? "" : " without agents"}.`);
   while (!signal.aborted) {
     await tick(daemon, Date.now());
-    await delay(options.tickMs, undefined, { signal }).catch(() => undefined);
+    await delay(daemon.options.tickMs, undefined, { signal }).catch(() => undefined);
   }
-  await saveState(options.paths, daemon.state);
+  await guard(daemon, "message", () => flush(daemon, Number.POSITIVE_INFINITY));
+  await persist(daemon);
   await feedAction(daemon, "factoryd stopped.");
-  await release();
+}
+
+/**
+ * Runs the daemon loop until `signal` aborts. Only one daemon can run for a ledger. Before it
+ * stops, it sends the messages that wait for the coordinator.
+ */
+export async function runDaemon(options: DaemonOptions, signal: AbortSignal): Promise<void> {
+  const release = await acquireLock(options.paths);
+  try {
+    await runLoop(await createDaemon(options), signal);
+  } finally {
+    await release();
+  }
 }

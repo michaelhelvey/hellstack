@@ -6,8 +6,13 @@ import { event } from "./helpers.ts";
 
 test("the state survives a restart", async () => {
   const paths = await tempLedger();
-  expect(await loadState(paths)).toEqual({ cursors: {}, seen: [], notices: [] });
-  const state = { cursors: { github: { since: "x" } }, seen: ["a"], notices: ["ready:t-1234"] };
+  expect(await loadState(paths)).toEqual({ cursors: {}, seen: [], notices: [], pending: [] });
+  const state = {
+    cursors: { github: { since: "x" } },
+    seen: ["a"],
+    notices: ["ready:t-1234"],
+    pending: ["- task t-1234 is ready"],
+  };
   await saveState(paths, state);
   expect(await loadState(paths)).toEqual(state);
 });

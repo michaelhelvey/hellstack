@@ -36,11 +36,11 @@ describe("control", () => {
 
   test("the daemon runs in the repository root with the ledger of the caller", async () => {
     const { paths } = await deps();
-    expect(daemonRun(paths, "/root")).toEqual({
+    expect(daemonRun(paths, "/root", "/bin/bash")).toEqual({
       name: "factoryd",
       cwd: "/root",
       env: { FACTORY_HOME: paths.home },
-      argv: ["bun", "packages/factory/src/cli.ts", "daemon"],
+      argv: ["/bin/bash", "-lic", "exec bun packages/factory/src/cli.ts daemon"],
     });
   });
 

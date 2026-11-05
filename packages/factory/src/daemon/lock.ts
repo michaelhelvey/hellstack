@@ -1,7 +1,7 @@
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 
-import { readIfExists, writeAtomic, type LedgerPaths } from "../core/index.ts";
+import { readIfExists, writeAtomic, writeIfMissing, type LedgerPaths } from "../core/index.ts";
 
 /** Returns the path of the file with the process id of the running daemon. */
 export function lockPath(paths: LedgerPaths): string {
@@ -28,11 +28,16 @@ export async function daemonPid(paths: LedgerPaths): Promise<number | undefined>
  * that releases the lock.
  */
 export async function acquireLock(paths: LedgerPaths): Promise<() => Promise<void>> {
+  await mkdir(paths.state, { recursive: true });
+  const text = `${process.pid}\n`;
+  if (!(await writeIfMissing(lockPath(paths), text))) await takeStaleLock(paths, text);
+  return () => rm(lockPath(paths), { force: true });
+}
+
+async function takeStaleLock(paths: LedgerPaths, text: string): Promise<void> {
   const other = await daemonPid(paths);
   if (other !== undefined && other !== process.pid) {
     throw new Error(`factoryd runs already for ${paths.home} (pid ${other})`);
   }
-  await mkdir(paths.state, { recursive: true });
-  await writeAtomic(lockPath(paths), `${process.pid}\n`);
-  return () => rm(lockPath(paths), { force: true });
+  await writeAtomic(lockPath(paths), text);
 }

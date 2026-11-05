@@ -59,6 +59,16 @@ export function sentryEvent(
   };
 }
 
+/**
+ * The time that each poll looks back before the cursor, in milliseconds. Sentry sets `lastSeen`
+ * from the event time, which can be before the time that Sentry gets the event.
+ */
+export const OVERLAP_MS = 5 * 60 * 1000;
+
+function withOverlap(since: string): string {
+  return new Date(Date.parse(since) - OVERLAP_MS).toISOString();
+}
+
 /** Returns the URL of the issues that Sentry saw after `since` in the projects of `config`. */
 export function sentryIssuesUrl(config: SentryConfig, since: string): string {
   const projects = config.projects.length > 0 ? ` project:[${config.projects.join(",")}]` : "";
@@ -73,7 +83,7 @@ export function createSentrySource(config: SentryConfig, fetcher: Fetch = fetch)
     async poll(cursor = {}, now) {
       const token = process.env[config.tokenEnv];
       if (!token) throw new Error(`${config.tokenEnv} is not set`);
-      const since = pollStart(cursor.since, now);
+      const since = withOverlap(pollStart(cursor.since, now));
       const headers = { Authorization: `Bearer ${token}` };
       const response = await fetcher(sentryIssuesUrl(config, since), { headers });
       if (!response.ok)

@@ -8,6 +8,7 @@ import {
   createGithubSource,
   githubEvent,
   notificationSchema,
+  PAGE_SIZE,
   parseGhResponse,
   type Notification,
 } from "../../src/daemon/github.ts";
@@ -131,5 +132,26 @@ describe("github source", () => {
       .poll(undefined, new Date())
       .catch((e: unknown) => e);
     expect(String(error)).toContain("HTTP 401");
+  });
+
+  test("reads the next pages while each page is full", async () => {
+    function page(offset: number, count: number): Notification[] {
+      return Array.from({ length: count }, (_, index) => ({
+        ...checkSuite,
+        id: String(offset + index),
+      }));
+    }
+    const calls: string[][] = [];
+    function runner(_program: string, args: string[]): Promise<CommandResult> {
+      calls.push(args);
+      const number = Number(args.find((arg) => arg.startsWith("page="))?.slice(5) ?? 1);
+      const body = JSON.stringify(page(number * 100, number === 1 ? PAGE_SIZE : 3));
+      const stdout = args[1] === "-i" ? `HTTP/2.0 200 OK\n\n${body}` : body;
+      return Promise.resolve({ code: 0, stdout, stderr: "" });
+    }
+    const poll = await createGithubSource(runner).poll(undefined, new Date());
+    expect(poll.events).toHaveLength(PAGE_SIZE + 3);
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toContain("page=2");
   });
 });

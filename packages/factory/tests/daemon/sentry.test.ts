@@ -54,13 +54,18 @@ describe("sentry source", () => {
   test("sends the token and moves the cursor to the poll time", async () => {
     process.env.TEST_SENTRY_TOKEN = "secret";
     const headers: Record<string, string>[] = [];
+    const urls: string[] = [];
     function fetcher(_url: string, init: { headers: Record<string, string> }): Promise<Response> {
       headers.push(init.headers);
+      urls.push(_url);
       return Promise.resolve(new Response(fixtureText));
     }
     const now = new Date("2026-11-05T15:00:00.000Z");
     const poll = await createSentrySource(config, fetcher).poll({ since }, now);
     expect(headers).toEqual([{ Authorization: "Bearer secret" }]);
+    expect(new URL(urls[0] ?? "").searchParams.get("query")).toContain(
+      "lastSeen:>2026-11-05T13:55:00.000Z",
+    );
     expect(poll.events).toHaveLength(2);
     expect(poll.cursor).toEqual({ since: now.toISOString() });
   });

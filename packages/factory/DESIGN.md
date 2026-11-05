@@ -36,8 +36,8 @@ default is `~/.factory`. Tests always set `FACTORY_HOME` to a temporary folder.
   tasks/<id>.md      one file per task. The source of truth for the task.
   inbox/<id>.json    one file per event that no task owns.
   feed.jsonl         one record per poll cycle or daemon action. Append only.
-  state/             daemon state: daemon.json (poll cursors, seen event ids, notices sent),
-                     factoryd.pid (the lock of the running daemon).
+  state/             daemon state: daemon.json (poll cursors, seen event ids, notices sent,
+                     messages that wait for the coordinator), factoryd.pid (the daemon lock).
 ```
 
 `factory init` makes the folders, writes the default `config.json`, and copies
@@ -260,7 +260,10 @@ a model, except the feed summary, which has a timeout.
 
 1. **Poll** each source when its interval passes (or the `X-Poll-Interval` of GitHub, when it is
    longer). Keep cursors and seen ids in `state/`, so that it handles no event two times. The first
-   poll of a source looks back one hour.
+   poll of a source looks back one hour. GitHub reads up to 5 pages of 50. Sentry looks back 5
+   minutes more than its cursor, because `lastSeen` is the event time; it routes a regression of an
+   issue one time. Two sources with the same key (`github`, or `sentry:<org>:<projects>`) make the
+   config not valid.
 2. **Filter** with the source rules.
 3. **Route** each event that passes. Look up the tasks whose `threads` has the event thread.
    - Owned, worker running, not paused: send it to the worker.
@@ -277,8 +280,13 @@ a model, except the feed summary, which has a timeout.
    minutes, run `hc interrupt factory` and write a feed record.
 7. **Feed**: write one record per poll cycle and per daemon action.
 
-The daemon reloads `config.json` when it changes. `--no-agents` runs the loop without agents: it
-does not start, message, or interrupt agents, and prints the messages instead.
+The daemon reloads `config.json` when it changes. The messages for the coordinator are in
+`state/daemon.json` until they are sent, so they survive a restart; at most 50 lines wait, and a
+line tells how many older lines were dropped. The daemon sends them before it stops. The `factoryd`
+terminal runs the daemon in a login shell of the user (`$SHELL -lic`), because `hc run` does not
+give the caller's environment to the terminal; the shell files give the tokens. `--no-agents` runs
+the loop without agents: it does not start, message, or interrupt agents, and prints the messages
+instead.
 
 ## Extension
 

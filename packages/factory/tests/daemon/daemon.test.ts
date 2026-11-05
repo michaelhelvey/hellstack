@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 
 import {
   defaultConfig,
@@ -19,6 +19,7 @@ import {
   type DaemonOptions,
 } from "../../src/daemon/daemon.ts";
 import type { Source } from "../../src/daemon/source.ts";
+import { statePath } from "../../src/daemon/state.ts";
 import { STUCK_MS } from "../../src/daemon/watchdog.ts";
 import { tempLedger } from "../core/helpers.ts";
 import { event, fakeHc, noHerdr, task, terminal } from "./helpers.ts";
@@ -170,5 +171,36 @@ describe("daemon tick", () => {
       error: "HTTP 502",
       summary: "The github poll failed: HTTP 502.",
     });
+  });
+
+  test("messages that wait for the coordinator survive a restart", async () => {
+    const { paths, fake, daemon } = await setup({ agents: true });
+    fake.hc.send = () => Promise.reject(new Error("the coordinator is gone"));
+    await tick(daemon, 0);
+    const again = await createDaemon(daemon.options);
+    expect(again.digest.lines.map((line) => line.split(" ")[2])).toEqual(["owned", "free"]);
+    expect((await readFeed(50, paths)).some((r) => r.error === "the coordinator is gone")).toBe(
+      true,
+    );
+  });
+
+  test("a state file that is not valid gives an empty state and an error record", async () => {
+    const { paths, daemon } = await setup({ agents: false });
+    await mkdir(paths.state, { recursive: true });
+    await writeFile(statePath(paths), "{not json");
+    const again = await createDaemon(daemon.options);
+    expect(again.state).toEqual({ cursors: {}, seen: [], notices: [], pending: [] });
+    expect((await readFeed(1, paths))[0]).toMatchObject({ source: "factoryd", ok: false });
+  });
+
+  test("two sources with the same key are a bad config", async () => {
+    const { paths, daemon } = await setup({ agents: false });
+    await writeFile(
+      paths.config,
+      JSON.stringify({ sources: [{ type: "github" }, { type: "github" }] }),
+    );
+    await tick(daemon, 0);
+    expect(daemon.config.sources).toHaveLength(1);
+    expect((await readFeed(50, paths)).find((r) => !r.ok)?.error).toContain("the key github");
   });
 });
