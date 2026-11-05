@@ -1,7 +1,8 @@
 // The factory board: "needs you", the task columns, the source health, and the feed.
 // Data: `bun <repo>/packages/factory/src/cli.ts board --json`. It loads again when the ledger
 // changes and every 20 s. Props (optional): { repo, factoryHome }. Without `repo`, the mod
-// finds the repository through the link of its folder.
+// finds the repository through the link of its folder. Without `factoryHome`, it uses
+// FACTORY_HOME of the user's environment, else ~/.factory.
 
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
@@ -12,6 +13,7 @@ import {
   age,
   boardCommand,
   clock,
+  ledgerChanged,
   parseBoard,
   progress,
   repoName,
@@ -25,6 +27,12 @@ async function findRepo() {
   if (props()?.repo) return props().repo;
   const result = await exec("pwd", ["-P"], { cwd: `${appHome()}/mods/factory-board` });
   return repoRoot(result.stdout.trim());
+}
+
+async function findLedger() {
+  if (props()?.factoryHome) return props().factoryHome;
+  const result = await exec("printenv", ["FACTORY_HOME"]);
+  return result.stdout.trim() || `${home()}/.factory`;
 }
 
 async function readBoard(repo, factoryHome) {
@@ -123,11 +131,12 @@ function column(t, { label, tasks }, statusOf) {
     .children(tasks.map((task) => card(t, task, statusOf(task))));
 }
 
-function header(t, inbox) {
+function header(t, { inbox, invalid }) {
   return h_flex()
     .items_center()
     .gap(8)
     .child(div().flex_1().text_size(12).text_color(t.muted).child("Factory"))
+    .when(invalid > 0, (el) => el.child(pill(`${invalid} bad task files`, t.blocked)))
     .child(pill(`inbox ${inbox}`, inbox > 0 ? t.accent : t.dim));
 }
 
@@ -174,7 +183,7 @@ function feed(t, items) {
 
 function liveStatus() {
   const live = new Map(terminals().map((terminal) => [terminal.address, terminal.status]));
-  return (task) => live.get(task.terminal) ?? (task.working ? "working" : null);
+  return (task) => (live.has(task.terminal) ? live.get(task.terminal) : task.working && "working");
 }
 
 /** The factory board mod. */
@@ -182,32 +191,35 @@ export default class FactoryBoard extends View {
   init(_props, cx) {
     this.board = EMPTY_BOARD;
     this.error = "";
-    this.factoryHome = props()?.factoryHome ?? "";
     cx.spawn(async (cx) => this.start(cx));
-    cx.timer.every(REFRESH_MS, (cx) => this.refresh(cx));
+    cx.timer.every(REFRESH_MS, (cx) => this.tick(cx));
   }
 
   async start(cx) {
     try {
-      this.repo = await findRepo();
+      [this.repo, this.ledger] = await Promise.all([findRepo(), findLedger()]);
     } catch (error) {
-      this.error = `cannot find the repository: ${error}`;
+      this.error = `cannot find the repository or the ledger: ${error}`;
       return cx.notify();
     }
+    this.tick(cx);
+  }
+
+  tick(cx) {
     this.refresh(cx);
-    await this.watch(cx);
+    if (this.ledger && !this.watching) cx.spawn(async (cx) => this.watch(cx));
   }
 
   async watch(cx) {
-    const ledger = this.factoryHome || `${home()}/.factory`;
+    this.watching = true;
     try {
       while (!this.closed) {
-        await watchFolder(ledger);
-        this.refresh(cx);
+        if (ledgerChanged(await watchFolder(this.ledger), this.ledger)) this.refresh(cx);
       }
     } catch (error) {
-      console.log(`factory-board: no ledger watch, the timer refreshes: ${error}`);
+      console.log(`factory-board: no ledger watch, the next tick tries again: ${error}`);
     }
+    this.watching = false;
   }
 
   refresh(cx) {
@@ -226,7 +238,7 @@ export default class FactoryBoard extends View {
 
   async load() {
     try {
-      this.board = await readBoard(this.repo, this.factoryHome);
+      this.board = await readBoard(this.repo, this.ledger);
       this.error = "";
     } catch (error) {
       this.error = String(error?.message ?? error);
@@ -248,7 +260,7 @@ export default class FactoryBoard extends View {
       .p(12)
       .gap(14)
       .text_size(12)
-      .child(header(t, this.board.inbox))
+      .child(header(t, this.board))
       .when(Boolean(this.error), (el) => el.child(div().text_color(t.blocked).child(this.error)))
       .when(asks.length > 0, (el) => el.child(needsYou(t, asks, statusOf)))
       .children(columns.map((c) => column(t, c, statusOf)))

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   age,
   boardCommand,
+  ledgerChanged,
   parseBoard,
   progress,
   repoName,
@@ -81,7 +82,32 @@ describe("loading", () => {
     ]);
   });
 
-  test("missing lists in the output become empty", () => {
-    expect(parseBoard('{"inbox":2}')).toEqual({ tasks: [], inbox: 2, sources: [], feed: [] });
+  test("missing fields in the output get the empty values", () => {
+    expect(parseBoard('{"inbox":2}')).toEqual({
+      tasks: [],
+      inbox: 2,
+      invalid: 0,
+      sources: [],
+      feed: [],
+    });
+  });
+
+  test("output that the board cannot show is an error, not a render crash", () => {
+    const { landing: _, ...noLanding } = task("a");
+    expect(parseBoard(JSON.stringify({ tasks: [task("a")] })).tasks).toHaveLength(1);
+    expect(() => parseBoard(JSON.stringify({ tasks: [noLanding] }))).toThrow("unknown shape");
+    expect(() => parseBoard('{"tasks":null}')).toThrow("unknown shape");
+  });
+
+  test("only task, inbox, feed, and ledger folder changes load the board again", () => {
+    const ledger = "/home/me/.factory";
+    expect(
+      ledgerChanged([`${ledger}/state/cursors.json`, `${ledger}/tasks/t-1.md.lock`], ledger),
+    ).toBe(false);
+    expect(ledgerChanged([`${ledger}/tasks/t-1.md.123.ab.tmp`], ledger)).toBe(false);
+    expect(ledgerChanged([`${ledger}/tasks/t-1.md`], ledger)).toBe(true);
+    expect(ledgerChanged([`${ledger}/inbox/e-1.json`], ledger)).toBe(true);
+    expect(ledgerChanged([`${ledger}/feed.jsonl`], ledger)).toBe(true);
+    expect(ledgerChanged([`/private${ledger}/`], ledger)).toBe(true);
   });
 });

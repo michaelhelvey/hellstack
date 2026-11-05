@@ -43,7 +43,7 @@ function record(source: string, ts: string, fields: Partial<FeedRecord> = {}): F
 }
 
 function board(input: Partial<BoardInput>) {
-  return buildBoard({ tasks: [], inbox: 0, feed: [], terminals: [], now, ...input });
+  return buildBoard({ tasks: [], invalid: 0, inbox: 0, feed: [], terminals: [], now, ...input });
 }
 
 describe("buildBoard tasks", () => {
@@ -88,7 +88,7 @@ describe("buildBoard tasks", () => {
 });
 
 describe("buildBoard sources and feed", () => {
-  test("the sources are the last record of each event source", () => {
+  test("the sources are the last record of each source, factoryd too", () => {
     const feed = [
       record("github", "2026-11-05T14:00:00.000Z", { ok: false }),
       record("sentry", "2026-11-05T14:01:00.000Z", { ok: false }),
@@ -99,6 +99,7 @@ describe("buildBoard sources and feed", () => {
     expect(sources.map(({ source, ok, ts }) => [source, ok, ts])).toEqual([
       ["github", true, "2026-11-05T14:02:00.000Z"],
       ["sentry", false, "2026-11-05T14:01:00.000Z"],
+      ["factoryd", true, "2026-11-05T14:03:00.000Z"],
     ]);
     expect(sources[0]?.summary).toBe("github 2026-11-05T14:02:00.000Z");
   });

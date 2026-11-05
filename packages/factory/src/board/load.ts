@@ -5,10 +5,7 @@ import { listTasks } from "../core/ledger.ts";
 import { ledgerPaths, type LedgerPaths } from "../core/paths.ts";
 import { buildBoard, type Board } from "./model.ts";
 
-/** The count of feed records that the board reads to find the last record of each source. */
-export const BOARD_FEED_SCAN = 500;
-
-async function liveTerminals(hc: Hc): Promise<HcTerminal[]> {
+async function listTerminals(hc: Hc): Promise<HcTerminal[]> {
   return hc.ls().catch(() => []);
 }
 
@@ -21,11 +18,11 @@ export async function loadBoard(
   hc: Hc = createHc(),
   now: Date = new Date(),
 ): Promise<Board> {
-  const [{ tasks }, inbox, feed, terminals] = await Promise.all([
+  const [{ tasks, invalid }, inbox, feed, terminals] = await Promise.all([
     listTasks(paths),
     listInbox(paths),
-    readFeed(BOARD_FEED_SCAN, paths),
-    liveTerminals(hc),
+    readFeed(Number.POSITIVE_INFINITY, paths),
+    listTerminals(hc),
   ]);
-  return buildBoard({ tasks, inbox: inbox.length, feed, terminals, now });
+  return buildBoard({ tasks, invalid: invalid.length, inbox: inbox.length, feed, terminals, now });
 }

@@ -38,6 +38,8 @@ export interface BoardFeedItem {
 export interface Board {
   tasks: BoardTask[];
   inbox: number;
+  /** The count of task files that are not valid. */
+  invalid: number;
   sources: BoardSource[];
   feed: BoardFeedItem[];
 }
@@ -45,6 +47,7 @@ export interface Board {
 /** The ledger state and the live terminals that {@link buildBoard} uses. */
 export interface BoardInput {
   tasks: Task[];
+  invalid: number;
   inbox: number;
   feed: FeedRecord[];
   terminals: HcTerminal[];
@@ -53,9 +56,6 @@ export interface BoardInput {
 
 /** The count of feed records on the board. */
 export const BOARD_FEED_SIZE = 20;
-
-/** The feed source of daemon actions. It is not a source of events. */
-export const DAEMON_SOURCE = "factoryd";
 
 function sameLocalDay(a: Date, b: Date): boolean {
   return a.toDateString() === b.toDateString();
@@ -66,7 +66,7 @@ function onBoard(task: Task, now: Date): boolean {
   return task.meta.status !== "landed" || sameLocalDay(new Date(task.meta.updated), now);
 }
 
-function liveTerminals(terminals: HcTerminal[]): Map<string, HcTerminal> {
+function terminalsByName(terminals: HcTerminal[]): Map<string, HcTerminal> {
   const live = terminals.filter((terminal) => terminal.state === "live" && terminal.name);
   return new Map(live.map((terminal) => [terminal.name ?? "", terminal]));
 }
@@ -81,7 +81,7 @@ function boardTask(task: Task, terminal: HcTerminal | undefined): BoardTask {
 
 function lastPerSource(feed: FeedRecord[]): BoardSource[] {
   const last = new Map<string, FeedRecord>();
-  for (const record of feed) if (record.source !== DAEMON_SOURCE) last.set(record.source, record);
+  for (const record of feed) last.set(record.source, record);
   return [...last.values()].map(({ source, ok, ts, summary }) => ({ source, ok, ts, summary }));
 }
 
@@ -90,12 +90,13 @@ function lastPerSource(feed: FeedRecord[]): BoardSource[] {
  * time). `feed` must be in file order; the sources use all of it, the feed only the last records.
  */
 export function buildBoard(input: BoardInput): Board {
-  const byName = liveTerminals(input.terminals);
+  const byName = terminalsByName(input.terminals);
   return {
     tasks: input.tasks
       .filter((task) => onBoard(task, input.now))
       .map((task) => boardTask(task, byName.get(workerTerminal(task.meta.id)))),
     inbox: input.inbox,
+    invalid: input.invalid,
     sources: lastPerSource(input.feed),
     feed: input.feed
       .slice(-BOARD_FEED_SIZE)

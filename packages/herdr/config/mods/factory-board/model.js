@@ -10,7 +10,18 @@ export const COLUMNS = [
 ];
 
 /** An empty board model, for the time before the first load. */
-export const EMPTY_BOARD = { tasks: [], inbox: 0, sources: [], feed: [] };
+export const EMPTY_BOARD = { tasks: [], inbox: 0, invalid: 0, sources: [], feed: [] };
+
+const TASK_FIELDS = {
+  id: "string",
+  title: "string",
+  status: "string",
+  repo: "string",
+  now: "string",
+  paused: "boolean",
+};
+
+const LEDGER_FILE = /\/(tasks\/[^/]+\.md|inbox\/[^/]+\.json|feed\.jsonl)$/;
 
 /** The mod folder is `<repo>/packages/herdr/config/mods/<name>`. Returns `<repo>`. */
 export function repoRoot(modFolder) {
@@ -25,9 +36,31 @@ export function boardCommand(repo, factoryHome) {
     : [command[0], command.slice(1)];
 }
 
-/** Parses the output of `factory board --json`. Missing lists become empty. */
+function validTask(task) {
+  const fields = Object.entries(TASK_FIELDS).every(([key, type]) => typeof task?.[key] === type);
+  return fields && [task.landing?.done, task.landing?.total].every((n) => typeof n === "number");
+}
+
+/**
+ * Parses the output of `factory board --json`. Missing fields get the empty values. Throws when a
+ * list or a task does not have the shape that the board shows.
+ */
 export function parseBoard(text) {
-  return { ...EMPTY_BOARD, ...JSON.parse(text) };
+  const board = { ...EMPTY_BOARD, ...JSON.parse(text) };
+  const lists = [board.tasks, board.sources, board.feed].every(Array.isArray);
+  if (!lists || !board.tasks.every(validTask))
+    throw new Error("the board output has an unknown shape");
+  return board;
+}
+
+/**
+ * Returns true when a batch of changed paths from `watchFolder(ledger)` can change the board: a
+ * task file, an inbox file, the feed, or the ledger folder itself. Lock, temporary, and state
+ * files do not count.
+ */
+export function ledgerChanged(paths, ledger) {
+  const root = ledger.replace(/\/+$/, "");
+  return paths.some((path) => LEDGER_FILE.test(path) || path.replace(/\/+$/, "").endsWith(root));
 }
 
 /**

@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import { loadBoard } from "../../src/board/load.ts";
 import { appendFeed } from "../../src/core/feed.ts";
@@ -18,10 +20,11 @@ async function fillLedger(paths: LedgerPaths): Promise<string> {
   await writeInbox({ ...event, id: "e-1", summary: "", url: "", ts }, paths);
   const record = { ts, source: "github", ok: true, new: 0, routed: [], ignored: 0 };
   await appendFeed({ ...record, summary: "quiet" }, paths);
+  await writeFile(join(paths.tasks, "t-bad0.md"), "no front matter\n");
   return kept.meta.id;
 }
 
-test("loadBoard reads tasks, inbox, feed, and terminals", async () => {
+test("loadBoard reads tasks, bad task files, inbox, feed, and terminals", async () => {
   const paths = await tempLedger();
   const id = await fillLedger(paths);
   const terminals = [{ address: "t9", name: `factory-${id}`, cwd: "/", state: "live", turn: 0 }];
@@ -32,6 +35,7 @@ test("loadBoard reads tasks, inbox, feed, and terminals", async () => {
 
   expect(board.tasks.map((card) => [card.id, card.terminal])).toEqual([[id, "t9"]]);
   expect(board.inbox).toBe(1);
+  expect(board.invalid).toBe(1);
   expect(board.sources.map((source) => source.summary)).toEqual(["quiet"]);
   expect(board.feed).toEqual([{ ts, source: "github", summary: "quiet" }]);
 });

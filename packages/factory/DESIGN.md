@@ -302,7 +302,8 @@ A Herdr mod that reads `factory board --json`:
 { tasks: { id; title; status; repo; needs_you; now; paused; landing: { done; total };
            terminal?: string; working?: boolean }[];
   inbox: number;
-  sources: { source; ok; ts; summary }[];   // the last record of each source
+  invalid: number;                          // task files that are not valid
+  sources: { source; ok; ts; summary }[];   // the last record of each source, factoryd too
   feed: { ts; source; summary }[] }          // the last 20 records
 ```
 
