@@ -8,6 +8,7 @@ import {
   startTaskAgent,
   taskTerminal,
   threadRepo,
+  UNTITLED_TITLE,
   type FactoryEvent,
   type Hc,
   type HcTerminal,
@@ -39,7 +40,7 @@ export interface Opened {
   message?: string;
 }
 
-/** The result of `inbox design`: the new task and the terminal of its design agent. */
+/** The result of `design` and `inbox design`: the new task and the terminal of its design agent. */
 export interface Designed {
   task: string;
   terminal: string;
@@ -126,6 +127,24 @@ async function eventCwd(event: FactoryEvent, paths: LedgerPaths): Promise<string
   return (await findCheckout(repo, config.repoRoots, paths)) ?? paths.home;
 }
 
+async function startDesign(task: Task, deps: OpenDeps): Promise<Designed> {
+  const opened = await focusAgent("design", task, await deps.hc.ls(), deps);
+  return { task: task.meta.id, terminal: opened.terminal };
+}
+
+/**
+ * Makes a `sketch` task with the title {@link UNTITLED_TITLE}, no threads, and the ledger folder as
+ * its `cwd`, then starts and focuses its design agent. The design agent asks the user what the task
+ * is and sets the title and the `cwd`.
+ *
+ * @example
+ * const { task, terminal } = await designBlank(deps); // terminal: `factory-design-${task}`
+ */
+export async function designBlank(deps: OpenDeps): Promise<Designed> {
+  const task = await createTask({ title: UNTITLED_TITLE, cwd: deps.paths.home }, deps.paths);
+  return startDesign(task, deps);
+}
+
 /**
  * Makes a `sketch` task from inbox event `id`: its title, its thread, and a Goal draft that links
  * the event. The task `cwd` is the local checkout of the event repository, else the ledger folder.
@@ -140,6 +159,5 @@ export async function designFromInbox(id: string, deps: OpenDeps): Promise<Desig
   };
   const task = await createTask({ ...fields, cwd: await eventCwd(event, deps.paths) }, deps.paths);
   await removeThread(deps.paths, event.thread);
-  const opened = await focusAgent("design", task, await deps.hc.ls(), deps);
-  return { task: task.meta.id, terminal: opened.terminal };
+  return startDesign(task, deps);
 }

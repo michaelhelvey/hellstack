@@ -70,6 +70,26 @@ describe("Actions", () => {
     expect(calls).toEqual([["up"]]);
   });
 
+  test("a new sketch is busy while it runs; its CLI error stays", async () => {
+    const { calls, runCli } = runner([{ ok: false, text: "hc: no server" }]);
+    const actions = new Actions(runCli);
+    const run = actions.run("sketch", "sketch", COMMANDS.sketch());
+    expect(actions.get("sketch")).toEqual({
+      phase: "busy",
+      kind: "sketch",
+      text: "starting a design agent…",
+    });
+    expect(await run).toBe(false);
+    expect(actions.get("sketch")).toEqual({
+      phase: "error",
+      kind: "sketch",
+      text: "hc: no server",
+    });
+    expect(calls).toEqual([["design", "--json"]]);
+    const designed = JSON.stringify({ task: "t-1", terminal: "factory-design-t-1" });
+    expect(cliResult({ code: 0, stdout: designed, stderr: "" })).toEqual({ ok: true, text: "" });
+  });
+
   test("the error of a failed action stays", async () => {
     const { runCli } = runner([{ ok: false, text: "gh: 404" }]);
     const actions = new Actions(runCli);

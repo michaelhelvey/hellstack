@@ -212,13 +212,21 @@ async function isFolder(path: string): Promise<boolean> {
 }
 
 /**
- * Returns what a task needs before handoff: each contract section without text, a Landing section
- * without checkbox items, and a `cwd` that is not a folder. An empty list means that it is ready.
+ * The placeholder title of a sketch that has no title from the user yet (`factory design`). Its
+ * design agent asks the user what the task is, then sets a real title.
+ */
+export const UNTITLED_TITLE = "untitled";
+
+/**
+ * Returns what a task needs before handoff: a title that is not {@link UNTITLED_TITLE}, each
+ * contract section without text, a Landing section without checkbox items, and a `cwd` that is not
+ * a folder. An empty list means that it is ready.
  */
 export async function validateHandoff(task: Task): Promise<string[]> {
   const missing = contractSections
     .filter((name) => !sectionText(task.body, name))
     .map((name) => `${name} has no text`);
+  if (task.meta.title === UNTITLED_TITLE) missing.push(`the title is still "${UNTITLED_TITLE}"`);
   if (landingItems(task.body).length === 0) missing.push("Landing has no checkbox items");
   if (!(await isFolder(task.meta.cwd))) missing.push(`cwd is not a folder: ${task.meta.cwd}`);
   return missing;

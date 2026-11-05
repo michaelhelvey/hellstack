@@ -1,10 +1,12 @@
-// The board actions: start and stop the factory, open the agent of a task, and dismiss an inbox
-// thread or send it to a design agent. Each action runs the factory CLI. Pure: tests can load it.
+// The board actions: start and stop the factory, start a new sketch, open the agent of a task, and
+// dismiss an inbox thread or send it to a design agent. Each action runs the factory CLI. Pure:
+// tests can load it.
 
 /** The text that shows while an action of each kind runs. */
 export const BUSY_TEXT = {
   up: "starting…",
   down: "stopping…",
+  sketch: "starting a design agent…",
   open: "opening…",
   dismiss: "dismissing…",
   design: "starting a design agent…",
@@ -36,12 +38,14 @@ export function powerState(running) {
 }
 
 /**
- * Returns the CLI arguments of each action. `ids` are the event ids of an inbox thread, newest
- * first. The CLI removes all events of the thread, so the newest event is enough.
+ * Returns the CLI arguments of each action. `sketch` makes an untitled sketch and starts its design
+ * agent. `ids` are the event ids of an inbox thread, newest first. The CLI removes all events of the
+ * thread, so the newest event is enough.
  */
 export const COMMANDS = {
   up: () => ["up"],
   down: () => ["down"],
+  sketch: () => ["design", "--json"],
   open: (id) => ["open", id, "--json"],
   dismiss: (ids) => ["inbox", "dismiss", ids[0], "--json"],
   design: (ids) => ["inbox", "design", ids[0], "--json"],
@@ -77,7 +81,7 @@ export function cliResult({ code, stdout, stderr }) {
 }
 
 /**
- * Keeps the state of each running or failed action by key: `power`, `task:<id>`, or
+ * Keeps the state of each running or failed action by key: `power`, `sketch`, `task:<id>`, or
  * `thread:<thread>`. A state is `{ phase, kind, text }`; `phase` is `confirm`, `busy`, `error`, or
  * `note`. `runCli(args)` runs the CLI and resolves with a {@link cliResult}.
  */

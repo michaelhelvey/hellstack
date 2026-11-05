@@ -30,6 +30,8 @@ The board (`mods/factory-board`):
 
 - **Power**: shows if factoryd and the coordinator run. "start" runs `factory up`, "stop" runs
   `factory down`.
+- **+ new task**: makes an untitled sketch task and starts its design agent (`factory design`). The
+  agent asks you what the task is.
 - **Tasks**: "needs you", then a lane for each status. A card shows the status, the title, the
   folder (hover for the full path), and the agent. Click a task to go to its agent, or to start it
   (`factory open <id>`).

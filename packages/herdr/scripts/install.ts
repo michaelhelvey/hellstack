@@ -1,5 +1,5 @@
 import { type Dirent, existsSync } from "node:fs";
-import { lstat, mkdir, readdir, readlink, rename, rm, symlink } from "node:fs/promises";
+import { lstat, lutimes, mkdir, readdir, readlink, rename, rm, symlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -22,9 +22,21 @@ async function link(source: string, target: string): Promise<void> {
   await symlink(source, target);
 }
 
-async function linkEntry(source: string, target: string, isDir: boolean): Promise<void> {
-  if (isDir && !existsSync(path.join(source, "mod.json"))) return linkFolder(target, source);
+/**
+ * Links the mod folder `source` to `target`, then sets the time of the link itself. Herdr reloads a
+ * mod when its folder in the app folder changes. It does not see changes behind the link, so the
+ * new time makes it load the current files.
+ */
+async function linkMod(source: string, target: string): Promise<void> {
   await link(source, target);
+  const now = new Date();
+  await lutimes(target, now, now);
+}
+
+async function linkEntry(source: string, target: string, isDir: boolean): Promise<void> {
+  if (!isDir) return link(source, target);
+  if (existsSync(path.join(source, "mod.json"))) return linkMod(source, target);
+  await linkFolder(target, source);
 }
 
 async function linkFolder(appDir: string, configDir: string): Promise<void> {
@@ -71,7 +83,7 @@ async function removeStaleEntry(
 /**
  * Links each file of `configDir` into `appDir`, at the same relative path. Herdr writes its own
  * files in the folders of `appDir`, so folders are made, not linked. A mod folder (a folder with
- * `mod.json`) is linked as one unit. Then removes each link into `configDir` whose source does
+ * `mod.json`) is linked as one unit, and each run touches its link so that Herdr reloads it. Then removes each link into `configDir` whose source does
  * not exist, for example after a file in `configDir` is removed or renamed.
  */
 export async function linkConfig(appDir: string, configDir: string = CONFIG_DIR): Promise<void> {

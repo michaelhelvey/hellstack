@@ -3,7 +3,13 @@ import { createHc, createHerdr, initLedger, ledgerPaths, startCoordinator } from
 import { down, repoRoot, status, up, type ControlDeps } from "./daemon/control.ts";
 import { daemonOptions, runDaemon } from "./daemon/daemon.ts";
 import { dismissInbox } from "./daemon/inbox.ts";
-import { designFromInbox, openTask, type OpenDeps } from "./daemon/open.ts";
+import {
+  designBlank,
+  designFromInbox,
+  openTask,
+  type Designed,
+  type OpenDeps,
+} from "./daemon/open.ts";
 import { createInboxSources } from "./daemon/sources.ts";
 
 /** A CLI command. It gets the arguments after the command name. */
@@ -69,6 +75,15 @@ async function open(args: string[]): Promise<void> {
   print(args, opened, opened.message ?? `${opened.terminal}: ${action}`);
 }
 
+function printDesigned(args: string[], designed: Designed): void {
+  const line = `made the sketch ${designed.task}; its design agent is ${designed.terminal}`;
+  print(args, designed, line);
+}
+
+async function design(args: string[]): Promise<void> {
+  printDesigned(args, await designBlank(openDeps()));
+}
+
 const inboxCommands = new Map<string, Command>([
   [
     "dismiss",
@@ -82,12 +97,7 @@ const inboxCommands = new Map<string, Command>([
     "design",
     async (args) => {
       const id = operand(args, "inbox design <event-id> [--json]");
-      const designed = await designFromInbox(id, openDeps());
-      print(
-        args,
-        designed,
-        `made the sketch ${designed.task}; its design agent is ${designed.terminal}`,
-      );
+      printDesigned(args, await designFromInbox(id, openDeps()));
     },
   ],
 ]);
@@ -108,6 +118,7 @@ export const commands = new Map<string, Command>([
   ["daemon", daemon],
   ["board", board],
   ["open", open],
+  ["design", design],
   ["inbox", inbox],
 ]);
 

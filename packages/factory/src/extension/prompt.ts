@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { readIfExists } from "../core/files.ts";
 import { getTask } from "../core/ledger.ts";
 import { promptPath, taskPath, type LedgerPaths } from "../core/paths.ts";
-import type { TaskStatus } from "../core/task.ts";
+import { UNTITLED_TITLE, type TaskMeta } from "../core/task.ts";
 import type { Role, TaskRole } from "./role.ts";
 
 /** The folder of the `factory` skill. Only the coordinator loads it. */
@@ -43,7 +43,7 @@ export function designDonePrompt(role: TaskRole, paths: LedgerPaths, status: str
     `You helped the user write the contract of factory task ${role.task} (${taskPath(paths, role.task)}). The task is now \`${status}\`, so the design is done.`,
     "",
     `- Do not edit the task file. The coordinator and the worker own it now. When the user wants to change the contract, tell them to talk to the coordinator (terminal \`factory\`) or to the worker (terminal \`factory-${role.task}\`).`,
-    "- To start a new task, the user can run `/sketch <title>` in a new session.",
+    "- To start a new task, the user can click `+ new task` on the factory board, or run `/sketch <title>` in a new session.",
   ].join("\n");
 }
 
@@ -59,20 +59,32 @@ async function workerSections(role: TaskRole, paths: LedgerPaths): Promise<Secti
   return { factory_worker: `${await prompt("WORKER.md")}\n\n${taskIntro(role, paths)}` };
 }
 
-async function taskStatus(id: string, paths: LedgerPaths): Promise<TaskStatus | "missing"> {
-  return (await getTask(id, paths).catch(() => undefined))?.meta.status ?? "missing";
+/**
+ * The part of the design prompt for a sketch with the title {@link UNTITLED_TITLE}. It shows until
+ * the agent sets a real title.
+ */
+export const UNTITLED_PROMPT = `The task has no title yet (\`${UNTITLED_TITLE}\`), and its \`cwd\` is only the factory ledger. Before you do other work, ask the user what the task is and in which folder (usually a repository) the worker must work. Then set a real title and that \`cwd\` with \`factory_task\` \`update\`.`;
+
+async function taskMeta(id: string, paths: LedgerPaths): Promise<TaskMeta | undefined> {
+  return (await getTask(id, paths).catch(() => undefined))?.meta;
+}
+
+function designIntro(role: TaskRole, paths: LedgerPaths, title: string): string {
+  const intro = taskIntro(role, paths);
+  return title === UNTITLED_TITLE ? `${intro}\n\n${UNTITLED_PROMPT}` : intro;
 }
 
 async function designSections(role: TaskRole, paths: LedgerPaths): Promise<Sections> {
-  const status = await taskStatus(role.task, paths);
-  if (status !== "sketch") return { factory_design: designDonePrompt(role, paths, status) };
+  const meta = await taskMeta(role.task, paths);
+  if (meta?.status !== "sketch") {
+    return { factory_design: designDonePrompt(role, paths, meta?.status ?? "missing") };
+  }
   const [design, template] = await Promise.all([
     prompt("DESIGN-AGENT.md"),
     prompt("task-template.md"),
   ]);
-  return {
-    factory_design: `${design}\n\n${taskIntro(role, paths)}\n\nThe task template:\n\n${template}`,
-  };
+  const intro = designIntro(role, paths, meta.title);
+  return { factory_design: `${design}\n\n${intro}\n\nThe task template:\n\n${template}` };
 }
 
 function ownSections(role: Role, paths: LedgerPaths): Promise<Sections> {

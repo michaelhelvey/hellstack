@@ -1,5 +1,5 @@
-// The board: a header with the power switch and the source health, the tasks, the inbox, and the
-// feed. It uses two columns when it is wide.
+// The board: a header with the power switch, the new task button, and the source health, the
+// tasks, the inbox, and the feed. It uses two columns when it is wide.
 
 import { div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
@@ -8,7 +8,7 @@ import { powerState } from "./actions.js";
 import { inboxColumn } from "./inbox.js";
 import { age, clock } from "./model.js";
 import { taskColumn } from "./tasks.js";
-import { actionLine, button, dot, heading, pill, some, spinner } from "./ui.js";
+import { actionLine, busyLine, button, dot, heading, pill, some, spinner } from "./ui.js";
 
 /** The board width, in px, from which the tasks and the inbox are side by side. */
 export const TWO_COLUMNS_PX = 760;
@@ -85,6 +85,18 @@ function power(ctx, running) {
     .children(spec.buttons.map((pair) => powerButton(ctx, pair)));
 }
 
+function sketchButton(ctx) {
+  const state = ctx.actions.get("sketch");
+  if (state?.phase === "busy") return busyLine(ctx, state.text);
+  return button(ctx, {
+    id: "fb-sketch",
+    text: "+ new task",
+    color: ctx.t.ansi3,
+    tooltip: "bun run factory design: a new sketch and its design agent",
+    onClick: (_e, cx) => ctx.sketch(cx),
+  });
+}
+
 function source(ctx, s) {
   const { t } = ctx;
   const color = s.ok ? t.done : t.blocked;
@@ -120,18 +132,23 @@ function headerRow(ctx, board) {
     .items_center()
     .child(title(ctx).child("Factory"))
     .child(power(ctx, board.running))
+    .child(sketchButton(ctx))
     .child(div().flex_1())
     .children(some(bad))
     .child(sources(ctx, board));
 }
 
+function doneLine(ctx, key) {
+  return ctx.actions.get(key)?.phase !== "busy" && actionLine(ctx, key);
+}
+
 function header(ctx, board) {
-  const action = ctx.actions.get("power");
   const loadError = div().text_size(ctx.fs.small).text_color(ctx.t.blocked).child(ctx.error);
   return v_flex()
     .gap(6)
     .child(headerRow(ctx, board))
-    .children(some(action?.phase !== "busy" && actionLine(ctx, "power")))
+    .children(some(doneLine(ctx, "power")))
+    .children(some(doneLine(ctx, "sketch")))
     .children(some(Boolean(ctx.error) && loadError));
 }
 

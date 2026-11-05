@@ -12,6 +12,7 @@ import {
   parseTask,
   sectionText,
   serializeTask,
+  UNTITLED_TITLE,
   validateHandoff,
   type Task,
 } from "../../src/core/task.ts";
@@ -136,6 +137,12 @@ describe("validateHandoff", () => {
   test("returns nothing for a complete task", async () => {
     const task = withCwd(parseTask(fileText), await tempFolder());
     expect(await validateHandoff(task)).toEqual([]);
+  });
+
+  test("refuses a task that is still untitled", async () => {
+    const task = withCwd(parseTask(fileText), await tempFolder());
+    const untitled = { ...task, meta: { ...task.meta, title: UNTITLED_TITLE } };
+    expect(await validateHandoff(untitled)).toEqual(['the title is still "untitled"']);
   });
 
   test("returns each missing part of a new task", async () => {

@@ -1,5 +1,5 @@
-// The factory board: the power switch, the tasks, the inbox with its triage buttons, the source
-// health, and the feed. With the prop `view: "banner"`, the banner over the main area that names
+// The factory board: the power switch, the new task button, the tasks, the inbox with its triage
+// buttons, the source health, and the feed. With the prop `view: "banner"`, the banner over the main area that names
 // the coordinator, the worker, or the design agent.
 // Data: `bun <repo>/packages/factory/src/cli.ts board --json`. It loads again when the ledger
 // changes, after each action, and every 20 s. The board puts its data in `shared()` for the
@@ -203,6 +203,7 @@ export default class FactoryBoard extends View {
   handlers() {
     return {
       power: (next, cx) => this.act(cx, { key: "power", kind: next, args: COMMANDS[next]() }),
+      sketch: (cx) => this.act(cx, { key: "sketch", kind: "sketch", args: COMMANDS.sketch() }),
       openTask: (id, cx) =>
         this.act(cx, { key: `task:${id}`, kind: "open", args: COMMANDS.open(id) }),
       inboxAction: (thread, kind, cx) =>

@@ -15,11 +15,12 @@ bun run factory status         # what runs, the task counts, the inbox, the last
 bun run factory down           # stop factoryd and the coordinator; workers continue
 bun run factory board --json   # print the board model (what runs, tasks, inbox, source health, feed)
 bun run factory open <task-id>             # start and focus the agent of a task in Herdr
+bun run factory design                     # make an untitled sketch and open its design agent
 bun run factory inbox dismiss <event-id>   # mark the notification done or resolve the issue
 bun run factory inbox design <event-id>    # make a sketch from an inbox event and open its design agent
 ```
 
-`open`, `inbox dismiss`, and `inbox design` print JSON with `--json`.
+`open`, `design`, `inbox dismiss`, and `inbox design` print JSON with `--json`.
 
 `factoryd` polls the sources in `config.json`, routes events to workers, the coordinator, or the
 inbox, keeps workers and the coordinator running, and writes `feed.jsonl`. `up` runs it in the hc
@@ -36,7 +37,8 @@ In any pi session, `/sketch <title>` starts a task for the current folder. The a
 the contract into the task file. Say that it is ready (or run `/handoff`), and the task goes to the
 coordinator. `inbox design` does the same in a new design agent (terminal `factory-design-<id>`), in
 the local checkout of the event repository: it looks in `repoRoots` of `config.json` (default
-`["~/dev"]`).
+`["~/dev"]`). `design` (the `+ new task` button on the board) starts a design agent for an untitled
+sketch; the agent asks you what the task is and where it runs.
 
 The sources use the logins of `gh` (`gh auth login`) and `sentry` (`sentry auth login`).
 

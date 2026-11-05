@@ -4,7 +4,8 @@ import { describe, expect, test } from "bun:test";
 
 import { createTask, initLedger, updateTask } from "../../src/core/ledger.ts";
 import { promptPath, taskPath } from "../../src/core/paths.ts";
-import { designDonePrompt, roleSections } from "../../src/extension/prompt.ts";
+import { UNTITLED_TITLE } from "../../src/core/task.ts";
+import { designDonePrompt, roleSections, UNTITLED_PROMPT } from "../../src/extension/prompt.ts";
 import { tempFolder, tempLedger } from "../core/helpers.ts";
 
 const rules = (await readFile(promptPath("chinchilla.md"), "utf8")).trim();
@@ -47,9 +48,25 @@ describe("roleSections", () => {
     expect(sketch.factory_design).toStartWith(design);
     expect(sketch.factory_design).toContain(`Your task file is ${taskPath(paths, task.meta.id)}.`);
     expect(sketch.factory_design).toEndWith(`The task template:\n\n${template}`);
+    expect(sketch.factory_design).not.toContain(UNTITLED_PROMPT);
 
     await updateTask(task.meta.id, { status: "dropped" }, paths);
     const done = await roleSections(role, paths);
     expect(done.factory_design).toBe(designDonePrompt(role, paths, "dropped"));
+  });
+
+  test("the design agent of an untitled sketch asks for the task until it sets a title", async () => {
+    const paths = await tempLedger();
+    const task = await createTask({ title: UNTITLED_TITLE, cwd: paths.home }, paths);
+    const role = { kind: "design", task: task.meta.id } as const;
+    const intro = `Your task file is ${taskPath(paths, task.meta.id)}. The factory ledger is ${paths.home}.`;
+    const untitled = await roleSections(role, paths);
+    expect(untitled.factory_design).toContain(
+      `${intro}\n\n${UNTITLED_PROMPT}\n\nThe task template:`,
+    );
+
+    await updateTask(task.meta.id, { title: "Fix it", cwd: await tempFolder() }, paths);
+    const titled = await roleSections(role, paths);
+    expect(titled.factory_design).not.toContain(UNTITLED_PROMPT);
   });
 });

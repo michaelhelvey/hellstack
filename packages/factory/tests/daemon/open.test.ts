@@ -15,7 +15,7 @@ import {
   type Herdr,
   type LedgerPaths,
 } from "../../src/core/index.ts";
-import { designFromInbox, openTask } from "../../src/daemon/open.ts";
+import { designBlank, designFromInbox, openTask } from "../../src/daemon/open.ts";
 import { completeBody, tempFolder, tempLedger } from "../core/helpers.ts";
 import { event, fakeHc, noHerdr, terminal } from "./helpers.ts";
 
@@ -103,6 +103,26 @@ describe("openTask", () => {
       focused: true,
     });
     expect(design.focused).toEqual(["t3"]);
+  });
+});
+
+describe("designBlank", () => {
+  test("makes an untitled sketch in the ledger folder and starts and focuses its design agent", async () => {
+    const paths = await tempLedger();
+    const { fake, focused, deps } = setup(paths);
+
+    const designed = await designBlank(deps);
+
+    const task = await getTask(designed.task, paths);
+    expect(task.meta).toMatchObject({
+      title: "untitled",
+      status: "sketch",
+      cwd: paths.home,
+      threads: [],
+    });
+    expect(designed.terminal).toBe(`factory-design-${designed.task}`);
+    expect(fake.calls).toContain(`run factory-design-${designed.task}`);
+    expect(focused).toEqual(["t1"]);
   });
 });
 

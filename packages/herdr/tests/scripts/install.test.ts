@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import {
   lstat,
+  lutimes,
   mkdir,
   mkdtemp,
   readFile,
@@ -49,6 +50,17 @@ test("linkConfig links files and mod folders, and makes the other folders", asyn
     expect(await readlink(path.join(app, "mods", "quiet"))).toBe(
       path.join(config, "mods", "quiet"),
     );
+  });
+});
+
+test("linkConfig touches each mod link again, so that Herdr reloads the mod", async () => {
+  await withFolders(async (config, app) => {
+    const mod = path.join(app, "mods", "quiet");
+    await linkConfig(app, config);
+    const old = new Date(2020, 0, 1);
+    await lutimes(mod, old, old);
+    await linkConfig(app, config);
+    expect((await lstat(mod)).mtime.getTime()).toBeGreaterThan(old.getTime());
   });
 });
 

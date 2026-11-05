@@ -16,7 +16,7 @@ Keep the code small. Do not add process that a capable model does not need.
 | core       | `src/core/`                                  | Node    | Ledger paths, config, task files, inbox, feed, hc, agent spawn                   |
 | `factoryd` | `src/daemon/`                                | bun     | Poll, filter, route, reconcile, keepalive, watchdog, prune, feed                 |
 | extension  | `src/index.ts`, `src/extension/`             | Node    | Roles, prompt injection, tools, commands, bash timeout                           |
-| CLI        | `src/cli.ts`                                 | bun     | `init`, `up`, `down`, `status`, `board`, `open`, `inbox`                         |
+| CLI        | `src/cli.ts`                                 | bun     | `init`, `up`, `down`, `status`, `board`, `open`, `design`, `inbox`               |
 | prose      | `prompts/`, `skills/factory/`                | -       | `chinchilla.md`, `WORKER.md`, `DESIGN-AGENT.md`, coordinator seed, task template |
 | board      | `packages/herdr/config/mods/factory-board`   | Herdr   | The board mod                                                                    |
 | layout     | `packages/herdr/config/layouts/factory.json` | Herdr   | The `factory` layout                                                             |
@@ -418,15 +418,16 @@ design agent, the banner shows the task id, title, cwd, status, landing progress
 button back to the coordinator. Another tab shows one dim line. The board shows the card of the
 shown task with the same accent.
 
-The board header has the power switch (from `running`; it runs `up` or `down`), the count of bad
-task files, and the source health. Under it, the tasks take two fifths of the width: "needs you"
-(tasks with `needs_you`; a coordinator proposal is a `sketch` with `needs_you` set), then a lane for
-each status, with the cwd folder, the agent role, and the landing progress; then the feed. A click
-on a task runs `open <id>`. The inbox takes three fifths: one card for each thread, in as many
-columns as fit, with the kind, `repo#n`, state, author, age, title, and body excerpt. Each card has
-`design →` (`inbox design`) and `dismiss` or `resolve` (`inbox dismiss`, after a confirm step). A
-click on the card opens its `url`. When the board is narrow, it has one column. Colors come from the
-Herdr theme (`theme()`), so the board follows the theme-picker themes.
+The board header has the power switch (from `running`; it runs `up` or `down`), the `+ new task`
+button (it runs `design`; it takes no input), the count of bad task files, and the source health.
+Under it, the tasks take two fifths of the width: "needs you" (tasks with `needs_you`; a coordinator
+proposal is a `sketch` with `needs_you` set), then a lane for each status, with the cwd folder, the
+agent role, and the landing progress; then the feed. A click on a task runs `open <id>`. The inbox
+takes three fifths: one card for each thread, in as many columns as fit, with the kind, `repo#n`,
+state, author, age, title, and body excerpt. Each card has `design →` (`inbox design`) and `dismiss`
+or `resolve` (`inbox dismiss`, after a confirm step). A click on the card opens its `url`. When the
+board is narrow, it has one column. Colors come from the Herdr theme (`theme()`), so the board
+follows the theme-picker themes.
 
 ## CLI
 
@@ -445,6 +446,10 @@ Herdr theme (`theme()`), so the board follows the theme-picker themes.
   else nothing and a `message` (it does not dispatch). `dropped`: an error. Prints
   `{ terminal: string | null, started: boolean, focused: boolean, message? }`; `focused` is false
   when the Herdr window does not run or `agent.focus` fails.
+- `design [--json]`: make a `sketch` task with the title `untitled`, no threads, and `cwd` =
+  `FACTORY_HOME`, then start and focus its design agent. While the title is `untitled`, the design
+  prompt tells the agent to ask the user what the task is, and to set the title and the `cwd` with
+  `factory_task` `update`; `factory_handoff` refuses the task. Prints `{ task, terminal }`.
 - `inbox dismiss <event-id> [--json]`: the dismiss action of the event source (GitHub:
   `gh api -X DELETE notifications/threads/<thread-id>`, which marks the thread done; Sentry:
   `sentry api organizations/<org>/issues/<shortId>/ -X PUT -F status=resolved`), then remove all
