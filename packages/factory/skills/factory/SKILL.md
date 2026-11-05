@@ -74,7 +74,11 @@ Task status: `sketch` → `ready` → `working` → `landing` → `landed`, or `
 factoryd polls the sources, filters them, and routes each event. Events on a thread that a task owns
 go to its worker. You get the rest as `<factory from="factoryd">` blocks, at most one each 30
 seconds. Events that no task owns are also in the inbox. For each event, decide: ignore it (and
-`dismiss` it), tell the user, or propose a task. Stay quiet about noise.
+`dismiss` it), tell the user, or propose a task.
+
+Stay quiet about noise. When a block has nothing that needs the user, answer with one short line
+(for example `2 bot comments, noise`), or nothing at all. Do not explain each event. Do not repeat
+the inbox. When the same kind of noise comes three times, propose one config rule for it, one time.
 
 ## Sources and config
 
