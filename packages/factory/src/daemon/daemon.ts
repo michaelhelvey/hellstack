@@ -11,9 +11,11 @@ import {
   parseConfig,
   readIfExists,
   removeInbox,
+  removeTerminal,
   runCommand,
   startCoordinator,
   startWorker,
+  workerTerminal,
   writeInbox,
   HcError,
   type CommandRunner,
@@ -30,7 +32,7 @@ import {
 import { emptyDigest, factoryBlock, flushDigest, queueLines, type Digest } from "./digest.ts";
 import { filterEvents } from "./filter.ts";
 import { acquireLock } from "./lock.ts";
-import { reconcile } from "./reconcile.ts";
+import { reconcile, type Close } from "./reconcile.ts";
 import { eventLine, INBOX, ownedInbox, routeEvent, runningPi, type Route } from "./route.ts";
 import type { PollResult, Source } from "./source.ts";
 import { checkSources, createSource, sourceKey } from "./sources.ts";
@@ -53,6 +55,11 @@ export interface DaemonOptions {
   paths: LedgerPaths;
   /** When false, the daemon does not start, message, or interrupt agents. It prints the messages. */
   agents: boolean;
+  /**
+   * When false, the daemon does not start, message, or interrupt the coordinator. It prints the
+   * messages. The default is true.
+   */
+  coordinator?: boolean;
   hc: Hc;
   herdr: Herdr;
   /** Runs the summary model. */
@@ -76,10 +83,15 @@ export interface Daemon {
 }
 
 /** Returns the default daemon options for the ledger. */
-export function daemonOptions(paths: LedgerPaths, agents: boolean): DaemonOptions {
+export function daemonOptions(
+  paths: LedgerPaths,
+  agents: boolean,
+  coordinator = true,
+): DaemonOptions {
   return {
     paths,
     agents,
+    coordinator,
     hc: createHc(),
     herdr: createHerdr(),
     runner: runCommand,
@@ -270,6 +282,43 @@ async function startWorkers(daemon: Daemon, tasks: Task[]): Promise<void> {
   }
 }
 
+function age(minutes: number): string {
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h`;
+}
+
+async function closeWorkers(daemon: Daemon, close: Close[]): Promise<void> {
+  for (const { task, terminal, minutes } of close) {
+    await guard(daemon, `close of worker ${task.meta.id}`, async () => {
+      await removeTerminal(daemon.options.hc, terminal);
+      const summary = `Closed the worker of ${task.meta.id}, ${task.meta.status} ${age(minutes)} ago.`;
+      await feedAction(daemon, summary);
+    });
+  }
+}
+
+async function withStatusTimes(
+  daemon: Daemon,
+  tasks: Task[],
+  terminals: HcTerminal[],
+): Promise<HcTerminal[]> {
+  const finished = new Set(
+    tasks
+      .filter((task) => task.meta.status === "landed" || task.meta.status === "dropped")
+      .map((task) => workerTerminal(task.meta.id)),
+  );
+  return Promise.all(
+    terminals.map(async (terminal) => {
+      if (!terminal.name || !finished.has(terminal.name)) return terminal;
+      const detail = await daemon.options.hc.get(terminal.name);
+      return { ...terminal, status_ms: detail?.status_ms };
+    }),
+  );
+}
+
+function talksToCoordinator({ options }: Daemon): boolean {
+  return options.agents && options.coordinator !== false;
+}
+
 async function keepalive(daemon: Daemon, terminals: HcTerminal[]): Promise<void> {
   if (runningPi(terminals).has(COORDINATOR_TERMINAL)) return;
   await startCoordinator(daemon.config, { restart: true, deps: spawnDeps(daemon) });
@@ -296,25 +345,25 @@ async function removeOwnedInbox(daemon: Daemon, tasks: Task[]): Promise<void> {
 
 /**
  * Runs the reconcile, keepalive, and watchdog steps. Without agents, it only removes owned inbox
- * events and queues the notices.
+ * events and queues the notices. Without the coordinator, it does not do the keepalive and watchdog
+ * steps.
  */
 export async function housekeeping(daemon: Daemon, now: number): Promise<void> {
   const { tasks } = await listTasks(daemon.options.paths);
   const terminals = await daemon.options.hc.ls();
   await removeOwnedInbox(daemon, tasks);
-  const { staleAfterMinutes } = daemon.config;
+  const { staleAfterMinutes, closeAfterMinutes } = daemon.config;
   const plan = reconcile({
-    tasks,
-    terminals,
-    notices: daemon.state.notices,
-    now: new Date(now),
-    staleAfterMinutes,
+    ...{ tasks, terminals: await withStatusTimes(daemon, tasks, terminals) },
+    ...{ notices: daemon.state.notices, now: new Date(now), staleAfterMinutes, closeAfterMinutes },
   });
   daemon.state = { ...daemon.state, notices: plan.notices };
   daemon.digest = queueLines(daemon.digest, plan.notify);
   await persist(daemon);
   if (!daemon.options.agents) return;
   await startWorkers(daemon, plan.start);
+  await closeWorkers(daemon, plan.close);
+  if (!talksToCoordinator(daemon)) return;
   await guard(daemon, "keepalive", () => keepalive(daemon, terminals));
   await guard(daemon, "watchdog", () => watchdog(daemon, now));
 }
@@ -340,7 +389,7 @@ async function flush(daemon: Daemon, now: number): Promise<void> {
 }
 
 async function sendBlock(daemon: Daemon, block: string): Promise<void> {
-  if (!daemon.options.agents)
+  if (!talksToCoordinator(daemon))
     return daemon.options.log(`[no-agents] to ${COORDINATOR_TERMINAL}:\n${block}`);
   await daemon.options.hc.send(COORDINATOR_TERMINAL, block);
 }

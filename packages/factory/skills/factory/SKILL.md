@@ -66,6 +66,8 @@ Task status: `sketch` → `ready` → `working` → `landing` → `landed`, or `
   the worker screen with `hc read factory-<id> --lines 60` and decide: send it a nudge, set
   `needs_you`, or tell the user.
 - `paused: true` means the user stopped the worker on purpose. Leave it alone.
+- factoryd closes the worker terminal of a `landed` or `dropped` task when it has been idle for one
+  hour (`closeAfterMinutes`). A worker that the user still talks to stays open.
 - Check `hc get factory-<id>` before you message a worker. When it is working, the message waits in
   its queue; that is fine, but do not send the same thing twice.
 
@@ -91,6 +93,7 @@ When the user says "watch for sentry issues", "stop telling me about dependabot"
   "worker": { "model": "claude-opus-5-5", "thinking": "high" },
   "summaryModel": "haiku",
   "staleAfterMinutes": 120,
+  "closeAfterMinutes": 60,
   "sources": [
     {
       "type": "github",

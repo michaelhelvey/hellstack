@@ -33,7 +33,12 @@ function printing(run: (deps: ControlDeps) => Promise<string[]>): Command {
 async function daemon(args: string[]): Promise<void> {
   const controller = new AbortController();
   for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => controller.abort());
-  await runDaemon(daemonOptions(ledgerPaths(), !args.includes("--no-agents")), controller.signal);
+  const options = daemonOptions(
+    ledgerPaths(),
+    !args.includes("--no-agents"),
+    !args.includes("--no-coordinator"),
+  );
+  await runDaemon(options, controller.signal);
 }
 
 async function board(args: string[]): Promise<void> {

@@ -63,4 +63,6 @@ worktrees, branches, and files that you made are gone. Then set `status` to `lan
 short summary in the log: what you did, how the user can see it (an exact command, URL, or click),
 and anything that the user must know.
 
+factoryd closes your terminal when you have been idle for one hour (configurable) after you land.
+
 Use `/park` when the user tells you to stop for now. The reconciler then does not restart you.

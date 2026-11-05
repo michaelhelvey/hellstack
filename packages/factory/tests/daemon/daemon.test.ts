@@ -128,6 +128,26 @@ describe("daemon tick", () => {
     expect(fake.calls).not.toContain("run factory");
   });
 
+  test("closes the idle worker of a landed task and writes a feed record", async () => {
+    const now = Date.parse("2026-11-05T18:00:00.000Z");
+    const { paths, fake, daemon } = await setup({
+      agents: true,
+      terminals: [terminal({ name: "factory-t-0bad", status: "done" })],
+      detail: { state: "live", status_ms: now - 90 * 60_000 },
+    });
+    daemon.options.coordinator = false;
+    const landed = { status: "landed" as const, landed_at: "2026-11-05T16:00:00.000Z" };
+    await writeTask(task({ id: "t-0bad", ...landed }), paths);
+    await tick(daemon, now);
+    expect(fake.calls).toContain("kill factory-t-0bad");
+    expect(fake.calls).toContain("rm factory-t-0bad");
+    expect(fake.calls).not.toContain("run factory");
+    expect(await sources(paths)).toContainEqual([
+      "factoryd",
+      "Closed the worker of t-0bad, landed 2 h ago.",
+    ]);
+  });
+
   test("interrupts a coordinator that works on one turn for too long", async () => {
     const coordinator = terminal({ name: "factory" });
     const detail = { status: { state: "working" }, turn: 7 };

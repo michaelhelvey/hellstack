@@ -61,6 +61,7 @@ export const configSchema = z.object({
   worker: agentSchema("claude-opus-5-5", "high"),
   summaryModel: z.string().min(1).default("haiku"),
   staleAfterMinutes: z.number().positive().default(120),
+  closeAfterMinutes: z.number().positive().default(60),
   sources: z.array(sourceSchema).default(() => [githubSourceSchema.parse({ type: "github" })]),
 });
 

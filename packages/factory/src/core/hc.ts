@@ -2,7 +2,10 @@ import { z } from "zod";
 
 import { runCommand, type CommandResult, type CommandRunner } from "./command.ts";
 
-/** A terminal as `hc ls` shows it. */
+/**
+ * A terminal as `hc ls` shows it. `hc ls` does not show `status_ms` (the time of the last status
+ * change); `hc get` shows it.
+ */
 export const hcTerminalSchema = z.object({
   address: z.string(),
   name: z.string().nullish(),
@@ -10,6 +13,7 @@ export const hcTerminalSchema = z.object({
   cwd: z.string(),
   state: z.string(),
   status: z.string().nullish(),
+  status_ms: z.number().nullish(),
   turn: z.number(),
 });
 

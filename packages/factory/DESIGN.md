@@ -167,6 +167,7 @@ and writes an error record to the feed.
   "worker": { "model": "claude-opus-5-5", "thinking": "high" },
   "summaryModel": "haiku",
   "staleAfterMinutes": 120,
+  "closeAfterMinutes": 60,
   "sources": [
     {
       "type": "github",
@@ -279,7 +280,11 @@ a model, except the feed summary, which has a timeout.
    `paused: false`. Actual: `hc ls`. Start each worker that is missing or that no longer runs pi,
    with the restart prompt (`factory_dispatch` makes the first start). Tell the coordinator about
    each new `ready` task one time. Tell the coordinator one time when a task has had no `updated`
-   change for `staleAfterMinutes` and its worker is not working.
+   change for `staleAfterMinutes` and its worker is not working. Close the worker terminal of each
+   `landed` or `dropped` task (`removeTerminal`) when it has been idle for `closeAfterMinutes`, and
+   write a feed record. The idle time starts at the later of the finish time (`landed_at`; `updated`
+   for `dropped`) and the last status change of the terminal (`status_ms` of `hc get`). A terminal
+   with status `working` stays open, so a worker that the user still talks to stays open.
 5. **Keepalive**: start the coordinator when its terminal is missing.
 6. **Watchdog**: when the coordinator has had the same turn with status `working` for more than 3
    minutes, run `hc interrupt factory` and write a feed record.
@@ -292,7 +297,9 @@ coordinator is still starting), the lines wait for a later tick and the feed get
 The daemon sends them before it stops. The `factoryd` terminal runs the daemon in a login shell of
 the user (`$SHELL -lic`), because `hc run` does not give the caller's environment to the terminal;
 the shell files give the tokens. `--no-agents` runs the loop without agents: it does not start,
-message, or interrupt agents, and prints the messages instead.
+message, interrupt, or close agents, and prints the messages instead. `--no-coordinator` manages
+workers but does not start, message, or interrupt the coordinator; use it to test with a temporary
+ledger, because terminal names are global on the machine.
 
 ## Extension
 
@@ -374,6 +381,6 @@ Herdr theme (`theme()`), so the board follows the theme-picker themes.
 - `up`: start `factoryd` and the coordinator when they do not run. It is safe to run more than once.
 - `down`: stop `factoryd` and the coordinator. Workers continue.
 - `status`: print what runs and the task counts.
-- `daemon [--no-agents]`: run the `factoryd` loop in the foreground. `up` runs it in the `factoryd`
-  terminal.
+- `daemon [--no-agents] [--no-coordinator]`: run the `factoryd` loop in the foreground. `up` runs it
+  in the `factoryd` terminal.
 - `board --json`: print the board model.

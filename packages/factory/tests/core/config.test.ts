@@ -27,6 +27,7 @@ describe("config", () => {
       worker: { model: "claude-opus-5-5", thinking: "high" },
       summaryModel: "haiku",
       staleAfterMinutes: 120,
+      closeAfterMinutes: 60,
       sources: [{ type: "github", everySeconds: 60, default: "candidate", rules: [] }],
     });
   });
