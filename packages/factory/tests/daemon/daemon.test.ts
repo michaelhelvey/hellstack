@@ -148,6 +148,21 @@ describe("daemon tick", () => {
     ]);
   });
 
+  test("keeps the worker of a landed task and starts the others when hc get fails", async () => {
+    const { fake, daemon } = await setup({
+      agents: true,
+      terminals: [terminal({ name: "factory-t-0bad", status: "done" })],
+    });
+    daemon.options.coordinator = false;
+    const get = fake.hc.get.bind(fake.hc);
+    fake.hc.get = (t) =>
+      t === "factory-t-0bad" ? Promise.reject(new HcError("exit", "hc is down")) : get(t);
+    await writeTask(task({ id: "t-0bad", status: "landed" }), daemon.options.paths);
+    await tick(daemon, Date.parse("2026-11-05T18:00:00.000Z"));
+    expect(fake.calls).not.toContain("rm factory-t-0bad");
+    expect(fake.calls).toContain("run factory-t-7f3a");
+  });
+
   test("interrupts a coordinator that works on one turn for too long", async () => {
     const coordinator = terminal({ name: "factory" });
     const detail = { status: { state: "working" }, turn: 7 };

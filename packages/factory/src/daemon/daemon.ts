@@ -306,13 +306,14 @@ async function withStatusTimes(
       .filter((task) => task.meta.status === "landed" || task.meta.status === "dropped")
       .map((task) => workerTerminal(task.meta.id)),
   );
-  return Promise.all(
+  const known = await Promise.all(
     terminals.map(async (terminal) => {
-      if (!terminal.name || !finished.has(terminal.name)) return terminal;
-      const detail = await daemon.options.hc.get(terminal.name);
-      return { ...terminal, status_ms: detail?.status_ms };
+      if (!terminal.name || !finished.has(terminal.name)) return [terminal];
+      const detail = await daemon.options.hc.get(terminal.name).catch(() => null);
+      return detail === null ? [] : [{ ...terminal, status_ms: detail?.status_ms }];
     }),
   );
+  return known.flat();
 }
 
 function talksToCoordinator({ options }: Daemon): boolean {
@@ -389,8 +390,10 @@ async function flush(daemon: Daemon, now: number): Promise<void> {
 }
 
 async function sendBlock(daemon: Daemon, block: string): Promise<void> {
-  if (!talksToCoordinator(daemon))
-    return daemon.options.log(`[no-agents] to ${COORDINATOR_TERMINAL}:\n${block}`);
+  if (!talksToCoordinator(daemon)) {
+    const tag = daemon.options.agents ? "no-coordinator" : "no-agents";
+    return daemon.options.log(`[${tag}] to ${COORDINATOR_TERMINAL}:\n${block}`);
+  }
   await daemon.options.hc.send(COORDINATOR_TERMINAL, block);
 }
 
