@@ -15,6 +15,10 @@
     "packages/factory": {
       "name": "@hellstack/factory",
       "version": "0.0.0",
+      "dependencies": {
+        "yaml": "^2.9.0",
+        "zod": "catalog:",
+      },
       "devDependencies": {
         "@earendil-works/pi-coding-agent": "1.5.0",
       },

@@ -13,7 +13,8 @@
   },
   "scripts": {
     "build": "bun run --filter @hellstack/pi build",
-    "sync": "bun run build && bun packages/pi/scripts/install.ts && bun packages/herdr/scripts/install.ts && bun packages/gateway/src/cli.ts",
+    "sync": "bun run build && bun packages/pi/scripts/install.ts && bun packages/herdr/scripts/install.ts && bun packages/gateway/src/cli.ts && bun packages/factory/src/cli.ts init",
+    "factory": "bun packages/factory/src/cli.ts",
     "gateway:claude": "bun packages/gateway/src/cli.ts",
     "skills:add": "bun packages/skills/src/cli.ts add",
     "skills:update": "bun packages/skills/src/cli.ts update",

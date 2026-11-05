@@ -203,11 +203,13 @@ with `ok: true` and `new: 0`; the template is enough.
 All factory agents are interactive pi in herdr-core terminals. They do not have a parent, so that
 they live when other agents stop.
 
-| Terminal              | Name           | cwd             | Session id | Env                                     |
-| --------------------- | -------------- | --------------- | ---------- | --------------------------------------- |
-| daemon                | `factoryd`     | repository root | -          | -                                       |
-| coordinator           | `factory`      | `FACTORY_HOME`  | `factory`  | `FACTORY_ROLE=coordinator`              |
-| worker of task `<id>` | `factory-<id>` | task `repo`     | `<id>`     | `FACTORY_ROLE=worker FACTORY_TASK=<id>` |
+| Terminal              | Name           | cwd             | Session id | Env                                                  |
+| --------------------- | -------------- | --------------- | ---------- | ---------------------------------------------------- |
+| daemon                | `factoryd`     | repository root | -          | -                                                    |
+| coordinator           | `factory`      | `FACTORY_HOME`  | `factory`  | `FACTORY_ROLE=coordinator FACTORY_HOME`              |
+| worker of task `<id>` | `factory-<id>` | task `repo`     | `<id>`     | `FACTORY_ROLE=worker FACTORY_TASK=<id> FACTORY_HOME` |
+
+Spawn sets `FACTORY_HOME` to the ledger of the caller, so that agents use the same ledger.
 
 - Start pi with `--session-id <session id>`. Pi then resumes the same session when the reconciler
   starts it again, so a conversation survives a crash. The first start sends the task prompt. A
@@ -215,6 +217,12 @@ they live when other agents stop.
 - Put the coordinator in a Herdr space named `factory`. Put each worker in the Herdr space whose
   folder is the task `repo`, in a tab named after the task. Make the space when it does not exist.
   When the Herdr window is not running, start the terminal without Herdr labels.
+- Spawn places a terminal with the `herdr.space` and `herdr.tab` labels of `hc run`. The tab id of a
+  worker is `tbfactory-<id>`, so a restart goes into the same tab. A new space for a repo has the id
+  `spfactory-<hash of the folder>`; the coordinator space has the id `spfactory`. Herdr turns on
+  core keep for terminals that it shows, so when pi exits, a shell replaces it. That terminal does
+  not run pi, so the reconciler restarts it.
+- Spawn ends and removes an old terminal with the same name before it starts the new one.
 - Workers start their own sub-agents with `FACTORY_ROLE=subagent`.
 - Spawn code lives in `src/core`, because both the coordinator tool `factory_dispatch` and the
   daemon reconciler use it.
@@ -271,7 +279,7 @@ in the session with `appendEntry`, so it survives a resume.
 | none          | nothing                                              | `/sketch` command only                                                                       |
 
 - `factory_task`: `list`, `get`, `create`, `update` (status, now, needs_you, threads, paused,
-  title), `log`, `check` (check a landing item by index).
+  title), `log`, `check` (check a landing item by its 1-based number).
 - `factory_inbox`: `list`, `dismiss`.
 - `factory_dispatch`: start the worker of a `ready` task and set it to `working`.
 - `factory_handoff`: validate a `sketch` and set it to `ready`. Return the missing parts when it
