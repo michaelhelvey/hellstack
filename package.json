@@ -33,6 +33,7 @@
   ],
   "devDependencies": {
     "@types/bun": "^1.4.2",
+    "@types/node": "^26.6.3",
     "rstack": "^0.8.0",
     "typescript": "^7.0.2",
     "zod": "catalog:"

@@ -18,8 +18,8 @@ talk to you directly in this terminal at any time.
 - Set `status` to `landing` when the work leaves your hands for the first time (for example, the PR
   is open). Check each Landing item when it is true. Set `status` to `landed` when all items are
   checked.
-- Add the thread keys of what you make to `threads` (for example `gh:owner/repo#88` when you open
-  PR 88). Events on those threads then come to you as `<factory from="factoryd">` messages.
+- Add the thread keys of what you make to `threads` (for example `gh:owner/repo#88` when you open PR
+  88). Events on those threads then come to you as `<factory from="factoryd">` messages.
 
 ## How to work
 
@@ -38,8 +38,8 @@ sub-agent. Use your judgment.
 
 ## Git
 
-- Start from a clean checkout of the branch that the work must land on. When the working tree of
-  the repository is not clean, do not touch other people's changes: work in a worktree instead.
+- Start from a clean checkout of the branch that the work must land on. When the working tree of the
+  repository is not clean, do not touch other people's changes: work in a worktree instead.
 - Worktrees and branches are for you, not for the user. Give each sub-agent its own worktree when
   their edits can overlap. Remove every worktree and temporary branch that you made before the task
   is landed. The end state is what the Landing section says, and nothing more on disk.

@@ -27,13 +27,13 @@ The user must always get a fast answer from you. Keep every turn short.
 Everything is in `$FACTORY_HOME` (default `~/.factory`). Files are the only state. Read them, do not
 remember them.
 
-| Path             | What                                                                 |
-| ---------------- | -------------------------------------------------------------------- |
-| `tasks/<id>.md`  | One task. Front matter, then Goal, Verification, Output, Constraints, Landing, Log. |
-| `inbox/<id>.json`| An event that no task owns.                                          |
-| `feed.jsonl`     | What factoryd did: polls, routes, respawns, errors.                  |
-| `config.json`    | What factoryd polls and how it filters. Per machine.                 |
-| `COORDINATOR.md` | Your memory. Edit it when you learn something that must survive a restart. |
+| Path              | What                                                                                |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| `tasks/<id>.md`   | One task. Front matter, then Goal, Verification, Output, Constraints, Landing, Log. |
+| `inbox/<id>.json` | An event that no task owns.                                                         |
+| `feed.jsonl`      | What factoryd did: polls, routes, respawns, errors.                                 |
+| `config.json`     | What factoryd polls and how it filters. Per machine.                                |
+| `COORDINATOR.md`  | Your memory. Edit it when you learn something that must survive a restart.          |
 
 Use the `factory_task` and `factory_inbox` tools for tasks and the inbox. They keep the files
 correct.
@@ -71,8 +71,8 @@ Task status: `sketch` → `ready` → `working` → `landing` → `landed`, or `
 
 ## Events
 
-factoryd polls the sources, filters them, and routes each event. Events on a thread that a task
-owns go to its worker. You get the rest as `<factory from="factoryd">` blocks, at most one each 30
+factoryd polls the sources, filters them, and routes each event. Events on a thread that a task owns
+go to its worker. You get the rest as `<factory from="factoryd">` blocks, at most one each 30
 seconds. Events that no task owns are also in the inbox. For each event, decide: ignore it (and
 `dismiss` it), tell the user, or propose a task. Stay quiet about noise.
 
@@ -88,10 +88,21 @@ When the user says "watch for sentry issues", "stop telling me about dependabot"
   "summaryModel": "claude-haiku-5-5",
   "staleAfterMinutes": 120,
   "sources": [
-    { "type": "github", "everySeconds": 60, "default": "candidate",
-      "rules": [{ "kind": "security_alert", "repo": "owner/repo", "action": "ignore" }] },
-    { "type": "sentry", "everySeconds": 300, "org": "my-org", "projects": ["api"],
-      "tokenEnv": "SENTRY_AUTH_TOKEN", "default": "candidate", "rules": [] }
+    {
+      "type": "github",
+      "everySeconds": 60,
+      "default": "candidate",
+      "rules": [{ "kind": "security_alert", "repo": "owner/repo", "action": "ignore" }]
+    },
+    {
+      "type": "sentry",
+      "everySeconds": 300,
+      "org": "my-org",
+      "projects": ["api"],
+      "tokenEnv": "SENTRY_AUTH_TOKEN",
+      "default": "candidate",
+      "rules": []
+    }
   ]
 }
 ```

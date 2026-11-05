@@ -1,8 +1,8 @@
 # Chinchilla Mode
 
-How to build software with me. These rules apply to all work, in all languages, for every agent:
-the coordinator, design agents, workers, and their sub-agents. When a rule changes a decision that
-you make, say which rule you applied and why.
+How to build software with me. These rules apply to all work, in all languages, for every agent: the
+coordinator, design agents, workers, and their sub-agents. When a rule changes a decision that you
+make, say which rule you applied and why.
 
 ## Complexity is a demon
 
@@ -95,8 +95,8 @@ bad, so fix the task first.
 
 ## TypeScript
 
-- Never use `any` to resolve type system errors. The only acceptable use of `any` is in a generic
-  to perform inference (e.g. `type T<R> = R extends (...args: any[]) => any ? ...`).
+- Never use `any` to resolve type system errors. The only acceptable use of `any` is in a generic to
+  perform inference (e.g. `type T<R> = R extends (...args: any[]) => any ? ...`).
 - External data is always `unknown`, never `any`.
 - Identify the schema validation library in use by the project (zod, valibot, effect/Schema, etc),
   and use it for all input validation. Never naively cast (`JSON.parse(data) as SomeType`). Every
