@@ -30,7 +30,7 @@ import {
   type Task,
 } from "../core/index.ts";
 import { emptyDigest, factoryBlock, flushDigest, queueLines, type Digest } from "./digest.ts";
-import { filterEvents } from "./filter.ts";
+import { filterEvents, type Passed } from "./filter.ts";
 import { pruneInbox, withDetail } from "./inbox.ts";
 import { acquireLock } from "./lock.ts";
 import { agentTerminals, reconcile, type Close } from "./reconcile.ts";
@@ -159,8 +159,8 @@ async function sendTo(daemon: Daemon, terminal: string, lines: string[]): Promis
 
 function linesByTerminal(routes: Route[]): Map<string, string[]> {
   const byTerminal = new Map<string, string[]>();
-  for (const route of routes) {
-    const to = route.to === INBOX ? COORDINATOR_TERMINAL : route.to;
+  for (const route of routes.filter((r) => r.wake || r.to !== INBOX)) {
+    const to = route.wake ? COORDINATOR_TERMINAL : route.to;
     byTerminal.set(to, [...(byTerminal.get(to) ?? []), eventLine(route)]);
   }
   return byTerminal;
@@ -175,10 +175,10 @@ async function sendToWorker(daemon: Daemon, terminal: string, lines: string[]): 
   });
 }
 
-async function deliver(daemon: Daemon, events: FactoryEvent[]): Promise<Route[]> {
+async function deliver(daemon: Daemon, passed: Passed[]): Promise<Route[]> {
   const { tasks } = await listTasks(daemon.options.paths);
   const running = runningPi(await daemon.options.hc.ls());
-  const routes = events.flatMap((event) => routeEvent(event, tasks, running));
+  const routes = passed.flatMap((event) => routeEvent(event, tasks, running));
   const { inbox, paths } = daemon.options;
   const toInbox = routes.filter((r) => r.to === INBOX);
   await Promise.all(toInbox.map(async (r) => writeInbox(await withDetail(inbox, r.event), paths)));
@@ -247,7 +247,7 @@ async function handlePoll(
     fresh.map((event) => event.id),
   );
   const routed = routes.map(({ event, to }) => ({ thread: event.thread, kind: event.kind, to }));
-  const titles = passed.slice(0, 20).map((event) => event.title);
+  const titles = passed.slice(0, 20).map(({ event }) => event.title);
   return { facts: cycleFacts(source, { new: fresh.length, routed, ignored }), titles };
 }
 
@@ -279,13 +279,23 @@ function spawnDeps({ options }: Daemon): Pick<SpawnDeps, "hc" | "herdr" | "paths
   return { hc: options.hc, herdr: options.herdr, paths: options.paths };
 }
 
+function restartFailed(daemon: Daemon, task: Task, error: unknown): void {
+  const key = `restart:${task.meta.id}:${task.meta.updated}`;
+  if (daemon.state.notices.includes(key)) return;
+  daemon.state = { ...daemon.state, notices: [...daemon.state.notices, key] };
+  const line = `- task ${task.meta.id}: the restart of its worker failed: ${message(error)}`;
+  daemon.digest = queueLines(daemon.digest, [line]);
+}
+
 async function startWorkers(daemon: Daemon, tasks: Task[]): Promise<void> {
   for (const task of tasks) {
     await guard(daemon, `start of worker ${task.meta.id}`, async () => {
-      await startWorker(task, daemon.config, {
-        restart: true,
-        deps: spawnDeps(daemon),
-      });
+      await startWorker(task, daemon.config, { restart: true, deps: spawnDeps(daemon) }).catch(
+        (error: unknown) => {
+          restartFailed(daemon, task, error);
+          throw error;
+        },
+      );
       await feedAction(daemon, `Started the worker of task ${task.meta.id} again.`);
     });
   }

@@ -80,9 +80,15 @@ Task status: `sketch` → `ready` → `working` → `landing` → `landed`, or `
 ## Events
 
 factoryd polls the sources, filters them, and routes each event. Events on a thread that a task owns
-go to its worker. You get the rest as `<factory from="factoryd">` blocks, at most one each 30
-seconds. Events that no task owns are also in the inbox. For each event, decide: ignore it (and
-`dismiss` it), tell the user, or propose a task.
+go to its worker. Events that no task owns go to the inbox; the user sees the inbox on the board.
+You get `<factory from="factoryd">` blocks, at most one each 30 seconds, with only these lines:
+
+- `wake` events (by default: GitHub review requests and mentions, Sentry regressions).
+- Events of a task whose worker does not run (a paused task, or a worker that stopped).
+- Notices: a task became `ready`, a worker restart failed, a task is stale.
+
+`inbox` events do not wake you. Read them with `factory_inbox` when the user asks. For each event
+in a block, decide: ignore it (and `dismiss` it), tell the user, or propose a task.
 
 `factory_inbox` `dismiss` only removes the inbox file. To also mark the GitHub notification done or
 resolve the Sentry issue, run `bun run factory inbox dismiss <event-id>`; do that only when the user
@@ -92,12 +98,15 @@ marked done).
 
 Stay quiet about noise. When a block has nothing that needs the user, answer with one short line
 (for example `2 bot comments, noise`), or nothing at all. Do not explain each event. Do not repeat
-the inbox. When the same kind of noise comes three times, propose one config rule for it, one time.
+the inbox. When the same kind of noise wakes you three times, propose one rule that makes it `inbox` or
+`ignore`, one time.
 
 ## Sources and config
 
-When the user says "watch for sentry issues", "stop telling me about dependabot", or similar, change
-`config.json` yourself. Do not ask the user to edit files.
+When the user says "watch for sentry issues", "stop telling me about dependabot", "wake me for X",
+"stop waking me for Y", or similar, change `config.json` yourself. Do not ask the user to edit
+files. "Wake me for X" is a rule with `"action": "wake"`. "Stop waking me for Y" is a rule with
+`"action": "inbox"` (or `ignore` when the user does not want it in the inbox).
 
 ```json
 {
@@ -111,16 +120,20 @@ When the user says "watch for sentry issues", "stop telling me about dependabot"
     {
       "type": "github",
       "everySeconds": 60,
-      "default": "candidate",
-      "rules": [{ "kind": "security_alert", "repo": "owner/repo", "action": "ignore" }]
+      "default": "inbox",
+      "rules": [
+        { "kind": "review_requested", "action": "wake" },
+        { "kind": "mention", "action": "wake" },
+        { "kind": "security_alert", "repo": "owner/repo", "action": "ignore" }
+      ]
     },
     {
       "type": "sentry",
       "everySeconds": 300,
       "org": "my-org",
       "projects": ["api"],
-      "default": "candidate",
-      "rules": []
+      "default": "inbox",
+      "rules": [{ "kind": "issue_regression", "action": "wake" }]
     }
   ]
 }
@@ -130,9 +143,10 @@ When the user says "watch for sentry issues", "stop telling me about dependabot"
   review requests, mentions, CI, dependabot) and `sentry` (issues of the listed projects; uses the
   login of the `sentry` CLI).
 - `repoRoots`: the folders where `inbox design` looks for the local checkout of a repository.
-- Rule fields: `kind`, `repo` (`owner/repo`), `action`. Actions: `ignore`, `candidate` (route it),
-  `mention-only` (route it only when it mentions the user or asks for their review). The first
-  matching rule wins, else `default`.
+- Rule fields: `kind`, `repo` (`owner/repo`), `action`. Actions for events that no task owns:
+  `ignore` (drop it), `inbox` (the inbox only; the default), `wake` (the inbox and you). The old
+  values `candidate` and `mention-only` read as `inbox`. The first matching rule wins, else
+  `default`. Events on a thread that a task owns go to its worker for each action except `ignore`.
 - Event kinds: `pr_comment`, `review_requested`, `review`, `ci`, `mention`, `security_alert`,
   `issue_new`, `issue_regression`.
 - Secrets never go in the config. When a source fails with an auth error, ask the user to run

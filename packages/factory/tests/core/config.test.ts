@@ -14,8 +14,18 @@ const sentryDefaults: SourceConfig = {
   everySeconds: 300,
   org: "acme",
   projects: [],
-  default: "candidate",
+  default: "inbox",
   rules: [{ kind: "issue_new", action: "ignore" }],
+};
+
+const githubDefaults: SourceConfig = {
+  type: "github",
+  everySeconds: 60,
+  default: "inbox",
+  rules: [
+    { kind: "review_requested", action: "wake" },
+    { kind: "mention", action: "wake" },
+  ],
 };
 
 describe("config", () => {
@@ -27,8 +37,27 @@ describe("config", () => {
       staleAfterMinutes: 120,
       closeAfterMinutes: 60,
       repoRoots: ["~/dev"],
-      sources: [{ type: "github", everySeconds: 60, default: "candidate", rules: [] }],
+      sources: [githubDefaults],
     });
+  });
+
+  test("a Sentry source without rules wakes the coordinator for regressions", () => {
+    const config = parseConfig(JSON.stringify({ sources: [{ type: "sentry", org: "acme" }] }));
+    expect(config.sources[0]?.rules).toEqual([{ kind: "issue_regression", action: "wake" }]);
+  });
+
+  test("the old actions candidate and mention-only read as inbox", () => {
+    const old = {
+      type: "github",
+      default: "candidate",
+      rules: [
+        { kind: "ci", action: "mention-only" },
+        { kind: "mention", action: "wake" },
+      ],
+    };
+    const [source] = parseConfig(JSON.stringify({ sources: [old] })).sources;
+    expect(source?.default).toBe("inbox");
+    expect(source?.rules.map((rule) => rule.action)).toEqual(["inbox", "wake"]);
   });
 
   test("fills the defaults of nested fields and ignores the old Sentry fields", () => {

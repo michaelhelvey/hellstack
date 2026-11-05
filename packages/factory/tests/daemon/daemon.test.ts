@@ -35,10 +35,15 @@ const events: FactoryEvent[] = [
   event({ id: "owned" }),
   event({ id: "free", thread: "gh:acme/api#1" }),
   event({ id: "noise", kind: "ci" }),
+  event({ id: "ask", thread: "gh:acme/api#2", kind: "review_requested" }),
 ];
 
 async function writeLedger(paths: LedgerPaths): Promise<void> {
-  const github = { type: "github", everySeconds: 60, rules: [{ kind: "ci", action: "ignore" }] };
+  const rules = [
+    { kind: "ci", action: "ignore" },
+    { kind: "review_requested", action: "wake" },
+  ];
+  const github = { type: "github", everySeconds: 60, rules };
   await writeFile(paths.config, JSON.stringify({ ...defaultConfig(), sources: [github] }));
   const owner = task({ status: "working", threads: ["gh:acme/api#88"], cwd: paths.home });
   await writeTask(owner, paths);
@@ -82,31 +87,33 @@ async function sources(paths: LedgerPaths) {
   return (await readFeed(50, paths)).map((record) => [record.source, record.summary]);
 }
 
+const feedRoutes = [
+  { thread: "gh:acme/api#88", kind: "pr_comment", to: "factory-t-7f3a" },
+  { thread: "gh:acme/api#1", kind: "pr_comment", to: "inbox" },
+  { thread: "gh:acme/api#2", kind: "review_requested", to: "inbox" },
+];
+
 describe("daemon tick", () => {
-  test("routes owned events to the worker, others to the inbox and the coordinator", async () => {
+  test("routes owned events to the worker, others to the inbox, and wake events to the coordinator", async () => {
     const { paths, fake, daemon } = await setup({ agents: true });
     await tick(daemon, 0);
     expect(fake.sent.map((s) => s.to)).toEqual(["factory-t-7f3a", "factory"]);
     expect(fake.sent[0]?.text).toContain("- event owned gh:acme/api#88 pr_comment");
-    expect(fake.sent[1]?.text).toContain("- event free gh:acme/api#1 pr_comment");
-    expect((await listInbox(paths)).map((e) => e.id)).toEqual(["free"]);
+    expect(fake.sent[1]?.text).toContain("- event ask gh:acme/api#2 review_requested");
+    expect(fake.sent[1]?.text).not.toContain("- event free");
+    expect((await listInbox(paths)).map((e) => e.id).sort()).toEqual(["ask", "free"]);
     const record = (await readFeed(10, paths)).find((r) => r.source === "github");
-    expect(record).toMatchObject({
-      ok: true,
-      new: 3,
-      ignored: 1,
-      routed: [
-        { thread: "gh:acme/api#88", kind: "pr_comment", to: "factory-t-7f3a" },
-        { thread: "gh:acme/api#1", kind: "pr_comment", to: "inbox" },
-      ],
-    });
+    expect(record).toMatchObject({ ok: true, new: 4, ignored: 1, routed: feedRoutes });
     expect(daemon.state.cursors.github).toEqual({ since: "x" });
   });
 
   test("an inbox event gets the detail of its source", async () => {
     const { paths, daemon } = await setup({ agents: false });
     await tick(daemon, 0);
-    expect((await listInbox(paths)).map((e) => e.detail)).toEqual([{ state: "open" }]);
+    expect((await listInbox(paths)).map((e) => e.detail)).toEqual([
+      { state: "open" },
+      { state: "open" },
+    ]);
   });
 
   test("waits for the poll interval and does not handle an event two times", async () => {
@@ -117,7 +124,7 @@ describe("daemon tick", () => {
     await tick(daemon, 90_000);
     expect(polls()).toBe(2);
     const github = (await readFeed(50, paths)).filter((record) => record.source === "github");
-    expect(github.map((record) => record.new)).toEqual([3, 0]);
+    expect(github.map((record) => record.new)).toEqual([4, 0]);
     expect(github[1]?.summary).toBe("No new github events.");
   });
 
@@ -212,12 +219,12 @@ describe("daemon tick", () => {
     const done: string[] = [];
     const { paths, daemon, inbox } = await setup({ agents: false, done });
     await tick(daemon, 0);
-    expect(inbox.calls).toEqual(["isDone free", "isDone "]);
+    expect(inbox.calls).toEqual(["isDone free,ask", "isDone "]);
     done.push("free");
     await tick(daemon, PRUNE_MS - 1);
-    expect(await listInbox(paths)).toHaveLength(1);
+    expect(await listInbox(paths)).toHaveLength(2);
     await tick(daemon, PRUNE_MS);
-    expect(await listInbox(paths)).toEqual([]);
+    expect((await listInbox(paths)).map((e) => e.id)).toEqual(["ask"]);
     await tick(daemon, 2 * PRUNE_MS);
     const pruned = (await sources(paths)).filter(([, summary]) => summary?.startsWith("Removed"));
     expect(pruned).toEqual([["factoryd", "Removed 1 done inbox events: gh:acme/api#1."]]);
@@ -231,7 +238,7 @@ describe("daemon tick", () => {
       isDone: () => Promise.reject(new Error("gh is down")),
     };
     await tick(daemon, PRUNE_MS);
-    expect(await listInbox(paths)).toHaveLength(1);
+    expect(await listInbox(paths)).toHaveLength(2);
     const last = (await readFeed(5, paths)).find((record) => record.error);
     expect(last).toMatchObject({ source: "factoryd", summary: "The prune step failed." });
     expect(last?.error).toBe("github: gh is down");
@@ -254,7 +261,7 @@ describe("daemon tick", () => {
     fake.hc.send = () => Promise.reject(new Error("the coordinator is gone"));
     await tick(daemon, 0);
     const again = await createDaemon(daemon.options);
-    expect(again.digest.lines.map((line) => line.split(" ")[2])).toEqual(["owned", "free"]);
+    expect(again.digest.lines.map((line) => line.split(" ")[2])).toEqual(["owned", "ask"]);
     expect((await readFeed(50, paths)).some((r) => r.error === "the coordinator is gone")).toBe(
       true,
     );
@@ -273,7 +280,7 @@ describe("daemon tick", () => {
     starting = false;
     await tick(daemon, DIGEST_MS);
     expect(fake.sent.at(-1)).toMatchObject({ to: "factory" });
-    expect(fake.sent.at(-1)?.text).toContain("- event free");
+    expect(fake.sent.at(-1)?.text).toContain("- event ask");
   });
 
   test("a state file that is not valid gives an empty state and an error record", async () => {
@@ -294,5 +301,34 @@ describe("daemon tick", () => {
     await tick(daemon, 0);
     expect(daemon.config.sources).toHaveLength(1);
     expect((await readFeed(50, paths)).find((r) => !r.ok)?.error).toContain("the key github");
+  });
+});
+
+describe("coordinator digest", () => {
+  test("the coordinator gets wake events, events of a paused task, and notices", async () => {
+    const { paths, fake, daemon } = await setup({ agents: true });
+    await writeTask(task({ id: "t-9b21", status: "ready", title: "Fix x" }), paths);
+    await writeTask(task({ id: "t-0bad", threads: ["gh:acme/api#1"], paused: true }), paths);
+    await tick(daemon, 0);
+    const text = fake.sent.find((s) => s.to === "factory")?.text ?? "";
+    expect(text).toContain("- event ask gh:acme/api#2 review_requested");
+    expect(text).toContain("- event free gh:acme/api#1 pr_comment");
+    expect(text).toContain("(task t-0bad)");
+    expect(text).toContain('- task t-9b21 is ready: "Fix x"');
+  });
+
+  test("a failed worker restart wakes the coordinator one time", async () => {
+    const { fake, daemon } = await setup({
+      agents: true,
+      terminals: [terminal({ name: "factory", turn: 2 })],
+    });
+    const run = fake.hc.run.bind(fake.hc);
+    fake.hc.run = (options) =>
+      options.name === "factory-t-7f3a" ? Promise.reject(new Error("no cwd")) : run(options);
+    await tick(daemon, 0);
+    await tick(daemon, HOUSEKEEPING_MS + DIGEST_MS);
+    const failed = fake.sent.filter((s) => s.text.includes("restart of its worker failed"));
+    expect(failed.map((s) => s.to)).toEqual(["factory"]);
+    expect(failed[0]?.text).toContain("- task t-7f3a: the restart of its worker failed: no cwd");
   });
 });

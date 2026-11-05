@@ -12,8 +12,15 @@ function agentSchema(model: string, thinking: z.infer<typeof thinkingSchema>) {
     .prefault({});
 }
 
-/** What the daemon does with an event: drop it, route it, or route it only when it is for the user. */
-export const ruleActionSchema = z.enum(["ignore", "candidate", "mention-only"]);
+/**
+ * What the daemon does with an event that no task owns: drop it (`ignore`), put it in the inbox
+ * (`inbox`), or put it in the inbox and tell the coordinator (`wake`). The old values `candidate`
+ * and `mention-only` read as `inbox`.
+ */
+export const ruleActionSchema = z.union([
+  z.enum(["ignore", "inbox", "wake"]),
+  z.enum(["candidate", "mention-only"]).transform(() => "inbox" as const),
+]);
 
 /**
  * A source rule. It matches an event when each field that it sets is equal to the event field.
@@ -26,28 +33,37 @@ export const ruleSchema = z.object({
   action: ruleActionSchema,
 });
 
-const sourceFields = {
-  default: ruleActionSchema.default("candidate"),
-  rules: z.array(ruleSchema).default([]),
-};
+function sourceFields(rules: Rule[]) {
+  return {
+    default: ruleActionSchema.default("inbox"),
+    rules: z.array(ruleSchema).default(() => rules.map((rule) => ({ ...rule }))),
+  };
+}
 
-/** The config of the GitHub source. It uses `gh auth` for credentials. */
+/**
+ * The config of the GitHub source. It uses `gh auth` for credentials. The default rules wake the
+ * coordinator for review requests and mentions.
+ */
 export const githubSourceSchema = z.object({
   type: z.literal("github"),
   everySeconds: z.number().positive().default(60),
-  ...sourceFields,
+  ...sourceFields([
+    { kind: "review_requested", action: "wake" },
+    { kind: "mention", action: "wake" },
+  ]),
 });
 
 /**
  * The config of the Sentry source. It uses the login of the `sentry` CLI for the server and the
- * credentials. The schema ignores the old fields `url` and `tokenEnv`.
+ * credentials. The schema ignores the old fields `url` and `tokenEnv`. The default rule wakes the
+ * coordinator for regressions.
  */
 export const sentrySourceSchema = z.object({
   type: z.literal("sentry"),
   everySeconds: z.number().positive().default(300),
   org: z.string().min(1),
   projects: z.array(z.string()).default([]),
-  ...sourceFields,
+  ...sourceFields([{ kind: "issue_regression", action: "wake" }]),
 });
 
 /** The config of one event source. */
@@ -71,7 +87,7 @@ export type SourceConfig = z.infer<typeof sourceSchema>;
 /** A source rule. */
 export type Rule = z.infer<typeof ruleSchema>;
 /** A rule action. */
-export type RuleAction = z.infer<typeof ruleActionSchema>;
+export type RuleAction = z.output<typeof ruleActionSchema>;
 /** The model and thinking level of one agent role. */
 export type AgentConfig = Config["worker"];
 

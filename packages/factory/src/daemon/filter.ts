@@ -6,12 +6,15 @@ import {
   type SourceConfig,
 } from "../core/index.ts";
 
-/** The event kinds that mention the user or ask for their review or their action. */
-export const userKinds: ReadonlySet<string> = new Set(["mention", "review_requested", "assigned"]);
+/** An event that passed the filter and the action of its rule: `inbox` or `wake`. */
+export interface Passed {
+  event: FactoryEvent;
+  action: Exclude<RuleAction, "ignore">;
+}
 
 /** The events that pass the filter, and the count of events that it dropped. */
 export interface Filtered {
-  passed: FactoryEvent[];
+  passed: Passed[];
   ignored: number;
 }
 
@@ -28,14 +31,11 @@ export function eventAction(source: SourceConfig, event: FactoryEvent): RuleActi
   return source.rules.find((rule) => ruleMatches(rule, event))?.action ?? source.default;
 }
 
-/** Returns true when an event with `action` goes to routing. */
-export function passes(action: RuleAction, event: FactoryEvent): boolean {
-  if (action === "mention-only") return userKinds.has(event.kind);
-  return action === "candidate";
-}
-
-/** Applies the rules of `source` to the events. */
+/** Applies the rules of `source` to the events. It drops the events with the action `ignore`. */
 export function filterEvents(source: SourceConfig, events: FactoryEvent[]): Filtered {
-  const passed = events.filter((event) => passes(eventAction(source, event), event));
+  const passed = events.flatMap((event): Passed[] => {
+    const action = eventAction(source, event);
+    return action === "ignore" ? [] : [{ event, action }];
+  });
   return { passed, ignored: events.length - passed.length };
 }

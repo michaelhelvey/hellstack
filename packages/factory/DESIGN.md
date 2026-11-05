@@ -187,27 +187,43 @@ and writes an error record to the feed.
     {
       "type": "github",
       "everySeconds": 60,
-      "default": "candidate",
-      "rules": [{ "kind": "security_alert", "repo": "owner/repo", "action": "ignore" }]
+      "default": "inbox",
+      "rules": [
+        { "kind": "review_requested", "action": "wake" },
+        { "kind": "mention", "action": "wake" },
+        { "kind": "security_alert", "repo": "owner/repo", "action": "ignore" }
+      ]
     },
     {
       "type": "sentry",
       "everySeconds": 300,
       "org": "my-org",
       "projects": ["api"],
-      "default": "candidate",
-      "rules": []
+      "default": "inbox",
+      "rules": [{ "kind": "issue_regression", "action": "wake" }]
     }
   ]
 }
 ```
 
-Rule actions: `ignore` (drop it), `candidate` (route it), `mention-only` (route it only when the
-event mentions the user or asks for their review, that is the kinds `mention`, `review_requested`,
-and `assigned`; else drop it). The first matching rule wins. A rule matches when each field that it
-sets is equal to the event field. `repo` matches the `owner/repo` part of a GitHub thread key.
-Secrets are never in the config: GitHub uses `gh auth`, Sentry uses the login of the `sentry` CLI
-(`sentry auth login`). The Sentry source ignores the old fields `url` and `tokenEnv`.
+Rule actions tell what the daemon does with an event that no task owns:
+
+| Action            | Inbox | Wakes the coordinator |
+| ----------------- | ----- | --------------------- |
+| `ignore`          | no    | no                    |
+| `inbox` (default) | yes   | no                    |
+| `wake`            | yes   | yes                   |
+
+The user sees the inbox on the board, so most events do not need the coordinator. The old actions
+`candidate` and `mention-only` read as `inbox`, so old files stay valid. The source `default` is
+`inbox`. When a source has no `rules` field, it gets the default rules: GitHub `review_requested`
+and `mention` are `wake`; Sentry `issue_regression` is `wake`. `factory init` writes them in a new
+ledger; it does not change a `config.json` that exists. An event on a thread that a task owns goes
+to its worker for each action except `ignore` (see factoryd). The first matching rule wins. A rule
+matches when each field that it sets is equal to the event field. `repo` matches the `owner/repo`
+part of a GitHub thread key. Secrets are never in the config: GitHub uses `gh auth`, Sentry uses the
+login of the `sentry` CLI (`sentry auth login`). The Sentry source ignores the old fields `url` and
+`tokenEnv`.
 
 `repoRoots` (default `["~/dev"]`) are the folders where `inbox design` looks for the local checkout
 of a GitHub repository: a git checkout whose `origin` remote ends in `owner/repo` (each host, so an
@@ -281,7 +297,10 @@ from the user:
 </factory>
 ```
 
-The daemon collects messages for the coordinator and sends at most one block every 30 seconds.
+The daemon collects messages for the coordinator and sends at most one block every 30 seconds. A
+block has only `wake` events and daemon notices. Notices always wake the coordinator: a task became
+`ready`, a restart failed, a task is stale, and an event for a task whose worker does not run.
+`inbox` events go only to the inbox and the feed record.
 
 ## factoryd
 
@@ -298,11 +317,13 @@ a model, except the feed summary, which has a timeout.
 3. **Route** each event that passes. Look up the tasks whose `threads` has the event thread.
    - Owned, worker running, not paused: send it to the worker.
    - Owned, otherwise: send it to the coordinator.
-   - Not owned: write it to `inbox/` with its `detail` (see Events) and send it to the coordinator.
+   - Not owned: write it to `inbox/` with its `detail` (see Events). When its action is `wake`, also
+     send it to the coordinator.
    - Remove inbox files whose thread a task now owns.
 4. **Reconcile** every 30 seconds. Desired: tasks with status `working` or `landing` and
    `paused: false`. Actual: `hc ls`. Start each worker that is missing or that no longer runs pi,
-   with the restart prompt (`factory_dispatch` makes the first start). Tell the coordinator about
+   with the restart prompt (`factory_dispatch` makes the first start). When a start fails, tell the
+   coordinator one time for each `updated` value of the task. Tell the coordinator about
    each new `ready` task one time. Tell the coordinator one time when a task has had no `updated`
    change for `staleAfterMinutes` and its worker is not working. Close the worker terminal and the
    design terminal of each `landed` or `dropped` task (`removeTerminal`) when it has been idle for
