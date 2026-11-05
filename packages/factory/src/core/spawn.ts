@@ -1,5 +1,5 @@
 import type { AgentConfig, Config } from "./config.ts";
-import { createHc, type Hc, type HcRunOptions, type HcTerminal } from "./hc.ts";
+import { createHc, removeTerminal, type Hc, type HcRunOptions, type HcTerminal } from "./hc.ts";
 import {
   applyNames,
   coordinatorPlacement,
@@ -98,19 +98,12 @@ export function coordinatorRun(
   };
 }
 
-async function removeOld(hc: Hc, name: string): Promise<void> {
-  const old = await hc.get(name);
-  if (!old) return;
-  if (old.state === "live") await hc.kill(name);
-  await hc.rm(name);
-}
-
 async function startTerminal(
   run: HcRunOptions,
   place: (spaces: HerdrSpace[]) => Promise<HerdrPlacement>,
   deps: SpawnDeps,
 ): Promise<Started> {
-  await removeOld(deps.hc, run.name);
+  await removeTerminal(deps.hc, run.name);
   const spaces = await deps.herdr.spaces().catch(() => NO_WINDOW);
   if (spaces === NO_WINDOW) return { terminal: await deps.hc.run(run), herdr: NO_WINDOW };
   const placement = await place(spaces);

@@ -38,10 +38,14 @@ export const githubSourceSchema = z.object({
   ...sourceFields,
 });
 
-/** The config of the Sentry source. `tokenEnv` names the environment variable with the token. */
+/**
+ * The config of the Sentry source. `tokenEnv` names the environment variable with the token. `url`
+ * is the Sentry server.
+ */
 export const sentrySourceSchema = z.object({
   type: z.literal("sentry"),
   everySeconds: z.number().positive().default(300),
+  url: z.url().default("https://sentry.io"),
   org: z.string().min(1),
   projects: z.array(z.string()).default([]),
   tokenEnv: z.string().min(1).default("SENTRY_AUTH_TOKEN"),
@@ -55,7 +59,7 @@ export const sourceSchema = z.discriminatedUnion("type", [githubSourceSchema, se
 export const configSchema = z.object({
   coordinator: agentSchema("claude-sonnet-5-5", "medium"),
   worker: agentSchema("claude-opus-5-5", "high"),
-  summaryModel: z.string().min(1).default("claude-haiku-5-5"),
+  summaryModel: z.string().min(1).default("haiku"),
   staleAfterMinutes: z.number().positive().default(120),
   sources: z.array(sourceSchema).default(() => [githubSourceSchema.parse({ type: "github" })]),
 });

@@ -12,6 +12,7 @@ import { tempLedger } from "./helpers.ts";
 const sentryDefaults: SourceConfig = {
   type: "sentry",
   everySeconds: 300,
+  url: "https://sentry.io",
   org: "acme",
   projects: [],
   tokenEnv: "SENTRY_AUTH_TOKEN",
@@ -24,7 +25,7 @@ describe("config", () => {
     expect(defaultConfig()).toEqual({
       coordinator: { model: "claude-sonnet-5-5", thinking: "medium" },
       worker: { model: "claude-opus-5-5", thinking: "high" },
-      summaryModel: "claude-haiku-5-5",
+      summaryModel: "haiku",
       staleAfterMinutes: 120,
       sources: [{ type: "github", everySeconds: 60, default: "candidate", rules: [] }],
     });

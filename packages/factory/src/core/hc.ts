@@ -131,6 +131,14 @@ export function createHc(runner: CommandRunner = runCommand): Hc {
   };
 }
 
+/** Ends and removes terminal `name`. It does nothing when the terminal does not exist. */
+export async function removeTerminal(hc: Hc, name: string): Promise<void> {
+  const old = await hc.get(name);
+  if (!old) return;
+  if (old.state === "live") await hc.kill(name);
+  await hc.rm(name);
+}
+
 /**
  * Returns true when the terminal is live and runs pi. A new terminal shows the agent `env` until
  * `env` starts pi, so `env` also counts.

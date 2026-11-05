@@ -33,7 +33,15 @@ export function taskThread(id: string): string {
   return `task:${id}`;
 }
 
+/**
+ * Returns the thread key of a GitHub subject without a number, for example a CI run. Its thread is
+ * the repository.
+ */
+export function githubRepoThread(owner: string, repo: string): string {
+  return `gh:${owner}/${repo}`;
+}
+
 /** Returns the `owner/repo` part of a GitHub thread key, or undefined for other keys. */
 export function threadRepo(thread: string): string | undefined {
-  return /^gh:([^/#]+\/[^/#]+)#\d+$/.exec(thread)?.[1];
+  return /^gh:([^/#]+\/[^/#]+)(?:#\d+)?$/.exec(thread)?.[1];
 }

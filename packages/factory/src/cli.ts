@@ -1,4 +1,6 @@
-import { initLedger, ledgerPaths } from "./core/index.ts";
+import { createHc, initLedger, ledgerPaths, startCoordinator } from "./core/index.ts";
+import { down, repoRoot, status, up, type ControlDeps } from "./daemon/control.ts";
+import { daemonOptions, runDaemon } from "./daemon/daemon.ts";
 
 /** A CLI command. It gets the arguments after the command name. */
 export type Command = (args: string[]) => Promise<void>;
@@ -10,8 +12,37 @@ async function init(): Promise<void> {
   console.log(`the factory ledger is ready in ${paths.home}`);
 }
 
+function controlDeps(): ControlDeps {
+  const hc = createHc();
+  const paths = ledgerPaths();
+  return {
+    hc,
+    paths,
+    root: repoRoot(),
+    startCoordinator: (config) => startCoordinator(config, { restart: false, deps: { hc, paths } }),
+  };
+}
+
+function printing(run: (deps: ControlDeps) => Promise<string[]>): Command {
+  return async () => {
+    for (const line of await run(controlDeps())) console.log(line);
+  };
+}
+
+async function daemon(args: string[]): Promise<void> {
+  const controller = new AbortController();
+  for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => controller.abort());
+  await runDaemon(daemonOptions(ledgerPaths(), !args.includes("--no-agents")), controller.signal);
+}
+
 /** The CLI commands by name. */
-export const commands = new Map<string, Command>([["init", init]]);
+export const commands = new Map<string, Command>([
+  ["init", init],
+  ["up", printing(up)],
+  ["down", printing(down)],
+  ["status", printing(status)],
+  ["daemon", daemon],
+]);
 
 function usage(): string {
   return `usage: bun run factory <command>\ncommands: ${[...commands.keys()].join(", ")}`;

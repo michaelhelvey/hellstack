@@ -1,0 +1,158 @@
+[
+  {
+    "id": "100001",
+    "unread": true,
+    "reason": "review_requested",
+    "updated_at": "2026-11-05T14:29:27Z",
+    "last_read_at": null,
+    "subject": {
+      "title": "Add the router",
+      "url": "https://api.github.com/repos/acme/repo-1/pulls/332",
+      "latest_comment_url": null,
+      "type": "PullRequest"
+    },
+    "repository": {
+      "id": 1,
+      "name": "repo-1",
+      "full_name": "acme/repo-1",
+      "private": true,
+      "owner": {
+        "login": "acme",
+        "type": "Organization"
+      },
+      "html_url": "https://github.com/acme/repo-1"
+    },
+    "url": "https://api.github.com/notifications/threads/100001",
+    "subscription_url": "https://api.github.com/notifications/threads/100001/subscription"
+  },
+  {
+    "id": "100002",
+    "unread": true,
+    "reason": "comment",
+    "updated_at": "2026-11-05T12:41:07Z",
+    "last_read_at": null,
+    "subject": {
+      "title": "Rename the feed fields",
+      "url": "https://api.github.com/repos/acme/repo-2/pulls/112",
+      "latest_comment_url": "https://api.github.com/repos/acme/repo-2/pulls/112",
+      "type": "PullRequest"
+    },
+    "repository": {
+      "id": 2,
+      "name": "repo-2",
+      "full_name": "acme/repo-2",
+      "private": true,
+      "owner": {
+        "login": "acme",
+        "type": "Organization"
+      },
+      "html_url": "https://github.com/acme/repo-2"
+    },
+    "url": "https://api.github.com/notifications/threads/100002",
+    "subscription_url": "https://api.github.com/notifications/threads/100002/subscription"
+  },
+  {
+    "id": "100003",
+    "unread": true,
+    "reason": "author",
+    "updated_at": "2026-11-04T21:45:57Z",
+    "last_read_at": "2026-11-04T19:37:27Z",
+    "subject": {
+      "title": "Bump zod",
+      "url": "https://api.github.com/repos/acme/repo-3/pulls/47",
+      "latest_comment_url": null,
+      "type": "PullRequest"
+    },
+    "repository": {
+      "id": 3,
+      "name": "repo-3",
+      "full_name": "acme/repo-3",
+      "private": true,
+      "owner": {
+        "login": "acme",
+        "type": "Organization"
+      },
+      "html_url": "https://github.com/acme/repo-3"
+    },
+    "url": "https://api.github.com/notifications/threads/100003",
+    "subscription_url": "https://api.github.com/notifications/threads/100003/subscription"
+  },
+  {
+    "id": "100004",
+    "unread": true,
+    "reason": "author",
+    "updated_at": "2026-11-04T21:24:45Z",
+    "last_read_at": "2026-11-04T17:33:07Z",
+    "subject": {
+      "title": "Fix the CI cache",
+      "url": "https://api.github.com/repos/acme/repo-3/pulls/46",
+      "latest_comment_url": null,
+      "type": "PullRequest"
+    },
+    "repository": {
+      "id": 4,
+      "name": "repo-3",
+      "full_name": "acme/repo-3",
+      "private": true,
+      "owner": {
+        "login": "acme",
+        "type": "Organization"
+      },
+      "html_url": "https://github.com/acme/repo-3"
+    },
+    "url": "https://api.github.com/notifications/threads/100004",
+    "subscription_url": "https://api.github.com/notifications/threads/100004/subscription"
+  },
+  {
+    "id": "100005",
+    "unread": true,
+    "reason": "subscribed",
+    "updated_at": "2026-11-05T14:21:03Z",
+    "last_read_at": null,
+    "subject": {
+      "title": "Remove the old flag",
+      "url": "https://api.github.com/repos/acme/repo-4/pulls/68",
+      "latest_comment_url": "https://api.github.com/repos/acme/repo-4/issues/comments/1005",
+      "type": "PullRequest"
+    },
+    "repository": {
+      "id": 5,
+      "name": "repo-4",
+      "full_name": "acme/repo-4",
+      "private": true,
+      "owner": {
+        "login": "acme",
+        "type": "Organization"
+      },
+      "html_url": "https://github.com/acme/repo-4"
+    },
+    "url": "https://api.github.com/notifications/threads/100005",
+    "subscription_url": "https://api.github.com/notifications/threads/100005/subscription"
+  },
+  {
+    "id": "100006",
+    "unread": false,
+    "reason": "state_change",
+    "updated_at": "2026-10-30T15:01:19Z",
+    "last_read_at": "2026-10-30T15:04:38Z",
+    "subject": {
+      "title": "Update the docs",
+      "url": "https://api.github.com/repos/acme/repo-5/pulls/8",
+      "latest_comment_url": "https://api.github.com/repos/acme/repo-5/pulls/8",
+      "type": "PullRequest"
+    },
+    "repository": {
+      "id": 6,
+      "name": "repo-5",
+      "full_name": "acme/repo-5",
+      "private": true,
+      "owner": {
+        "login": "acme",
+        "type": "Organization"
+      },
+      "html_url": "https://github.com/acme/repo-5"
+    },
+    "url": "https://api.github.com/notifications/threads/100006",
+    "subscription_url": "https://api.github.com/notifications/threads/100006/subscription"
+  }
+]

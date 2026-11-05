@@ -2,6 +2,7 @@ export * from "./command.ts";
 export * from "./config.ts";
 export * from "./events.ts";
 export * from "./feed.ts";
+export * from "./files.ts";
 export * from "./hc.ts";
 export * from "./herdr.ts";
 export * from "./inbox.ts";
