@@ -1,6 +1,9 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { eventIdSchema } from "./events.ts";
+import { taskIdSchema } from "./task.ts";
 
 /** The paths of the files and folders in one ledger. */
 export interface LedgerPaths {
@@ -20,9 +23,9 @@ export interface LedgerPaths {
   state: string;
 }
 
-/** Returns the ledger folder: `FACTORY_HOME`, or `~/.factory` when it is not set. */
+/** Returns the absolute ledger folder: `FACTORY_HOME`, or `~/.factory` when it is not set. */
 export function factoryHome(env: NodeJS.ProcessEnv = process.env): string {
-  return env.FACTORY_HOME || join(homedir(), ".factory");
+  return resolve(env.FACTORY_HOME || join(homedir(), ".factory"));
 }
 
 /** Returns the paths of the ledger in `home`. The default is {@link factoryHome}. */
@@ -38,14 +41,14 @@ export function ledgerPaths(home: string = factoryHome()): LedgerPaths {
   };
 }
 
-/** Returns the path of the file of task `id`. */
+/** Returns the path of the file of task `id`. Throws when `id` is not a valid task id. */
 export function taskPath(paths: LedgerPaths, id: string): string {
-  return join(paths.tasks, `${id}.md`);
+  return join(paths.tasks, `${taskIdSchema.parse(id)}.md`);
 }
 
-/** Returns the path of the inbox file of event `id`. */
+/** Returns the path of the inbox file of event `id`. Throws when `id` is not a valid event id. */
 export function inboxPath(paths: LedgerPaths, id: string): string {
-  return join(paths.inbox, `${id}.json`);
+  return join(paths.inbox, `${eventIdSchema.parse(id)}.json`);
 }
 
 /** Returns the path of a file in the `prompts` folder of this package. */

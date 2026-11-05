@@ -1,5 +1,7 @@
 import { randomBytes } from "node:crypto";
-import { readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 
 /** Writes `text` to `path` atomically: it writes a temporary file, then renames it. */
 export async function writeAtomic(path: string, text: string): Promise<void> {
@@ -26,6 +28,30 @@ export async function readIfExists(path: string): Promise<string | undefined> {
   } catch (error) {
     if (errorCode(error) === "ENOENT") return undefined;
     throw error;
+  }
+}
+
+async function acquireLock(lock: string, attempts: number): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    if (await writeIfMissing(lock, String(process.pid))) return;
+    await delay(25);
+  }
+  await writeFile(lock, String(process.pid), "utf8");
+}
+
+/**
+ * Runs `fn` while this process holds the lock file `<path>.lock`, so that read-change-write steps of
+ * different processes do not mix. When the lock stays for about 5 seconds, it is stale and the
+ * caller takes it.
+ */
+export async function withLock<T>(path: string, fn: () => Promise<T>): Promise<T> {
+  const lock = `${path}.lock`;
+  await mkdir(dirname(lock), { recursive: true });
+  await acquireLock(lock, 200);
+  try {
+    return await fn();
+  } finally {
+    await rm(lock, { force: true });
   }
 }
 

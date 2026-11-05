@@ -11,8 +11,8 @@ import { tempFolder } from "../core/helpers.ts";
 
 type Handler = (event: unknown, ctx: unknown) => unknown;
 
-function recorder() {
-  const state = {
+function emptyState() {
+  return {
     handlers: new Map<string, Handler>(),
     commands: new Map<string, FactoryCommand>(),
     entries: [] as unknown[],
@@ -21,6 +21,10 @@ function recorder() {
     notes: [] as string[],
     active: ["read", "bash"],
   };
+}
+
+function recorder() {
+  const state = emptyState();
   const api = {
     on: (event: string, handler: Handler) => state.handlers.set(event, handler),
     registerTool: (tool: { name: string; executionMode?: string }) => {

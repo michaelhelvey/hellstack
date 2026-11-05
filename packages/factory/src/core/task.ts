@@ -15,9 +15,27 @@ export const taskStatusSchema = z.enum([
   "dropped",
 ]);
 
-/** The front matter of a task file. */
-export const taskMetaSchema = z.object({
-  id: z.string().regex(/^t-[0-9a-f]{4,8}$/),
+/** A task id: `t-` and 4 to 8 lowercase hex digits. */
+export const taskIdSchema = z.string().regex(/^t-[0-9a-f]{4,8}$/, "not a valid task id");
+
+/**
+ * The status changes that `updateTask` can make. Only handoff moves a `sketch` to `ready`. A
+ * `landing` task can go back to `working`, and a `ready` task can go back to `sketch`.
+ */
+export const statusTransitions: Record<TaskStatus, readonly TaskStatus[]> = {
+  sketch: ["dropped"],
+  ready: ["sketch", "working", "dropped"],
+  working: ["landing", "dropped"],
+  landing: ["working", "landed", "dropped"],
+  landed: [],
+  dropped: [],
+};
+
+/**
+ * The front matter of a task file. Unknown fields stay in the file. Times can have a UTC offset.
+ */
+export const taskMetaSchema = z.looseObject({
+  id: taskIdSchema,
   title: z.string().min(1),
   status: taskStatusSchema,
   repo: z.string().refine(isAbsolute, "repo must be an absolute path"),
@@ -25,8 +43,8 @@ export const taskMetaSchema = z.object({
   paused: z.boolean().default(false),
   needs_you: z.string().nullable().default(null),
   now: z.string().default(""),
-  created: z.iso.datetime(),
-  updated: z.iso.datetime(),
+  created: z.iso.datetime({ offset: true }),
+  updated: z.iso.datetime({ offset: true }),
 });
 
 /** The lifecycle state of a task. */
@@ -59,16 +77,22 @@ export const contractSections = ["Goal", "Verification", "Output", "Constraints"
 const FRONT_MATTER = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 const COMMENT = /<!--[\s\S]*?(?:-->|$)/g;
 const HEADING = /^## +(\S.*?)\s*$/;
+const FENCE = /^\s*(?:```|~~~)/;
 const CHECKBOX = /^\s*[-*+] \[([ xX])\]\s*(.*)$/;
 
 interface BodyLine {
   section: string | undefined;
   heading: boolean;
+  code: boolean;
   visible: string;
 }
 
-/** Parses the text of a task file. Throws when the front matter is missing or not valid. */
-export function parseTask(text: string): Task {
+/**
+ * Parses the text of a task file. Throws when the front matter is missing or not valid. It removes
+ * a byte order mark at the start.
+ */
+export function parseTask(fileText: string): Task {
+  const text = fileText.replace(/^\uFEFF/, "");
   const match = FRONT_MATTER.exec(text);
   if (!match) throw new Error("the task file has no front matter");
   const meta = taskMetaSchema.parse(parse(match[1] ?? ""));
@@ -80,13 +104,25 @@ export function serializeTask(task: Task): string {
   return `---\n${stringify(taskMetaSchema.parse(task.meta), { lineWidth: 0 })}---\n${task.body}`;
 }
 
+function codeLines(lines: string[]): boolean[] {
+  let fenced = false;
+  return lines.map((line) => {
+    const fence = FENCE.test(line);
+    const code = fenced || fence;
+    fenced = fenced !== fence;
+    return code;
+  });
+}
+
 function scanBody(body: string): BodyLine[] {
   const masked = body.replace(COMMENT, (comment) => comment.replace(/[^\n]/g, " "));
+  const lines = masked.split("\n");
+  const code = codeLines(lines);
   let section: string | undefined;
-  return masked.split("\n").map((visible) => {
-    const heading = HEADING.exec(visible)?.[1];
+  return lines.map((visible, index) => {
+    const heading = code[index] ? undefined : HEADING.exec(visible)?.[1];
     section = heading ?? section;
-    return { section, heading: heading !== undefined, visible };
+    return { section, heading: heading !== undefined, code: code[index] ?? false, visible };
   });
 }
 
@@ -104,12 +140,21 @@ export function sectionText(body: string, name: string): string | undefined {
     .trim();
 }
 
-/** Returns the checkbox items of the Landing section. Items in HTML comments do not count. */
+/**
+ * Returns the checkbox items of the Landing section. Items in HTML comments and in code blocks do
+ * not count.
+ */
 export function landingItems(body: string): LandingItem[] {
-  return scanBody(body).flatMap((line, index) => {
-    const match = line.section === "Landing" ? CHECKBOX.exec(line.visible) : null;
-    return match ? [{ line: index, done: match[1] !== " ", text: (match[2] ?? "").trim() }] : [];
-  });
+  return scanBody(body).flatMap(landingItem);
+}
+
+function checkboxMatch(line: BodyLine): RegExpExecArray | null {
+  return line.section === "Landing" && !line.code ? CHECKBOX.exec(line.visible) : null;
+}
+
+function landingItem(line: BodyLine, index: number): LandingItem[] {
+  const match = checkboxMatch(line);
+  return match ? [{ line: index, done: match[1] !== " ", text: (match[2] ?? "").trim() }] : [];
 }
 
 /** Returns the landing progress of a task body. */
@@ -127,14 +172,23 @@ export function checkLandingItem(body: string, number: number): string {
   return lines.join("\n");
 }
 
-/** Returns the body with `entry` added as the last item of the Log section. */
+function withLogSection(body: string, cr: string): string {
+  if (sectionText(body, "Log") !== undefined) return body;
+  return `${body.trimEnd()}${cr}\n${cr}\n## Log${cr}\n`;
+}
+
+/**
+ * Returns the body with `entry` added as the last item of the Log section. It keeps CRLF line ends
+ * when the body has them.
+ */
 export function appendLogEntry(body: string, entry: string): string {
-  const text = sectionText(body, "Log") === undefined ? `${body.trimEnd()}\n\n## Log\n` : body;
+  const cr = body.includes("\r\n") ? "\r" : "";
+  const text = withLogSection(body, cr);
   const scanned = scanBody(text);
   const last = scanned.findLastIndex((line) => line.section === "Log" && line.visible.trim());
   const lines = text.split("\n");
-  const item = `- ${entry.replace(/\s*\n\s*/g, " ")}`;
-  lines.splice(last + 1, 0, ...(scanned[last]?.heading ? ["", item] : [item]));
+  const item = `- ${entry.replace(/\s*\n\s*/g, " ")}${cr}`;
+  lines.splice(last + 1, 0, ...(scanned[last]?.heading ? [cr, item] : [item]));
   return lines.join("\n");
 }
 

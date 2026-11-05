@@ -56,18 +56,33 @@ describe("coordinatorPlacement", () => {
   });
 });
 
-test("applyNames tries again until Herdr knows the target", async () => {
+function renameAfter(known: Record<string, number>) {
   const tries: string[] = [];
   const herdr: Herdr = {
     spaces: () => Promise.resolve([]),
     rename: (target: HerdrName) => {
       tries.push(target.id);
-      return Promise.resolve(tries.length >= 2);
+      return Promise.resolve(
+        tries.filter((id) => id === target.id).length >= (known[target.id] ?? 1),
+      );
     },
   };
+  return { herdr, tries };
+}
+
+test("applyNames tries again until Herdr knows the target", async () => {
+  const { herdr, tries } = renameAfter({ a: 2 });
   await applyNames(herdr, [
     { kind: "tab", id: "a", name: "A" },
     { kind: "space", id: "b", name: "B" },
   ]);
-  expect(tries).toEqual(["a", "a", "b"]);
+  expect(tries.sort()).toEqual(["a", "a", "b"]);
+});
+
+test("applyNames stops at the deadline", async () => {
+  const { herdr, tries } = renameAfter({ a: 100 });
+  const start = Date.now();
+  await applyNames(herdr, [{ kind: "tab", id: "a", name: "A" }], 300);
+  expect(Date.now() - start).toBeLessThan(1_000);
+  expect(tries.length).toBeLessThan(5);
 });

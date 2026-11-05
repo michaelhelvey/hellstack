@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, readdir, readFile, writeFile } from "node:fs/promises";
 
 import { defaultConfig } from "../../src/core/config.ts";
 import {
@@ -64,22 +64,66 @@ describe("tasks", () => {
     expect(updated.body).toBe(task.body);
   });
 
-  test("updateTask keeps the fields that the patch leaves undefined", async () => {
-    const paths = await tempLedger();
-    const task = await sketch(paths);
-    await updateTask(task.meta.id, { now: "testing", paused: true }, paths);
-    const updated = await updateTask(task.meta.id, { status: undefined, now: "next" }, paths);
-    expect(updated.meta).toMatchObject({ status: "sketch", now: "next", paused: true });
-  });
-
   test("updateTask does not move a sketch to ready", async () => {
     const paths = await tempLedger();
     const task = await sketch(paths);
     const toReady = await updateTask(task.meta.id, { status: "ready" }, paths).catch(String);
     expect(toReady).toContain("use handoff");
+    expect(await readdir(paths.tasks)).toEqual([`${task.meta.id}.md`]);
     expect(await updateTask("t-0000", { now: "x" }, paths).catch(String)).toContain(
       "no task t-0000",
     );
+  });
+
+  test("updateTask does not change undefined fields", async () => {
+    const paths = await tempLedger();
+    const { meta } = await sketch(paths);
+    await updateTask(meta.id, { needs_you: "which repo?", now: "asking" }, paths);
+    const updated = await updateTask(meta.id, { status: "dropped", needs_you: undefined }, paths);
+    expect(updated.meta).toMatchObject({
+      status: "dropped",
+      needs_you: "which repo?",
+      now: "asking",
+    });
+  });
+
+  test("updateTask allows only the status changes of the lifecycle", async () => {
+    const paths = await tempLedger();
+    const { meta } = await sketch(paths);
+    const toWorking = await updateTask(meta.id, { status: "working" }, paths).catch(String);
+    expect(toWorking).toContain("cannot go from sketch to working");
+    await updateTask(meta.id, { status: "dropped" }, paths);
+    const fromDropped = await updateTask(meta.id, { status: "sketch" }, paths).catch(String);
+    expect(fromDropped).toContain("cannot go from dropped to sketch");
+  });
+
+  test("parallel writes do not lose an update", async () => {
+    const paths = await tempLedger();
+    const { meta } = await sketch(paths);
+    const texts = ["a", "b", "c", "d", "e"];
+    await Promise.all(texts.map((text) => logTask(meta.id, { who: "w", text }, paths)));
+    const log = sectionText((await getTask(meta.id, paths)).body, "Log") ?? "";
+    expect(
+      log
+        .split("\n")
+        .map((line) => line.slice(-1))
+        .sort(),
+    ).toEqual(texts);
+  });
+
+  test("task ids cannot leave the tasks folder", async () => {
+    const paths = await tempLedger();
+    expect(await getTask("../config", paths).catch(String)).toContain("not a valid task id");
+  });
+
+  test("a file whose name is not its id is not valid", async () => {
+    const paths = await tempLedger();
+    const task = await sketch(paths);
+    await copyFile(taskPath(paths, task.meta.id), taskPath(paths, "t-0000"));
+    const list = await listTasks(paths);
+    expect(list.tasks.map((t) => t.meta.id)).toEqual([task.meta.id]);
+    expect(list.invalid[0]?.error).toContain("does not match the id");
+    expect(await getTask("t-0000", paths).catch(String)).toContain("does not match the id");
   });
 
   test("logTask and checkLanding edit the body", async () => {

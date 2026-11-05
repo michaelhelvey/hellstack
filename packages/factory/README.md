@@ -1,6 +1,7 @@
 # @hellstack/factory
 
-A [pi](https://pi.dev) extension. It does nothing at this time.
+A [pi](https://pi.dev) extension and CLI that run a factory of agents: one coordinator, one worker
+per task, all on a task ledger in `$FACTORY_HOME` (default `~/.factory`).
 
 `bun run sync` adds this package to your pi settings. Pi loads `src/index.ts` directly, so there is
 no build step.
@@ -10,6 +11,19 @@ no build step.
 ```sh
 bun run factory init   # make the ledger in $FACTORY_HOME (default ~/.factory)
 ```
+
+In any pi session, `/sketch <title>` starts a task for the current folder. The agent helps you write
+the contract into the task file. Say that it is ready (or run `/handoff`), and the task goes to the
+coordinator.
+
+`FACTORY_ROLE` gives a pi session its role. Spawn sets it; you do not set it by hand.
+
+| `FACTORY_ROLE`                      | What the session gets                                                              |
+| ----------------------------------- | ---------------------------------------------------------------------------------- |
+| `coordinator`                       | the `factory` skill, `COORDINATOR.md`, all `factory_*` tools, bash limited to 10 s |
+| `worker` (with `FACTORY_TASK=<id>`) | `WORKER.md`, `factory_task` for its own task, `/park` and `/unpark`                |
+| `subagent`                          | the chinchilla rules only                                                          |
+| not set                             | `/sketch` only                                                                     |
 
 `bun run sync` also runs `init`. It does not replace files that exist. Edit `~/.factory/config.json`
 to set the models and the event sources. Other parts of the factory use the modules in `src/core`
