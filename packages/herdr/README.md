@@ -25,8 +25,8 @@ to talk to the coordinator, or to the tab of a task to talk to its worker.
 The board (`mods/factory-board`) shows the tasks that need you, the columns sketch, ready, working,
 landing, and landed today, the inbox count, the health of each source, and the feed. Click a card
 with a terminal to go to its worker. The board runs `bun packages/factory/src/cli.ts board --json`
-in this repository when the ledger changes and every 20 seconds. It finds the repository through
-the link of its mod folder. Layout props `repo` and `factoryHome` override the repository and the
+in this repository when the ledger changes and every 20 seconds. It finds the repository through the
+link of its mod folder. Layout props `repo` and `factoryHome` override the repository and the
 ledger.
 
 ## Panes
