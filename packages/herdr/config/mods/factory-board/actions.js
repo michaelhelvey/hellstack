@@ -35,12 +35,15 @@ export function powerState(running) {
   return running.factoryd && running.coordinator ? "running" : some(running);
 }
 
-/** Returns the CLI arguments of each action. `ids` are the event ids of an inbox thread. */
+/**
+ * Returns the CLI arguments of each action. `ids` are the event ids of an inbox thread, newest
+ * first. The CLI removes all events of the thread, so the newest event is enough.
+ */
 export const COMMANDS = {
   up: () => [["up"]],
   down: () => [["down"]],
   open: (id) => [["open", id, "--json"]],
-  dismiss: (ids) => ids.map((id) => ["inbox", "dismiss", id, "--json"]),
+  dismiss: (ids) => [["inbox", "dismiss", ids[0], "--json"]],
   design: (ids) => [["inbox", "design", ids[0], "--json"]],
 };
 
@@ -49,26 +52,28 @@ function noteOf(value) {
   return value?.terminal === null ? "nothing to open" : "";
 }
 
-function note(stdout) {
+function json(stdout) {
   try {
-    return noteOf(JSON.parse(stdout));
+    return JSON.parse(stdout);
   } catch {
-    return "";
+    return undefined;
   }
 }
 
+function failure(stdout, stderr, code) {
+  const error = json(stdout)?.error;
+  const text = typeof error === "string" ? error : stderr.trim() || stdout.trim();
+  return (text || `the factory CLI exited ${code}`).slice(0, ERROR_CHARS);
+}
+
 /**
- * Returns the result of a CLI run (`exec`): `{ ok, text }`. `text` is the error when the exit code
- * is not 0, else the `message` of the JSON output, or "nothing to open" when its `terminal` is
- * null.
+ * Returns the result of a CLI run (`exec`): `{ ok, text }`. When the exit code is not 0, `text` is
+ * the `error` of the JSON output (`{ ok: false, error }`), else the error output. Else it is the
+ * `message` of the JSON output, or "nothing to open" when its `terminal` is null.
  */
 export function cliResult({ code, stdout, stderr }) {
-  if (code === 0) return { ok: true, text: note(stdout) };
-  const text = (stderr.trim() || stdout.trim() || `the factory CLI exited ${code}`).slice(
-    0,
-    ERROR_CHARS,
-  );
-  return { ok: false, text };
+  if (code === 0) return { ok: true, text: noteOf(json(stdout)) };
+  return { ok: false, text: failure(stdout, stderr, code) };
 }
 
 /**

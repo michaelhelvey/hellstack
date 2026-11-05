@@ -45,10 +45,6 @@ import { fontSizes } from "./ui.js";
 
 const REFRESH_MS = 20000;
 
-// The events that leave the inbox when a thread action succeeds: a dismiss removes each event of
-// the thread; a design removes only the newest event.
-const GONE = { dismiss: (ids) => ids, design: (ids) => ids.slice(0, 1) };
-
 // Runs `pwd` also when the props give the repository: in Herdr, when the first `exec` of a mod copy
 // does not start in its first task before an `await`, that `exec` and all later ones never finish.
 async function findRepo() {
@@ -213,7 +209,7 @@ export default class FactoryBoard extends View {
           key: `thread:${thread.key}`,
           kind,
           commands: COMMANDS[kind](thread.ids),
-          gone: GONE[kind](thread.ids),
+          gone: thread.ids,
         }),
       ask: (key, kind, cx) => update(cx, () => this.actions.ask(key, kind)),
       clear: (key, cx) => update(cx, () => this.actions.clear(key)),

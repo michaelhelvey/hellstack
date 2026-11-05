@@ -28,11 +28,8 @@ describe("power", () => {
 });
 
 describe("commands", () => {
-  test("a dismiss removes each event of the thread; a design uses the newest event", () => {
-    expect(COMMANDS.dismiss(["e2", "e1"])).toEqual([
-      ["inbox", "dismiss", "e2", "--json"],
-      ["inbox", "dismiss", "e1", "--json"],
-    ]);
+  test("a dismiss and a design of a thread use its newest event", () => {
+    expect(COMMANDS.dismiss(["e2", "e1"])).toEqual([["inbox", "dismiss", "e2", "--json"]]);
     expect(COMMANDS.design(["e2", "e1"])).toEqual([["inbox", "design", "e2", "--json"]]);
     expect(COMMANDS.open("t-1")).toEqual([["open", "t-1", "--json"]]);
   });
@@ -48,6 +45,8 @@ describe("commands", () => {
       ok: false,
       text: "no such event",
     });
+    const json = JSON.stringify({ ok: false, error: "the inbox has no event e9" });
+    expect(cliResult({ code: 1, stdout: json, stderr: "" }).text).toBe("the inbox has no event e9");
     expect(cliResult({ code: 2, stdout: "", stderr: "" }).text).toBe("the factory CLI exited 2");
     const note = JSON.stringify({ terminal: null, message: "no design agent runs" });
     expect(cliResult({ code: 0, stdout: note, stderr: "" })).toEqual({
@@ -74,7 +73,7 @@ describe("Actions", () => {
   test("the commands stop at the first error, and the error stays", async () => {
     const { calls, runCli } = runner([{ ok: false, text: "gh: 404" }]);
     const actions = new Actions(runCli);
-    expect(await actions.run("thread:x", "dismiss", COMMANDS.dismiss(["a", "b"]))).toBe(false);
+    expect(await actions.run("thread:x", "dismiss", [["a"], ["b"]])).toBe(false);
     expect(calls).toHaveLength(1);
     expect(actions.get("thread:x")).toEqual({ phase: "error", kind: "dismiss", text: "gh: 404" });
   });

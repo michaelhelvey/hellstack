@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { coordinatorPlacement, workerPlacement } from "../../../../factory/src/core/herdr.ts";
-import { COORDINATOR_TERMINAL, workerTerminal } from "../../../../factory/src/core/spawn.ts";
+import { coordinatorPlacement } from "../../../../factory/src/core/herdr.ts";
+import {
+  COORDINATOR_TERMINAL,
+  designTerminal,
+  taskTab,
+  workerTerminal,
+} from "../../../../factory/src/core/spawn.ts";
 import {
   EXCERPT_CHARS,
   INBOX_LIMIT,
@@ -152,12 +157,15 @@ describe("inbox", () => {
 });
 
 describe("banner", () => {
-  test("the roles come from the tab ids that factory spawn gives", async () => {
+  test("the roles come from the tab ids and terminal names that factory spawn gives", () => {
     const coordinator = coordinatorPlacement([]).labels["herdr.tab"];
-    const task = { id: "t-1a2b3c", repo: "/tmp", cwd: "/tmp", tabName: "x" };
-    const worker = (await workerPlacement([], task)).labels["herdr.tab"];
     expect(shownRole(coordinator)).toEqual({ role: "coordinator" });
-    expect(shownRole(worker)).toEqual({ role: "worker", id: "t-1a2b3c" });
+    expect(shownRole(taskTab("worker", "t-1a2b3c"))).toEqual({ role: "worker", id: "t-1a2b3c" });
+    expect(shownRole(taskTab("design", "t-1a2b3c"))).toEqual({ role: "design", id: "t-1a2b3c" });
+    expect(shownRole("tb1", [designTerminal("t-1a2b3c")])).toEqual({
+      role: "design",
+      id: "t-1a2b3c",
+    });
   });
 
   test("the terminal names tell the role before the tab id; the first name wins", () => {
