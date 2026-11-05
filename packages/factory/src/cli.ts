@@ -56,8 +56,13 @@ export async function main(argv: string[]): Promise<number> {
     console.error(usage());
     return 2;
   }
-  await command(args);
-  return 0;
+  return command(args).then(
+    () => 0,
+    (error: unknown) => {
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    },
+  );
 }
 
 if (import.meta.main) process.exit(await main(process.argv.slice(2)));

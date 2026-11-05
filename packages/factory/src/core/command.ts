@@ -22,17 +22,22 @@ function exitCode(error: ExecFileException | null): number | undefined {
   return typeof error.code === "number" ? error.code : undefined;
 }
 
-/** Runs a command with `child_process.execFile`. A nonzero exit code does not reject. */
+/**
+ * Runs a command with `child_process.execFile`. A nonzero exit code does not reject. The command gets
+ * an empty stdin, so that programs such as `pi -p` do not wait for input.
+ */
 export function runCommand(
   program: string,
   args: string[],
   timeoutMs: number,
 ): Promise<CommandResult> {
   return new Promise((resolve, reject) => {
-    execFile(program, args, { timeout: timeoutMs, encoding: "utf8" }, (error, stdout, stderr) => {
+    const options = { timeout: timeoutMs, encoding: "utf8" } as const;
+    const child = execFile(program, args, options, (error, stdout, stderr) => {
       const code = exitCode(error);
       if (code === undefined) reject(new Error(`${program} failed: ${error?.message}`));
       else resolve({ code, stdout, stderr });
     });
+    child.stdin?.end();
   });
 }

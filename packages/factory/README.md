@@ -8,7 +8,19 @@ no build step.
 ## Usage
 
 ```sh
-bun run factory init   # make the ledger in $FACTORY_HOME (default ~/.factory)
+bun run factory init     # make the ledger in $FACTORY_HOME (default ~/.factory)
+bun run factory up       # start the coordinator and factoryd (safe to run again)
+bun run factory status   # what runs, the task counts, the inbox, the last poll of each source
+bun run factory down     # stop factoryd and the coordinator; workers continue
+```
+
+`factoryd` polls the sources in `config.json`, routes events to workers, the coordinator, or the
+inbox, keeps workers and the coordinator running, and writes `feed.jsonl`. `up` runs it in the hc
+terminal `factoryd`. To run it in the foreground without agents (it prints the messages instead of
+sending them):
+
+```sh
+FACTORY_HOME=$(mktemp -d) bun run factory daemon --no-agents
 ```
 
 `bun run sync` also runs `init`. It does not replace files that exist. Edit `~/.factory/config.json`

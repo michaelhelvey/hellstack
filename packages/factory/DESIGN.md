@@ -36,7 +36,8 @@ default is `~/.factory`. Tests always set `FACTORY_HOME` to a temporary folder.
   tasks/<id>.md      one file per task. The source of truth for the task.
   inbox/<id>.json    one file per event that no task owns.
   feed.jsonl         one record per poll cycle or daemon action. Append only.
-  state/             daemon state: poll cursors, seen event ids, notices sent.
+  state/             daemon state: daemon.json (poll cursors, seen event ids, notices sent),
+                     factoryd.pid (the lock of the running daemon).
 ```
 
 `factory init` makes the folders, writes the default `config.json`, and copies
@@ -126,11 +127,12 @@ correct.
 
 ## Thread keys
 
-| Source | Key                                        |
-| ------ | ------------------------------------------ |
-| GitHub | `gh:<owner>/<repo>#<number>` (issue or PR) |
-| Sentry | `sentry:<org>/<shortId>`                   |
-| Task   | `task:<id>`                                |
+| Source | Key                                                       |
+| ------ | --------------------------------------------------------- |
+| GitHub | `gh:<owner>/<repo>#<number>` (issue or PR)                |
+| GitHub | `gh:<owner>/<repo>` (a subject without a number, e.g. CI) |
+| Sentry | `sentry:<org>/<shortId>`                                  |
+| Task   | `task:<id>`                                               |
 
 ## Events
 
@@ -161,7 +163,7 @@ and writes an error record to the feed.
 {
   "coordinator": { "model": "claude-sonnet-5-5", "thinking": "medium" },
   "worker": { "model": "claude-opus-5-5", "thinking": "high" },
-  "summaryModel": "claude-haiku-5-5",
+  "summaryModel": "haiku",
   "staleAfterMinutes": 120,
   "sources": [
     {
@@ -173,6 +175,7 @@ and writes an error record to the feed.
     {
       "type": "sentry",
       "everySeconds": 300,
+      "url": "https://sentry.io",
       "org": "my-org",
       "projects": ["api"],
       "tokenEnv": "SENTRY_AUTH_TOKEN",
@@ -184,10 +187,10 @@ and writes an error record to the feed.
 ```
 
 Rule actions: `ignore` (drop it), `candidate` (route it), `mention-only` (route it only when the
-event mentions the user or asks for their review; else drop it). The first matching rule wins. A
-rule matches when each field that it sets is equal to the event field. `repo` matches the
-`owner/repo` part of a GitHub thread key. Secrets are never in the config: GitHub uses `gh auth`,
-other sources name an environment variable.
+event mentions the user or asks for their review, that is the kinds `mention`, `review_requested`,
+and `assigned`; else drop it). The first matching rule wins. A rule matches when each field that it
+sets is equal to the event field. `repo` matches the `owner/repo` part of a GitHub thread key.
+Secrets are never in the config: GitHub uses `gh auth`, other sources name an environment variable.
 
 ## Feed
 
@@ -201,9 +204,11 @@ other sources name an environment variable.
 
 `source` is a source type or `factoryd` for daemon actions (respawn, interrupt, config error). `to`
 is a terminal name or `inbox`. `summary` is one human sentence. The daemon asks the summary model
-for it with `pi -p --no-session --no-tools --no-extensions --no-skills --model <summaryModel>` and a
-short timeout. When that fails, it uses a fixed template. It does not call the model for a cycle
-with `ok: true` and `new: 0`; the template is enough.
+for it with
+`pi -p --no-session --no-tools --no-extensions --no-skills --no-context-files --no-prompt-templates --model <summaryModel>`
+and a 20 second timeout. The model name must resolve without extensions; `haiku` is a pattern that
+does. When that fails, it uses a fixed template. It does not call the model for a cycle with
+`ok: true` and `new: 0`; the template is enough.
 
 ## Terminals
 
@@ -253,8 +258,9 @@ The daemon collects messages for the coordinator and sends at most one block eve
 One process per machine, in the `factoryd` terminal. Each loop step is plain code. No step waits on
 a model, except the feed summary, which has a timeout.
 
-1. **Poll** each source when its interval passes. Keep cursors and seen ids in `state/`, so that it
-   handles no event two times.
+1. **Poll** each source when its interval passes (or the `X-Poll-Interval` of GitHub, when it is
+   longer). Keep cursors and seen ids in `state/`, so that it handles no event two times. The first
+   poll of a source looks back one hour.
 2. **Filter** with the source rules.
 3. **Route** each event that passes. Look up the tasks whose `threads` has the event thread.
    - Owned, worker running, not paused: send it to the worker.
@@ -262,15 +268,17 @@ a model, except the feed summary, which has a timeout.
    - Not owned: write it to `inbox/` and send it to the coordinator.
    - Remove inbox files whose thread a task now owns.
 4. **Reconcile** every 30 seconds. Desired: tasks with status `working` or `landing` and
-   `paused: false`. Actual: `hc ls`. Start each worker that is missing or that no longer runs pi.
-   Tell the coordinator about each new `ready` task one time. Tell the coordinator one time when a
-   task has had no `updated` change for `staleAfterMinutes` and its worker is not working.
+   `paused: false`. Actual: `hc ls`. Start each worker that is missing or that no longer runs pi,
+   with the restart prompt (`factory_dispatch` makes the first start). Tell the coordinator about
+   each new `ready` task one time. Tell the coordinator one time when a task has had no `updated`
+   change for `staleAfterMinutes` and its worker is not working.
 5. **Keepalive**: start the coordinator when its terminal is missing.
 6. **Watchdog**: when the coordinator has had the same turn with status `working` for more than 3
    minutes, run `hc interrupt factory` and write a feed record.
 7. **Feed**: write one record per poll cycle and per daemon action.
 
-The daemon reloads `config.json` when it changes.
+The daemon reloads `config.json` when it changes. `--no-agents` runs the loop without agents: it
+does not start, message, or interrupt agents, and prints the messages instead.
 
 ## Extension
 
@@ -318,4 +326,6 @@ only), then the source health and the feed. A click on a task with a terminal fo
 - `up`: start `factoryd` and the coordinator when they do not run. It is safe to run more than once.
 - `down`: stop `factoryd` and the coordinator. Workers continue.
 - `status`: print what runs and the task counts.
+- `daemon [--no-agents]`: run the `factoryd` loop in the foreground. `up` runs it in the `factoryd`
+  terminal.
 - `board --json`: print the board model.
