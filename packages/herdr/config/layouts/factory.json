@@ -85,51 +85,62 @@
               "type": "row",
               "children": [
                 {
-                  "id": "board",
-                  "type": "block",
-                  "content": {
-                    "mod": "factory-board"
-                  },
+                  "id": "stage",
+                  "type": "column",
+                  "children": [
+                    {
+                      "id": "banner",
+                      "type": "block",
+                      "content": {
+                        "mod": "factory-board",
+                        "props": {
+                          "view": "banner"
+                        }
+                      },
+                      "size": {
+                        "px": 60
+                      }
+                    },
+                    {
+                      "id": "main",
+                      "type": "block",
+                      "content": {
+                        "tab": "active",
+                        "pane": {
+                          "header": {
+                            "content": {
+                              "mod": "pane-quiet"
+                            },
+                            "reveal": "always",
+                            "height": 30,
+                            "position": "top"
+                          },
+                          "background": "background",
+                          "border": {
+                            "width": 0,
+                            "color": "border"
+                          },
+                          "focus": {
+                            "width": 1,
+                            "color": "input"
+                          },
+                          "radius": 0,
+                          "gap": 8,
+                          "lone": true
+                        }
+                      }
+                    }
+                  ],
                   "size": {
-                    "px": 340
+                    "weight": 2
                   },
-                  "min": 260,
-                  "max": 560,
+                  "min": 420,
                   "background": "background",
                   "border": {
                     "width": 1,
                     "color": "border"
                   },
                   "radius": 10
-                },
-                {
-                  "id": "main",
-                  "type": "block",
-                  "content": {
-                    "tab": "active",
-                    "pane": {
-                      "header": {
-                        "content": {
-                          "mod": "pane-quiet"
-                        },
-                        "reveal": "always",
-                        "height": 30,
-                        "position": "top"
-                      },
-                      "background": "background",
-                      "border": {
-                        "width": 1,
-                        "color": "border"
-                      },
-                      "focus": {
-                        "width": 1,
-                        "color": "#ffffff2b"
-                      },
-                      "radius": 10,
-                      "gap": 8,
-                      "lone": true
-                    }
-                  }
                 },
                 {
                   "id": "panel",
@@ -163,10 +174,28 @@
                   "min": 280,
                   "max": 900,
                   "hidden": true
+                },
+                {
+                  "id": "board",
+                  "type": "block",
+                  "content": {
+                    "mod": "factory-board"
+                  },
+                  "size": {
+                    "weight": 1
+                  },
+                  "min": 320,
+                  "max": 1600,
+                  "background": "chrome",
+                  "border": {
+                    "width": 1,
+                    "color": "border"
+                  },
+                  "radius": 10
                 }
               ],
               "padding": [0, 8],
-              "gap": 8
+              "gap": 10
             },
             {
               "id": "pane-bottom-gap",
