@@ -7,6 +7,7 @@ import {
   getTask,
   handoff,
   listInbox,
+  NO_WINDOW,
   updateTask,
   writeInbox,
   writeTask,
@@ -18,11 +19,12 @@ import { designFromInbox, openTask } from "../../src/daemon/open.ts";
 import { completeBody, tempFolder, tempLedger } from "../core/helpers.ts";
 import { event, fakeHc, noHerdr, terminal } from "./helpers.ts";
 
-function setup(paths: LedgerPaths, terminals: HcTerminal[] = []) {
+function setup(paths: LedgerPaths, terminals: HcTerminal[] = [], window = true) {
   const fake = fakeHc(terminals);
   const focused: string[] = [];
   const herdr: Herdr = {
     ...noHerdr,
+    spaces: () => Promise.resolve(window ? [] : NO_WINDOW),
     focus: (address) => {
       focused.push(address);
       return Promise.resolve(true);
@@ -45,9 +47,21 @@ describe("openTask", () => {
     const paths = await tempLedger();
     const id = await taskWithStatus(paths, "sketch");
     const { fake, focused, deps } = setup(paths);
-    expect(await openTask(id, deps)).toEqual({ terminal: `factory-design-${id}`, started: true });
+    expect(await openTask(id, deps)).toEqual({
+      terminal: `factory-design-${id}`,
+      started: true,
+      focused: true,
+    });
     expect(fake.calls).toContain(`run factory-design-${id}`);
     expect(focused).toEqual(["t1"]);
+  });
+
+  test("does not focus when the Herdr window does not run", async () => {
+    const paths = await tempLedger();
+    const id = await taskWithStatus(paths, "sketch");
+    const { focused, deps } = setup(paths, [], false);
+    expect(await openTask(id, deps)).toMatchObject({ started: true, focused: false });
+    expect(focused).toEqual([]);
   });
 
   test("only focuses a worker that runs pi", async () => {
@@ -55,7 +69,11 @@ describe("openTask", () => {
     const id = await taskWithStatus(paths, "working");
     const live = terminal({ address: "t7", name: `factory-${id}` });
     const { fake, focused, deps } = setup(paths, [live]);
-    expect(await openTask(id, deps)).toEqual({ terminal: `factory-${id}`, started: false });
+    expect(await openTask(id, deps)).toEqual({
+      terminal: `factory-${id}`,
+      started: false,
+      focused: true,
+    });
     expect(fake.calls.filter((call) => call.startsWith("run"))).toEqual([]);
     expect(focused).toEqual(["t7"]);
   });
@@ -82,6 +100,7 @@ describe("openTask", () => {
     expect(await openTask(id, design.deps)).toEqual({
       terminal: `factory-design-${id}`,
       started: false,
+      focused: true,
     });
     expect(design.focused).toEqual(["t3"]);
   });

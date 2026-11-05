@@ -46,7 +46,7 @@ export function notificationThreadId(event: FactoryEvent): string | undefined {
 
 async function gh(runner: CommandRunner, args: string[]): Promise<string> {
   const result = await runner("gh", args, 30_000);
-  if (result.code !== 0) throw new Error(`gh ${args[1] ?? ""} failed: ${oneLine(result.stderr)}`);
+  if (result.code !== 0) throw new Error(`gh ${args.join(" ")} failed: ${oneLine(result.stderr)}`);
   return result.stdout;
 }
 
@@ -106,6 +106,19 @@ async function doneThreads(runner: CommandRunner, events: FactoryEvent[]): Promi
 }
 
 /**
+ * Returns the ids of the events that a check found done. When all checks failed, it throws the first
+ * error; when one check failed, the result of the other check is enough.
+ */
+function doneIds(results: PromiseSettledResult<FactoryEvent[]>[]): string[] {
+  const done = results.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
+  const failed = results.flatMap((result): unknown[] =>
+    result.status === "rejected" ? [result.reason] : [],
+  );
+  if (failed.length === results.length) throw failed[0];
+  return [...new Set(done.map((event) => event.id))];
+}
+
+/**
  * Returns the inbox actions of GitHub. `detail` adds the state of the issue or pull request, and
  * its author and text when the poll had no comment. `dismiss` marks the notification thread done.
  * `isDone` uses one GraphQL call and one notification list.
@@ -120,11 +133,13 @@ export function githubInbox(runner: CommandRunner = runCommand): InboxSource {
     },
     async isDone(events) {
       if (events.length === 0) return [];
-      const [closed, done] = await Promise.all([
-        closedThreads(runner, events),
-        doneThreads(runner, events),
+      const results = await Promise.allSettled([
+        closedThreads(runner, events).then((threads) =>
+          events.filter((e) => threads.has(e.thread)),
+        ),
+        doneThreads(runner, events).then((ids) => events.filter((e) => ids.has(e.id))),
       ]);
-      return events.filter((e) => closed.has(e.thread) || done.has(e.id)).map((e) => e.id);
+      return doneIds(results);
     },
   };
 }

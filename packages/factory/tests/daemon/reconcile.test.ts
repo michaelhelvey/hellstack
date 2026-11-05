@@ -67,6 +67,12 @@ describe("reconcile", () => {
     ]);
   });
 
+  test("closes the idle design agent of a finished task too", () => {
+    const design = terminal({ name: "factory-design-t-7f3a", status: "idle", status_ms: null });
+    expect(closed([task(landed)], [design])).toEqual([["factory-design-t-7f3a", 120]]);
+    expect(closed([task({ status: "ready" })], [design])).toEqual([]);
+  });
+
   test("keeps the worker of a landed task when its status changed recently", () => {
     const recent = terminal({ status: "done", status_ms: Date.parse("2026-11-05T17:30:00.000Z") });
     expect(closed([task(landed)], [recent])).toEqual([]);

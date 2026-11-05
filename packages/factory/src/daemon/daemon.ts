@@ -33,7 +33,7 @@ import { emptyDigest, factoryBlock, flushDigest, queueLines, type Digest } from 
 import { filterEvents } from "./filter.ts";
 import { pruneInbox, withDetail } from "./inbox.ts";
 import { acquireLock } from "./lock.ts";
-import { reconcile, type Close } from "./reconcile.ts";
+import { agentTerminals, reconcile, type Close } from "./reconcile.ts";
 import { eventLine, INBOX, ownedInbox, routeEvent, runningPi, type Route } from "./route.ts";
 import type { InboxSources, PollResult, Source } from "./source.ts";
 import { checkSources, createInboxSources, createSource, sourceKey } from "./sources.ts";
@@ -179,8 +179,9 @@ async function deliver(daemon: Daemon, events: FactoryEvent[]): Promise<Route[]>
   const { tasks } = await listTasks(daemon.options.paths);
   const running = runningPi(await daemon.options.hc.ls());
   const routes = events.flatMap((event) => routeEvent(event, tasks, running));
-  for (const route of routes.filter((r) => r.to === INBOX))
-    await writeInbox(await withDetail(daemon.options.inbox, route.event), daemon.options.paths);
+  const { inbox, paths } = daemon.options;
+  const toInbox = routes.filter((r) => r.to === INBOX);
+  await Promise.all(toInbox.map(async (r) => writeInbox(await withDetail(inbox, r.event), paths)));
   for (const [terminal, lines] of linesByTerminal(routes)) {
     if (terminal === COORDINATOR_TERMINAL) daemon.digest = queueLines(daemon.digest, lines);
     else await sendToWorker(daemon, terminal, lines);
@@ -296,9 +297,10 @@ function age(minutes: number): string {
 
 async function closeWorkers(daemon: Daemon, close: Close[]): Promise<void> {
   for (const { task, terminal, minutes } of close) {
-    await guard(daemon, `close of worker ${task.meta.id}`, async () => {
+    const agent = terminal === workerTerminal(task.meta.id) ? "worker" : "design agent";
+    await guard(daemon, `close of ${terminal}`, async () => {
       await removeTerminal(daemon.options.hc, terminal);
-      const summary = `Closed the worker of ${task.meta.id}, ${task.meta.status} ${age(minutes)} ago.`;
+      const summary = `Closed the ${agent} of ${task.meta.id}, ${task.meta.status} ${age(minutes)} ago.`;
       await feedAction(daemon, summary);
     });
   }
@@ -312,7 +314,7 @@ async function withStatusTimes(
   const finished = new Set(
     tasks
       .filter((task) => task.meta.status === "landed" || task.meta.status === "dropped")
-      .map((task) => workerTerminal(task.meta.id)),
+      .flatMap((task) => agentTerminals(task.meta.id)),
   );
   const known = await Promise.all(
     terminals.map(async (terminal) => {

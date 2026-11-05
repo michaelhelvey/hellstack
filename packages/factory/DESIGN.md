@@ -210,8 +210,9 @@ Secrets are never in the config: GitHub uses `gh auth`, Sentry uses the login of
 (`sentry auth login`). The Sentry source ignores the old fields `url` and `tokenEnv`.
 
 `repoRoots` (default `["~/dev"]`) are the folders where `inbox design` looks for the local checkout
-of a GitHub repository: a git checkout whose `origin` remote is `owner/repo`, at most 3 folder
-levels down. It keeps each result in `state/checkouts.json`.
+of a GitHub repository: a git checkout whose `origin` remote ends in `owner/repo` (each host, so an
+SSH host alias matches), at most 3 folder levels down. It does not look into a checkout or a
+worktree. It keeps each result in `state/checkouts.json`.
 
 ## Feed
 
@@ -303,11 +304,12 @@ a model, except the feed summary, which has a timeout.
    `paused: false`. Actual: `hc ls`. Start each worker that is missing or that no longer runs pi,
    with the restart prompt (`factory_dispatch` makes the first start). Tell the coordinator about
    each new `ready` task one time. Tell the coordinator one time when a task has had no `updated`
-   change for `staleAfterMinutes` and its worker is not working. Close the worker terminal of each
-   `landed` or `dropped` task (`removeTerminal`) when it has been idle for `closeAfterMinutes`, and
-   write a feed record. The idle time starts at the later of the finish time (`landed_at`; `updated`
-   for `dropped`) and the last status change of the terminal (`status_ms` of `hc get`). A terminal
-   with status `working` stays open, so a worker that the user still talks to stays open.
+   change for `staleAfterMinutes` and its worker is not working. Close the worker terminal and the
+   design terminal of each `landed` or `dropped` task (`removeTerminal`) when it has been idle for
+   `closeAfterMinutes`, and write a feed record. The idle time starts at the later of the finish
+   time (`landed_at`; `updated` for `dropped`) and the last status change of the terminal
+   (`status_ms` of `hc get`). A terminal with status `working` stays open, so a worker that the user
+   still talks to stays open.
 5. **Keepalive**: start the coordinator when its terminal is missing.
 6. **Watchdog**: when the coordinator has had the same turn with status `working` for more than 3
    minutes, run `hc interrupt factory` and write a feed record.
@@ -420,7 +422,8 @@ Herdr theme (`theme()`), so the board follows the theme-picker themes.
   task with `herdr-app do agent.focus --terminal <address>`. `sketch`: the design agent. `working`,
   `landing`, `landed`: the worker, with the restart prompt. `ready`: the design agent when it runs,
   else nothing and a `message` (it does not dispatch). `dropped`: an error. Prints
-  `{ terminal: string | null, started: boolean, message? }`.
+  `{ terminal: string | null, started: boolean, focused: boolean, message? }`; `focused` is false
+  when the Herdr window does not run or `agent.focus` fails.
 - `inbox dismiss <event-id> [--json]`: the dismiss action of the event source (GitHub:
   `gh api -X DELETE notifications/threads/<thread-id>`, which marks the thread done; Sentry:
   `sentry api organizations/<org>/issues/<shortId>/ -X PUT -F status=resolved`), then remove all

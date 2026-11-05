@@ -4,6 +4,7 @@ import {
   getTask,
   isRunningPi,
   loadConfig,
+  NO_WINDOW,
   startTaskAgent,
   taskTerminal,
   threadRepo,
@@ -27,10 +28,14 @@ export interface OpenDeps {
   pi?: string[];
 }
 
-/** The result of `open`: the terminal of the agent, and whether `open` started it. */
+/**
+ * The result of `open`: the terminal of the agent, whether `open` started it, and whether Herdr
+ * focused it.
+ */
 export interface Opened {
   terminal: string | null;
   started: boolean;
+  focused: boolean;
   message?: string;
 }
 
@@ -61,6 +66,18 @@ function agentRole(task: Task, terminals: HcTerminal[]): TaskAgentRole | undefin
   return runsPi(terminals, designTerminal(id)) ? "design" : undefined;
 }
 
+async function ensureAgent(
+  role: TaskAgentRole,
+  task: Task,
+  live: HcTerminal | undefined,
+  deps: OpenDeps,
+): Promise<{ address: string; shown: boolean }> {
+  if (live) return { address: live.address, shown: true };
+  const options = { restart: role === "worker", deps };
+  const started = await startTaskAgent(role, task, await loadConfig(deps.paths), options);
+  return { address: started.terminal.address, shown: started.herdr !== NO_WINDOW };
+}
+
 /**
  * Focuses the `role` agent of `task` in Herdr. When its terminal does not run pi, it starts the
  * agent first: a worker with the restart prompt, a design agent with its first prompt (pi resumes
@@ -74,12 +91,9 @@ export async function focusAgent(
 ): Promise<Opened & { terminal: string }> {
   const name = taskTerminal(role, task.meta.id);
   const live = runsPi(terminals, name);
-  const options = { restart: role === "worker", deps };
-  const started = live
-    ? undefined
-    : await startTaskAgent(role, task, await loadConfig(deps.paths), options);
-  await deps.herdr.focus(live?.address ?? started?.terminal.address ?? name);
-  return { terminal: name, started: !live };
+  const { address, shown } = await ensureAgent(role, task, live, deps);
+  const focused = shown && (await deps.herdr.focus(address));
+  return { terminal: name, started: !live, focused };
 }
 
 /**
@@ -93,7 +107,7 @@ export async function openTask(id: string, deps: OpenDeps): Promise<Opened> {
   const role = agentRole(task, terminals);
   if (role) return focusAgent(role, task, terminals, deps);
   const message = `task ${id} is ready and has no design agent; the coordinator dispatches its worker`;
-  return { terminal: null, started: false, message };
+  return { terminal: null, started: false, focused: false, message };
 }
 
 /** Returns the Goal draft of a task that comes from an inbox event. */

@@ -23,9 +23,12 @@ export function expandHome(path: string): string {
   return path === "~" || path.startsWith("~/") ? join(homedir(), path.slice(1)) : path;
 }
 
-/** Returns the `owner/repo` of a GitHub remote URL, in lowercase, or undefined. */
+/**
+ * Returns the `owner/repo` of a remote URL, in lowercase, or undefined. It accepts each host, so
+ * that an SSH host alias (`git@github-work:owner/repo.git`) also matches.
+ */
 export function remoteRepo(url: string): string | undefined {
-  return /github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?\/?$/.exec(url)?.[1]?.toLowerCase();
+  return /[:/]([^/:]+\/[^/:]+?)(?:\.git)?\/?$/.exec(url)?.[1]?.toLowerCase();
 }
 
 async function originRepo(folder: string): Promise<string | undefined> {
@@ -44,8 +47,9 @@ async function subfolders(folder: string): Promise<string[]> {
     .map((entry) => join(folder, entry.name));
 }
 
+/** A folder with `.git` (a folder, or the file of a worktree) is a checkout; the search stops there. */
 async function isGitCheckout(folder: string): Promise<boolean> {
-  return (await stat(join(folder, ".git", "config")).catch(() => undefined))?.isFile() ?? false;
+  return (await stat(join(folder, ".git")).catch(() => undefined)) !== undefined;
 }
 
 /** Searches `folder` and its subfolders down to `depth` levels for a checkout of `repo`. */
@@ -66,9 +70,16 @@ async function searchChildren(
   return undefined;
 }
 
+function parseCache(text: string): Record<string, string> {
+  try {
+    return cacheSchema.safeParse(JSON.parse(text)).data ?? {};
+  } catch {
+    return {};
+  }
+}
+
 async function readCache(paths: LedgerPaths): Promise<Record<string, string>> {
-  const text = await readIfExists(checkoutCachePath(paths));
-  return cacheSchema.safeParse(text === undefined ? {} : JSON.parse(text)).data ?? {};
+  return parseCache((await readIfExists(checkoutCachePath(paths))) ?? "{}");
 }
 
 async function cached(paths: LedgerPaths, repo: string): Promise<string | undefined> {

@@ -43,14 +43,18 @@ export interface InboxSource {
 /** The {@link InboxSource} of each source type. */
 export type InboxSources = Record<FactoryEventSource, InboxSource>;
 
+const HTML_TAG =
+  /<\/?(?:a|em|strong|p|br|hr|img|div|span|details|summary|sub|sup|kbd|ul|ol|li|h[1-6]|table|thead|tbody|tr|td|th|blockquote|picture|source)\b[^>]*>/gi;
+
 /**
- * Returns a plain text excerpt of Markdown or HTML text: without HTML comments and tags, without
- * runs of empty lines, and cut to {@link MAX_DETAIL_BODY} characters.
+ * Returns a plain text excerpt of Markdown or HTML text: without HTML comments and the usual HTML
+ * tags of GitHub text, without runs of empty lines, and cut to {@link MAX_DETAIL_BODY} characters.
+ * Other text in angle brackets, such as `Promise<string>`, stays.
  */
 export function excerpt(text: string): string {
   const plain = text
     .replace(/<!--[\s\S]*?(?:-->|$)/g, "")
-    .replace(/<\/?[a-z][^>]*>/gi, "")
+    .replace(HTML_TAG, "")
     .replace(/\r/g, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

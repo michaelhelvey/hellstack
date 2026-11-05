@@ -118,6 +118,14 @@ describe("github inbox isDone", () => {
     expect(calls[1]).toContain("since=2026-11-05T14:21:02.000Z");
   });
 
+  test("when one check fails, the other check is enough; when both fail, it throws", async () => {
+    const listFails = fakeRunner(graphql, { code: 1, stderr: "HTTP 502" });
+    const events = [ghEvent("gh:acme/api#1", "1")];
+    expect(await githubInbox(listFails.runner).isDone(events)).toEqual(["gh-1-20261105T142103Z"]);
+    const bothFail = fakeRunner({ code: 1, stdout: "" }, { code: 1, stderr: "HTTP 502" });
+    expect(await githubInbox(bothFail.runner).isDone(events).catch(String)).toContain("failed");
+  });
+
   test("a notification list that is longer than one read marks nothing done", async () => {
     const page = notifications(Array.from({ length: PAGE_SIZE }, (_, i) => String(1000 + i)));
     const pages = Array.from({ length: MAX_PAGES }, () => ({ stdout: page }));

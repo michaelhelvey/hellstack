@@ -19,10 +19,12 @@ async function checkout(folder: string, url: string): Promise<string> {
 }
 
 describe("remoteRepo", () => {
-  test("reads SSH and HTTPS GitHub URLs", () => {
+  test("reads SSH, SSH alias, and HTTPS URLs", () => {
     expect(remoteRepo("git@github.com:Acme/API.git")).toBe("acme/api");
+    expect(remoteRepo("git@github-work:acme/api.git")).toBe("acme/api");
     expect(remoteRepo("https://github.com/acme/api")).toBe("acme/api");
-    expect(remoteRepo("https://gitlab.com/acme/api.git")).toBeUndefined();
+    expect(remoteRepo("/local/bare.git")).toBe("local/bare");
+    expect(remoteRepo("bare")).toBeUndefined();
   });
 
   test("expandHome replaces a leading ~", () => {
@@ -43,6 +45,17 @@ describe("findCheckout", () => {
     expect(await findCheckout("acme/deep", [root], paths)).toBeUndefined();
     const cache: unknown = JSON.parse(await readFile(checkoutCachePath(paths), "utf8"));
     expect(cache).toEqual({ "acme/api": api });
+  });
+
+  test("does not look into a worktree, and a bad cache file is an empty cache", async () => {
+    const root = await tempFolder();
+    const paths = await tempLedger();
+    await mkdir(join(root, "wt"), { recursive: true });
+    await writeFile(join(root, "wt", ".git"), "gitdir: /x\n");
+    await checkout(join(root, "wt", "inner"), "git@github.com:acme/api.git");
+    await mkdir(paths.state, { recursive: true });
+    await writeFile(checkoutCachePath(paths), "{");
+    expect(await findCheckout("acme/api", [root], paths)).toBeUndefined();
   });
 
   test("searches again when the cached checkout is gone", async () => {

@@ -65,9 +65,8 @@ function operand(args: string[], usage: string): string {
 
 async function open(args: string[]): Promise<void> {
   const opened = await openTask(operand(args, "open <task-id> [--json]"), openDeps());
-  const line =
-    opened.message ?? `${opened.started ? "started and focused" : "focused"} ${opened.terminal}`;
-  print(args, opened, line);
+  const action = `${opened.started ? "started, " : ""}${opened.focused ? "focused" : "not focused"}`;
+  print(args, opened, opened.message ?? `${opened.terminal}: ${action}`);
 }
 
 const inboxCommands = new Map<string, Command>([
