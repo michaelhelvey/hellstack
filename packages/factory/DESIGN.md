@@ -168,8 +168,9 @@ all of it). Before factoryd writes an event to the inbox, the source completes `
 state of the issue or pull request, and its author and text when there was no comment), so the board
 needs no network call.
 
-`kind` examples: `pr_comment`, `review_requested`, `review`, `ci`, `mention`, `security_alert`,
-`issue_new`, `issue_regression`.
+`kind` values: `pr_comment`, `pr_update`, `issue_comment`, `issue_update`, `review_requested`,
+`review`, `mention`, `assigned`, `state_change`, `ci`, `security_alert`, `release`, `discussion`,
+`commit_comment` (GitHub); `issue_new`, `issue_regression` (Sentry).
 
 ## Config
 
@@ -218,8 +219,10 @@ The user sees the inbox on the board, so most events do not need the coordinator
 `candidate` and `mention-only` read as `inbox`, so old files stay valid. The source `default` is
 `inbox`. When a source has no `rules` field, it gets the default rules: GitHub `review_requested`
 and `mention` are `wake`; Sentry `issue_regression` is `wake`. `factory init` writes them in a new
-ledger; it does not change a `config.json` that exists. An event on a thread that a task owns goes
-to its worker for each action except `ignore` (see factoryd). The first matching rule wins. A rule
+ledger; it does not change a `config.json` that exists. A ledger that an older `init` made has
+`"rules": []`, so no event wakes the coordinator until someone adds `wake` rules. A `rules` field
+replaces the default rules; it does not add to them. An event on a thread that a task owns goes to
+its worker for each action except `ignore` (see factoryd). The first matching rule wins. A rule
 matches when each field that it sets is equal to the event field. `repo` matches the `owner/repo`
 part of a GitHub thread key. Secrets are never in the config: GitHub uses `gh auth`, Sentry uses the
 login of the `sentry` CLI (`sentry auth login`). The Sentry source ignores the old fields `url` and
@@ -241,8 +244,8 @@ worktree. It keeps each result in `state/checkouts.json`.
 ```
 
 `source` is a source type or `factoryd` for daemon actions (respawn, interrupt, prune, config
-error). `to` is a terminal name or `inbox`. `summary` is one human sentence. The daemon asks the
-summary model for it with
+error). `to` is a terminal name or `inbox`. A `wake` event has two entries: `inbox` and `factory`.
+`summary` is one human sentence. The daemon asks the summary model for it with
 `pi -p --no-session --no-tools --no-extensions --no-skills --no-context-files --no-prompt-templates --model <summaryModel>`
 and a 20 second timeout. The model name must resolve without extensions; `haiku` is a pattern that
 does. When that fails, it uses a fixed template. It does not call the model for a cycle with
@@ -323,10 +326,10 @@ a model, except the feed summary, which has a timeout.
 4. **Reconcile** every 30 seconds. Desired: tasks with status `working` or `landing` and
    `paused: false`. Actual: `hc ls`. Start each worker that is missing or that no longer runs pi,
    with the restart prompt (`factory_dispatch` makes the first start). When a start fails, tell the
-   coordinator one time for each `updated` value of the task. Tell the coordinator about
-   each new `ready` task one time. Tell the coordinator one time when a task has had no `updated`
-   change for `staleAfterMinutes` and its worker is not working. Close the worker terminal and the
-   design terminal of each `landed` or `dropped` task (`removeTerminal`) when it has been idle for
+   coordinator one time for each `updated` value of the task. Tell the coordinator about each new
+   `ready` task one time. Tell the coordinator one time when a task has had no `updated` change for
+   `staleAfterMinutes` and its worker is not working. Close the worker terminal and the design
+   terminal of each `landed` or `dropped` task (`removeTerminal`) when it has been idle for
    `closeAfterMinutes`, and write a feed record. The idle time starts at the later of the finish
    time (`landed_at`; `updated` for `dropped`) and the last status change of the terminal
    (`status_ms` of `hc get`). A terminal with status `working` stays open, so a worker that the user

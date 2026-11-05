@@ -11,15 +11,11 @@ import type { Passed } from "./filter.ts";
 /** The value of {@link Route.to} for an event that no task owns. */
 export const INBOX = "inbox";
 
-/**
- * Where one event goes: a terminal name or {@link INBOX}. `task` is the task that owns the thread.
- * `wake` is true when the event goes into the digest of the coordinator.
- */
+/** Where one event goes: a terminal name or {@link INBOX}. `task` is the task that owns the thread. */
 export interface Route {
   to: string;
   event: FactoryEvent;
   task?: string;
-  wake: boolean;
 }
 
 /** Returns the terminals that run pi, by name. */
@@ -30,8 +26,7 @@ export function runningPi(terminals: HcTerminal[]): Set<string> {
 function taskRoute(event: FactoryEvent, task: Task, running: Set<string>): Route {
   const worker = workerTerminal(task.meta.id);
   const toWorker = running.has(worker) && !task.meta.paused;
-  const to = toWorker ? worker : COORDINATOR_TERMINAL;
-  return { to, event, task: task.meta.id, wake: !toWorker };
+  return { to: toWorker ? worker : COORDINATOR_TERMINAL, event, task: task.meta.id };
 }
 
 /**
@@ -45,8 +40,9 @@ export function routeEvent(
   running: Set<string>,
 ): Route[] {
   const owners = tasks.filter((task) => task.meta.threads.includes(event.thread));
-  if (owners.length === 0) return [{ to: INBOX, event, wake: action === "wake" }];
-  return owners.map((task) => taskRoute(event, task, running));
+  if (owners.length > 0) return owners.map((task) => taskRoute(event, task, running));
+  const wake = action === "wake" ? [{ to: COORDINATOR_TERMINAL, event }] : [];
+  return [{ to: INBOX, event }, ...wake];
 }
 
 /** Returns the message line of a routed event. */

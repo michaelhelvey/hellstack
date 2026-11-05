@@ -15,30 +15,23 @@ describe("route", () => {
   test("an owned event goes to the worker when it runs pi and the task is not paused", () => {
     const running = runningPi([terminal()]);
     expect(routeEvent(inbox(event()), [owned], running)).toEqual([
-      { to: "factory-t-7f3a", event: event(), task: "t-7f3a", wake: false },
+      { to: "factory-t-7f3a", event: event(), task: "t-7f3a" },
     ]);
   });
 
   test("an owned event goes to the coordinator when the worker does not run pi or is paused", () => {
     const shell = runningPi([terminal({ agent: "zsh" })]);
-    expect(routeEvent(inbox(event()), [owned], shell)[0]).toMatchObject({
-      to: "factory",
-      wake: true,
-    });
+    expect(routeEvent(inbox(event()), [owned], shell)[0]?.to).toBe("factory");
     const paused = { ...owned, meta: { ...owned.meta, paused: true } };
-    expect(routeEvent(inbox(event()), [paused], runningPi([terminal()]))[0]).toMatchObject({
-      to: "factory",
-      wake: true,
-    });
+    expect(routeEvent(inbox(event()), [paused], runningPi([terminal()]))[0]?.to).toBe("factory");
   });
 
   test("an event that no task owns goes to the inbox and wakes the coordinator only for wake", () => {
     const free = event({ thread: "gh:acme/api#1" });
-    expect(routeEvent(inbox(free), [owned], new Set())).toEqual([
-      { to: INBOX, event: free, wake: false },
-    ]);
+    expect(routeEvent(inbox(free), [owned], new Set())).toEqual([{ to: INBOX, event: free }]);
     expect(routeEvent({ event: free, action: "wake" }, [owned], new Set())).toEqual([
-      { to: INBOX, event: free, wake: true },
+      { to: INBOX, event: free },
+      { to: "factory", event: free },
     ]);
   });
 
@@ -52,7 +45,7 @@ describe("route", () => {
   });
 
   test("the message line has the event and its owner", () => {
-    expect(eventLine({ to: "factory", event: event(), task: "t-7f3a", wake: true })).toBe(
+    expect(eventLine({ to: "factory", event: event(), task: "t-7f3a" })).toBe(
       '- event gh-1-20261105T142103Z gh:acme/api#88 pr_comment "@someone: please rename x" https://github.com/acme/api/pull/88 (task t-7f3a)',
     );
   });

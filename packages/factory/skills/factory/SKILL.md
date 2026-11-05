@@ -87,8 +87,8 @@ You get `<factory from="factoryd">` blocks, at most one each 30 seconds, with on
 - Events of a task whose worker does not run (a paused task, or a worker that stopped).
 - Notices: a task became `ready`, a worker restart failed, a task is stale.
 
-`inbox` events do not wake you. Read them with `factory_inbox` when the user asks. For each event
-in a block, decide: ignore it (and `dismiss` it), tell the user, or propose a task.
+`inbox` events do not wake you. Read them with `factory_inbox` when the user asks. For each event in
+a block, decide: ignore it (and `dismiss` it), tell the user, or propose a task.
 
 `factory_inbox` `dismiss` only removes the inbox file. To also mark the GitHub notification done or
 resolve the Sentry issue, run `bun run factory inbox dismiss <event-id>`; do that only when the user
@@ -98,15 +98,18 @@ marked done).
 
 Stay quiet about noise. When a block has nothing that needs the user, answer with one short line
 (for example `2 bot comments, noise`), or nothing at all. Do not explain each event. Do not repeat
-the inbox. When the same kind of noise wakes you three times, propose one rule that makes it `inbox` or
-`ignore`, one time.
+the inbox. When the same kind of noise wakes you three times, propose one rule that makes it `inbox`
+or `ignore`, one time.
 
 ## Sources and config
 
 When the user says "watch for sentry issues", "stop telling me about dependabot", "wake me for X",
 "stop waking me for Y", or similar, change `config.json` yourself. Do not ask the user to edit
 files. "Wake me for X" is a rule with `"action": "wake"`. "Stop waking me for Y" is a rule with
-`"action": "inbox"` (or `ignore` when the user does not want it in the inbox).
+`"action": "inbox"` (or `ignore` when the user does not want it in the inbox). The first matching
+rule wins, so put a new rule before the more general rules that it overrides. A `rules` field
+replaces the default rules: when you write `rules` for a source that has none, also write the
+default `wake` rules from the example below, unless the user does not want them.
 
 ```json
 {
@@ -147,8 +150,9 @@ files. "Wake me for X" is a rule with `"action": "wake"`. "Stop waking me for Y"
   `ignore` (drop it), `inbox` (the inbox only; the default), `wake` (the inbox and you). The old
   values `candidate` and `mention-only` read as `inbox`. The first matching rule wins, else
   `default`. Events on a thread that a task owns go to its worker for each action except `ignore`.
-- Event kinds: `pr_comment`, `review_requested`, `review`, `ci`, `mention`, `security_alert`,
-  `issue_new`, `issue_regression`.
+- Event kinds: `pr_comment`, `pr_update`, `issue_comment`, `issue_update`, `review_requested`,
+  `review`, `mention`, `assigned`, `state_change`, `ci`, `security_alert`, `release`, `discussion`,
+  `commit_comment` (GitHub); `issue_new`, `issue_regression` (Sentry).
 - Secrets never go in the config. When a source fails with an auth error, ask the user to run
   `gh auth login` or `sentry auth login`.
 - factoryd reloads the config when the file changes. After a change, wait for the next poll of that

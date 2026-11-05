@@ -91,6 +91,7 @@ const feedRoutes = [
   { thread: "gh:acme/api#88", kind: "pr_comment", to: "factory-t-7f3a" },
   { thread: "gh:acme/api#1", kind: "pr_comment", to: "inbox" },
   { thread: "gh:acme/api#2", kind: "review_requested", to: "inbox" },
+  { thread: "gh:acme/api#2", kind: "review_requested", to: "factory" },
 ];
 
 describe("daemon tick", () => {

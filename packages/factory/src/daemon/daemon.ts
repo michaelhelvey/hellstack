@@ -159,9 +159,8 @@ async function sendTo(daemon: Daemon, terminal: string, lines: string[]): Promis
 
 function linesByTerminal(routes: Route[]): Map<string, string[]> {
   const byTerminal = new Map<string, string[]>();
-  for (const route of routes.filter((r) => r.wake || r.to !== INBOX)) {
-    const to = route.wake ? COORDINATOR_TERMINAL : route.to;
-    byTerminal.set(to, [...(byTerminal.get(to) ?? []), eventLine(route)]);
+  for (const route of routes.filter((r) => r.to !== INBOX)) {
+    byTerminal.set(route.to, [...(byTerminal.get(route.to) ?? []), eventLine(route)]);
   }
   return byTerminal;
 }
@@ -383,6 +382,7 @@ export async function housekeeping(daemon: Daemon, now: number): Promise<void> {
   await persist(daemon);
   if (!daemon.options.agents) return;
   await startWorkers(daemon, plan.start);
+  await persist(daemon);
   await closeWorkers(daemon, plan.close);
   if (!talksToCoordinator(daemon)) return;
   await guard(daemon, "keepalive", () => keepalive(daemon, terminals));
