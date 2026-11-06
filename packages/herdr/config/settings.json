@@ -3,10 +3,10 @@
   "sounds": {
     "enabled": false
   },
-  "font": "MonoLisaCode Herdr",
+  "font": "MonoLisaCode",
   "font_size": 13,
   "font_ligatures": false,
-  "ui_font": "MonoLisaCode Herdr",
+  "ui_font": "MonoLisaCode",
   "minimum_contrast": 1,
   "theme": {
     "light": "theme-picker-light",

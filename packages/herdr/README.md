@@ -59,8 +59,8 @@ white (`#ffffff2b`). Change it in `layouts/michaelhelvey.json`: `pane.focus.colo
 
 ## Font
 
-`settings.json` uses the `MonoLisaCode Herdr` font family. Herdr reads it from
-`~/.config/herdr-app/fonts`. Without it, Herdr uses a fallback font.
+`settings.json` uses the `MonoLisaCode` font family, installed from the MonoLisaCode faces in the
+dotfiles repository. Herdr falls back to JetBrains Mono when the machine does not have the family.
 
 ## Keys
 
