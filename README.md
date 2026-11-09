@@ -17,7 +17,6 @@
 
 - Bun (latest)
 - Pi (latest)
-- herdr-core (latest)
 
 **Local Setup**
 
@@ -59,50 +58,6 @@ As a result, hellstack is structured in the following way:
    Typescript and Rust, so this is where this is targeted.
 3. A set of skills relevant to the kinds of things that I work on. Almost all skills are
    `disable-model-invocation: true` -- I use skills mostly as prompt templates.
-4. A very minimal framework for agent communication. This allows simple sub-agent and coordinator
-   agent patterns. For right now, I use herdr-core as the runtime, but I'm actively looking to
-   replace this with something of my own, as I don't like herdr very much (no hate to the authors,
-   I'm just idiosyncratic).
-
-## Subagents
-
-`packages/herdr` adds the `agent_spawn`, `agent_send`, `agent_read`, `agent_stop`, `agent_list`,
-`agent_wait`, and `report` tools. A pi agent uses them to start pi subagents in herdr-core (`hc`)
-terminals. Reports from subagents arrive in the parent as messages, so the parent does not poll.
-Subagents show in the herdr-app window, in one space for the folder of the top agent.
-
-The tools work only when pi runs in an hc terminal. These zsh functions start pi in hc. hc starts a
-program with the environment of its launchd daemon, not of your shell, so they start pi through
-`packages/herdr/bin/pi`. It loads `.zshenv` and `.zprofile` (PATH, `JIRA_API_KEY`, and other
-secrets) in a login zsh. Subagents get the environment of their parent.
-
-```zsh
-hcpi="$HOME/dev/helvetici/hellstack/packages/herdr/bin/pi"
-
-# pi in an hc terminal. Closing the pane ends pi and its subagents; ctrl+\ detaches.
-hpi() {
-  emulate -L zsh
-  setopt localtraps
-  local id
-  id=$(hc run --bg --json $hcpi "$@" | jq -r .address) || return
-  trap "hc kill $id >/dev/null 2>&1" HUP TERM
-  hc attach "$id"
-}
-
-# A long-lived coordinator pi, shown in herdr-app. Attaches to the live one with the name, or
-# starts it with the coordinator prompt. Closing the pane only detaches: end it in herdr-app.
-coord() {
-  emulate -L zsh
-  local name=${1:-coordinator}
-  [[ $(hc get "$name" --json 2>/dev/null | jq -r .state) == live ]] ||
-    hc run --bg --name "$name" --label hellstack.show=1 \
-      $hcpi --append-system-prompt ~/.pi/agent/COORDINATOR.md >/dev/null || return
-  hc attach "$name"
-}
-```
-
-`bun setup` copies `packages/pi/agent/COORDINATOR.md` to `~/.pi/agent/COORDINATOR.md`. It tells the
-coordinator to talk to you, stay unblocked, and dispatch well-defined tasks to subagents.
 
 ## About the name
 

@@ -28,7 +28,6 @@ const runSetup = (username = "nobody") =>
 beforeEach(async () => {
   root = await mkdtemp(path.join(os.tmpdir(), "hellstack-setup-"));
   await write(path.join(packageDir(), "agent", "AGENTS.md"), "new instructions\n");
-  await write(path.join(packageDir(), "agent", "COORDINATOR.md"), "coordinator\n");
   await write(
     path.join(packageDir(), "agent", "settings.json"),
     JSON.stringify({ quietStartup: true, terminal: { clearOnShrink: true }, skills: ["-x"] }),

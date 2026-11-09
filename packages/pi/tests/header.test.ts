@@ -42,8 +42,8 @@ test("shows the token cost of each resource, grouped by section", async () => {
     "skills · manual · on use",
     "pr",
     "extensions",
-    "pi",
     "builtin",
+    "pi",
   ]);
   expect(tokens["AGENTS.md"]).toEqual("1.0k");
   expect(Number(tokens.review)).toBeLessThan(100);

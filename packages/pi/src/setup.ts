@@ -54,7 +54,7 @@ const union = (local: Array<unknown>, ours: Array<unknown>) => {
 };
 
 /**
- * Syncs `AGENTS.md`, `COORDINATOR.md`, the skills, and the settings of this package to the pi agent
+ * Syncs `AGENTS.md`, the skills, and the settings of this package to the pi agent
  * folder. Setup
  * appends the layer of the current user (see `LAYERS`) to `AGENTS.md`. The settings of this package
  * are deep merged into the existing settings: hellstack values win, and arrays are a union.
@@ -85,7 +85,6 @@ export const setup = Effect.gen(function* () {
     const content = yield* fs.readFileString(source("layers", layer));
     yield* fs.writeFileString(target("AGENTS.md"), `\n${content}`, { flag: "a" });
   }
-  yield* fs.copyFile(source("COORDINATOR.md"), target("COORDINATOR.md"));
 
   const skills = yield* fs.readDirectory(source("skills"));
   for (const skill of skills.filter((name) => !name.startsWith("."))) {
