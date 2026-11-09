@@ -16,13 +16,13 @@
 **Pre-Requisites:**
 
 - Bun (latest)
-- Pi (latest)
+- Pi (latest), OpenCode (latest), or both
 
 **Local Setup**
 
 Clone this repository, run `bun install`, then `bun setup`. This will copy all relevant agent
-configuration files and set things up. The command is idempotent, so you can run it as many times as
-you like.
+configuration files into pi (`~/.pi/agent`) and OpenCode (`~/.config/opencode`) and set things up.
+The command is idempotent, so you can run it as many times as you like.
 
 ## About
 
@@ -52,8 +52,9 @@ working with coding agents.
 As a result, hellstack is structured in the following way:
 
 1. A pi plugin that provides a few minimal tools that make it easier for agents to work with me --
-   for example, `ask_user_question`. The Jira and Confluence tools live in `packages/jira`, and are
-   only reachable from codemode scripts, so they cost no context until the `jira` skill uses them.
+   for example, `ask_user_question`. The Jira and Confluence tools are an MCP server in
+   `packages/jira`. Pi and OpenCode both reach it only from codemode scripts, so it costs no context
+   until the `jira` skill uses it.
 2. An AGENTS.md file that tells the agent what I think good software works with. I mostly write
    Typescript and Rust, so this is where this is targeted.
 3. A set of skills relevant to the kinds of things that I work on. Almost all skills are

@@ -1,7 +1,7 @@
 import path from "node:path";
 
-/** The package folder. */
-const PACKAGE_DIR = path.resolve(import.meta.dir, "..");
+/** The package folder. Pi loads the package from this folder. */
+export const PACKAGE_DIR = path.resolve(import.meta.dir, "..");
 
 /** The bundle that pi loads. `pi.extensions` in `package.json` points to it. */
 export const BUNDLE = path.join(PACKAGE_DIR, "dist", "index.js");

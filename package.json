@@ -19,7 +19,7 @@
   "scripts": {
     "prepare": "vp config && effect-tsgo patch --oxlint",
     "pi": "bun scripts/pi.ts",
-    "setup": "bun packages/pi/src/setup.ts",
+    "setup": "bun packages/agent/src/setup.ts",
     "build": "bun packages/pi/src/build.ts",
     "format": "vp fmt",
     "lint": "vp lint --fix",

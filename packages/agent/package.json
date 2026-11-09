@@ -1,0 +1,17 @@
+{
+  "name": "@michaelhelvey/hellstack-agent",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./harness": "./src/harness.ts"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@michaelhelvey/hellstack-jira": "workspace:*",
+    "@michaelhelvey/hellstack-opencode": "workspace:*",
+    "@michaelhelvey/hellstack-pi": "workspace:*",
+    "deepmerge": "4.3.1",
+    "effect": "catalog:"
+  }
+}

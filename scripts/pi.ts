@@ -1,4 +1,5 @@
 import path from "node:path";
+import { localServers, pi } from "../packages/agent/src/harness.ts";
 import { build } from "../packages/pi/src/build.ts";
 
 /** The agent folder of the sandbox pi. Pi keeps its settings, packages, and sessions here. */
@@ -22,9 +23,10 @@ const writeJson = (file: string, value: unknown) =>
 await build();
 await writeJson("settings.json", SETTINGS);
 await writeJson("claude-bridge.json", CLAUDE_BRIDGE_SETTINGS);
+await writeJson("mcp.json", pi(AGENT_DIR, localServers(process.execPath)).configs["mcp.json"]);
 
-const pi = Bun.spawn(["pi", ...Bun.argv.slice(2)], {
+const sandbox = Bun.spawn(["pi", ...Bun.argv.slice(2)], {
   env: { ...process.env, PI_CODING_AGENT_DIR: AGENT_DIR },
   stdio: ["inherit", "inherit", "inherit"],
 });
-process.exit(await pi.exited);
+process.exit(await sandbox.exited);

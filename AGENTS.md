@@ -13,6 +13,16 @@ mean this repository, NOT ~/dev/helvetici/hellstack. We'll rename this later.
 - `@effect/tsgo` patches TypeScript and oxlint on `bun install` (the `prepare` script). The patched
   TypeScript is the editor LSP, and `vp check` runs the Effect lint rules (`effecttsgo/*`).
 
+## Packages
+
+- `packages/agent`: the harness-neutral agent: `AGENTS.md`, `layers`, `skills`, and `bun run setup`,
+  which installs them and the config of each harness (`src/harness.ts`) into pi and OpenCode. Write
+  skills so that they work in both harnesses.
+- `packages/pi`: the pi extension and the pi settings.
+- `packages/opencode`: the OpenCode config.
+- `packages/jira`: the Jira and Confluence MCP server (`src/mcp.ts`). Both harnesses start it from
+  their MCP config, and call its tools from codemode.
+
 ## General Rules
 
 - Pi loads the extension from the bundle `packages/pi/dist/index.js` (see
@@ -46,3 +56,4 @@ mean this repository, NOT ~/dev/helvetici/hellstack. We'll rename this later.
 - Effect source (not sure if we're going to be using effect here yet or not but anyway):
   ~/dev/thirdparty/effect
 - Pi source: ~/dev/thirdparty/pi
+- OpenCode source: ~/dev/thirdparty/opencode

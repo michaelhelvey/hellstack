@@ -1,0 +1,9 @@
+{
+  "name": "@michaelhelvey/hellstack-opencode",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./opencode.json": "./opencode.json"
+  }
+}

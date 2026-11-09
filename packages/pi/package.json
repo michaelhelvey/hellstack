@@ -6,17 +6,18 @@
     "pi-package"
   ],
   "type": "module",
+  "exports": {
+    "./build": "./src/build.ts",
+    "./settings.json": "./settings.json"
+  },
   "dependencies": {
-    "@effect/platform-bun": "catalog:",
-    "@michaelhelvey/hellstack-jira": "workspace:*",
-    "deepmerge": "4.3.1",
-    "effect": "catalog:",
     "marked": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "catalog:",
     "@earendil-works/pi-tui": "catalog:",
+    "@michaelhelvey/hellstack-jira": "workspace:*",
     "@xterm/headless": "6.0.0",
     "typebox": "catalog:"
   },

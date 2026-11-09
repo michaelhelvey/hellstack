@@ -12,37 +12,43 @@
         "vite-plus": "^1.5.0",
       },
     },
+    "packages/agent": {
+      "name": "@michaelhelvey/hellstack-agent",
+      "version": "0.0.1",
+      "dependencies": {
+        "@effect/platform-bun": "catalog:",
+        "@michaelhelvey/hellstack-jira": "workspace:*",
+        "@michaelhelvey/hellstack-opencode": "workspace:*",
+        "@michaelhelvey/hellstack-pi": "workspace:*",
+        "deepmerge": "4.3.1",
+        "effect": "catalog:",
+      },
+    },
     "packages/jira": {
       "name": "@michaelhelvey/hellstack-jira",
       "version": "0.0.1",
       "dependencies": {
+        "@effect/platform-bun": "catalog:",
         "domhandler": "6.0.1",
         "effect": "catalog:",
         "htmlparser2": "12.0.0",
       },
-      "devDependencies": {
-        "@earendil-works/pi-coding-agent": "catalog:",
-        "typebox": "catalog:",
-      },
-      "peerDependencies": {
-        "@earendil-works/pi-coding-agent": "*",
-        "typebox": "*",
-      },
+    },
+    "packages/opencode": {
+      "name": "@michaelhelvey/hellstack-opencode",
+      "version": "0.0.1",
     },
     "packages/pi": {
       "name": "@michaelhelvey/hellstack-pi",
       "version": "0.0.1",
       "dependencies": {
-        "@effect/platform-bun": "catalog:",
-        "@michaelhelvey/hellstack-jira": "workspace:*",
-        "deepmerge": "4.3.1",
-        "effect": "catalog:",
         "marked": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
         "@earendil-works/pi-coding-agent": "catalog:",
         "@earendil-works/pi-tui": "catalog:",
+        "@michaelhelvey/hellstack-jira": "workspace:*",
         "@xterm/headless": "6.0.0",
         "typebox": "catalog:",
       },
@@ -157,7 +163,11 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
+    "@michaelhelvey/hellstack-agent": ["@michaelhelvey/hellstack-agent@workspace:packages/agent"],
+
     "@michaelhelvey/hellstack-jira": ["@michaelhelvey/hellstack-jira@workspace:packages/jira"],
+
+    "@michaelhelvey/hellstack-opencode": ["@michaelhelvey/hellstack-opencode@workspace:packages/opencode"],
 
     "@michaelhelvey/hellstack-pi": ["@michaelhelvey/hellstack-pi@workspace:packages/pi"],
 

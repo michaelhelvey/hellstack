@@ -2,24 +2,12 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { findArtifacts } from "../../agent/skills/cleanup-macos/scripts/lib/artifacts.ts";
-import {
-  CACHE_ROOTS,
-  isCacheDirectory,
-} from "../../agent/skills/cleanup-macos/scripts/lib/caches.ts";
-import { exists } from "../../agent/skills/cleanup-macos/scripts/lib/fs.ts";
-import { resolveTargets } from "../../agent/skills/cleanup-macos/scripts/lib/targets.ts";
+import { findArtifacts } from "../../skills/cleanup-macos/scripts/lib/artifacts.ts";
+import { CACHE_ROOTS, isCacheDirectory } from "../../skills/cleanup-macos/scripts/lib/caches.ts";
+import { exists } from "../../skills/cleanup-macos/scripts/lib/fs.ts";
+import { resolveTargets } from "../../skills/cleanup-macos/scripts/lib/targets.ts";
 
-const CLEAN = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "agent",
-  "skills",
-  "cleanup-macos",
-  "scripts",
-  "clean.ts",
-);
+const CLEAN = join(import.meta.dir, "..", "..", "skills", "cleanup-macos", "scripts", "clean.ts");
 
 let root: string;
 

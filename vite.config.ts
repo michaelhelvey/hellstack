@@ -20,7 +20,7 @@ export default await defineConfig({
         rules: { "no-console": "off" },
       },
       {
-        files: ["packages/pi/agent/skills/**"],
+        files: ["packages/agent/skills/**"],
         rules: { complexity: "off" },
       },
     ],
