@@ -1,6 +1,8 @@
-# @michaelhelvey/hellstack
-
-How I work with LLMs.
+<div align="center">
+  <img src="./assets/mascot.png" alt="The hellstack mascot: a small demon mouse" width="320" />
+  <h1>hellstack</h1>
+  <p>How I work with LLMs: <a href="https://pi.dev">pi</a>, and a chinchilla who talks to me.</p>
+</div>
 
 > [!NOTE] If you're not me, you probably won't find this repository useful as-is. There's not a
 > once-size-fits-all way to work with agents: you might prefer different skills, different
