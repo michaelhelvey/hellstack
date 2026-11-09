@@ -198,11 +198,9 @@ A week starts as "Open". The transition "KPI Completed" moves it to "Yes" (the K
 week was achieved), and "Did not do" moves it to "No". "Yes" and "No" are both in the Done category,
 so read the status name, not the category.
 
-The tools find KPIs from the "Week 1" sub-tasks that are assigned to the user, so listing and
-updating KPIs does not need a template. New KPIs copy the project and the issue types from the KPI
-template (`JIRA_KPI_TEMPLATE`, an issue key, or an open issue with `JIRA_KPI_TEMPLATE_SUMMARY` in
-its summary, default "Template Individual KPI"). If there is no template, they copy them from the
-newest KPI of the user, and `jira_kpi_info` tells you why in `note`.
+The tools find KPIs from the "Week 1" sub-tasks that are assigned to the user. New KPIs copy the
+project, the issue types, and the number of weeks from the newest KPI of the user. There is no KPI
+template issue.
 
 | Tool              | Gives or does                                                            |
 | ----------------- | ------------------------------------------------------------------------ |
@@ -213,8 +211,7 @@ newest KPI of the user, and `jira_kpi_info` tells you why in `note`.
 | `jira_kpi_update` | Sets the result of one week (default: the current week), with notes.     |
 
 - `jira_kpi_create` assigns the KPI and its weeks to the user, and moves the KPI to In Progress. The
-  due dates come from the template, or else they are weekly from the first Friday of the quarter.
-  `firstDue` sets the due date of week 1.
+  due dates are weekly from the first Friday of the quarter. `firstDue` sets the due date of week 1.
 - In `jira_kpi_list`, `grid` has one character for each week: `Y` (Yes), `N` (No), `!` (a past week
   without a result), and `.` (not due yet). `missing` lists the past weeks without a result.
   `thisWeek` is the week that is due next.

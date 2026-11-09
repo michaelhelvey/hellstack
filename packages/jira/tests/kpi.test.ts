@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   createKpi,
-  findTemplate,
   listKpis,
   loadSource,
   planWeeks,
@@ -15,7 +14,6 @@ import {
   weekGrid,
   weeklyDueDates,
 } from "../src/jira/kpi/weeks.ts";
-import type { Issue } from "../src/jira/schemas.ts";
 import { fakeAtlassian, ME, routes, SITE } from "./fake.ts";
 
 const SUBTASK = { id: "5", name: "Sub-task", subtask: true, hierarchyLevel: -1 };
@@ -45,11 +43,6 @@ const WEEKS = [
   week("T-4", 4, "2026-10-23"),
 ];
 
-const TEMPLATE = {
-  key: "S-21",
-  fields: { summary: "Template", project: { key: "S" }, issuetype: TASK, description: null },
-};
-
 /** "Did not do" comes first, so a transition by category would pick "No" for a "Yes". */
 const TRANSITIONS = {
   transitions: [
@@ -63,17 +56,14 @@ const TRANSITIONS = {
   ],
 };
 
-const source = (kind: KpiSource["kind"] = "template"): KpiSource => ({
-  kind,
-  key: "S-21",
-  summary: "Template",
+const SOURCE: KpiSource = {
+  key: "S-50",
+  summary: "Last quarter",
   project: "S",
   type: TASK,
   subtaskTypeId: "5",
-  description: undefined,
   weeks: parseWeeks(WEEKS),
-  note: null,
-});
+};
 
 describe("weeks", () => {
   test("the result comes from the status name, not the status category", () => {
@@ -108,35 +98,6 @@ describe("weeks", () => {
   });
 });
 
-const template = (key: string, summary: string): Issue => ({
-  key,
-  fields: { summary, issuetype: TASK },
-});
-
-const searchFor = (issues: ReadonlyArray<Issue>) =>
-  fakeAtlassian((call) => (call.path === "/rest/api/3/search/jql" ? { issues } : TEMPLATE));
-
-describe("findTemplate", () => {
-  test("uses the one issue whose summary has the phrase", async () => {
-    const jira = searchFor([
-      template("S-21", "Template Individual KPI (Type item here)"),
-      template("S-94", "Template - Individual"),
-    ]);
-    await jira.run(findTemplate({ summary: "Template Individual KPI" }));
-    expect(jira.calls.at(-1)?.path).toBe("/rest/api/3/issue/S-21");
-  });
-
-  test("fails and lists the keys when more than one issue matches", async () => {
-    const jira = searchFor([
-      template("S-21", "Template Individual KPI"),
-      template("S-40", "Old Template Individual KPI"),
-    ]);
-    expect(await jira.failure(findTemplate({ summary: "Template Individual KPI" }))).toContain(
-      "S-21 (Template Individual KPI), S-40",
-    );
-  });
-});
-
 const KPI = {
   key: "STRAT-499",
   fields: {
@@ -164,22 +125,18 @@ const kpiSearch = (jql: string) => {
   };
 };
 
-test("without a template, the source is the newest KPI of the user", async () => {
-  const jira = fakeAtlassian((call) => {
-    if (call.path === "/rest/api/3/issue/STRAT-21") {
-      throw new Error("HTTP 404: Issue does not exist");
-    }
-    return kpiSearch(String(call.query["jql"]));
+describe("loadSource", () => {
+  test("the source is the newest KPI of the user, with its weeks", async () => {
+    const jira = fakeAtlassian((call) => kpiSearch(String(call.query["jql"])));
+    const found = await jira.run(loadSource);
+    expect(found).toMatchObject({ key: "STRAT-499", project: "STRAT", subtaskTypeId: "5" });
+    expect(found.weeks).toHaveLength(4);
   });
-  const found = await jira.run(loadSource({ key: "STRAT-21", summary: "" }));
-  expect(found).toMatchObject({
-    kind: "kpi",
-    key: "STRAT-499",
-    project: "STRAT",
-    subtaskTypeId: "5",
+
+  test("fails when the user has no KPI", async () => {
+    const jira = fakeAtlassian(() => ({ issues: [] }));
+    expect(await jira.failure(loadSource)).toContain("you have no KPI to copy");
   });
-  expect(found.note).toContain("HTTP 404");
-  expect(found.weeks).toHaveLength(4);
 });
 
 test("listKpis finds the KPIs from the user's weeks, and shows No and missing weeks", async () => {
@@ -198,24 +155,17 @@ test("listKpis finds the KPIs from the user's weeks, and shows No and missing we
 });
 
 describe("planWeeks", () => {
-  test("a template gives the due dates, and summaries name the KPI", () => {
-    expect(planWeeks(source(), "Ship", "2026-11-09").slice(0, 2)).toEqual([
-      { number: 1, summary: "Week 1 - Ship", due: "2026-10-02" },
-      { number: 2, summary: "Week 2 - Ship", due: "2026-10-09" },
+  test("weeks are due weekly from the first Friday of the quarter, and summaries name the KPI", () => {
+    expect(planWeeks(SOURCE, "Ship", "2027-02-15")).toEqual([
+      { number: 1, summary: "Week 1 - Ship", due: "2027-01-01" },
+      { number: 2, summary: "Week 2 - Ship", due: "2027-01-08" },
+      { number: 3, summary: "Week 3 - Ship", due: "2027-01-15" },
+      { number: 4, summary: "Week 4 - Ship", due: "2027-01-22" },
     ]);
   });
 
-  test("a KPI source gives weekly dates from the first Friday of the quarter", () => {
-    expect(planWeeks(source("kpi"), "Ship", "2027-02-15").map((w) => w.due)).toEqual([
-      "2027-01-01",
-      "2027-01-08",
-      "2027-01-15",
-      "2027-01-22",
-    ]);
-  });
-
-  test("firstDue wins over the template dates", () => {
-    expect(planWeeks(source(), "Ship", "2026-11-09", "2027-01-08")[1]?.due).toBe("2027-01-15");
+  test("weeks are due weekly from firstDue when it is given", () => {
+    expect(planWeeks(SOURCE, "Ship", "2026-11-09", "2027-01-08")[1]?.due).toBe("2027-01-15");
   });
 });
 
@@ -233,7 +183,7 @@ describe("createKpi", () => {
   test("makes the KPI and its weeks, and moves the KPI to In Progress", async () => {
     const jira = fakeAtlassian(routes(responses));
     const created = await jira.run(
-      createKpi(source(), { summary: "Ship it", rock: "S-7" }, "2026-11-09"),
+      createKpi(SOURCE, { summary: "Ship it", rock: "S-7" }, "2026-11-09"),
     );
 
     expect(created).toMatchObject({
@@ -275,9 +225,9 @@ describe("createKpi", () => {
   test("a dry run gives the plan and sends nothing", async () => {
     const jira = fakeAtlassian(routes({}));
     const plan = await jira.run(
-      createKpi(source(), { summary: "x", rock: "S-7", dryRun: true }, "2026-11-09"),
+      createKpi(SOURCE, { summary: "x", rock: "S-7", dryRun: true }, "2026-11-09"),
     );
-    expect(plan).toMatchObject({ dryRun: true, key: null, source: "S-21" });
+    expect(plan).toMatchObject({ dryRun: true, key: null, source: "S-50" });
     expect(jira.calls).toEqual([]);
   });
 
@@ -289,7 +239,7 @@ describe("createKpi", () => {
       }),
     );
     expect(
-      await jira.failure(createKpi(source(), { summary: "x", rock: "S-7" }, "2026-11-09")),
+      await jira.failure(createKpi(SOURCE, { summary: "x", rock: "S-7" }, "2026-11-09")),
     ).toContain("created S-100, but some weekly sub-tasks failed");
   });
 });

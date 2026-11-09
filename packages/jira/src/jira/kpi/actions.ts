@@ -1,5 +1,5 @@
-import { Config, DateTime, Effect, Option, Schema } from "effect";
-import { AtlassianError, call, get } from "../../atlassian.ts";
+import { DateTime, Effect, Schema } from "effect";
+import { AtlassianError, call } from "../../atlassian.ts";
 import {
   addComment,
   myself,
@@ -23,79 +23,10 @@ import {
 
 const fail = (message: string) => Effect.fail(new AtlassianError({ message }));
 
-/** The default text that finds the KPI template issue by its summary. */
-export const DEFAULT_TEMPLATE_SUMMARY = "Template Individual KPI";
-
-/** Tells the KPI functions how to find the KPI template. */
-export interface TemplateOptions {
-  /** The key of the template issue. If it is not set, the functions search by summary. */
-  readonly key?: string | undefined;
-  /** Text in the summary of the template issue. */
-  readonly summary: string;
-}
-
-/**
- * Reads the template options from `JIRA_KPI_TEMPLATE` (an issue key) and
- * `JIRA_KPI_TEMPLATE_SUMMARY` (default: {@link DEFAULT_TEMPLATE_SUMMARY}).
- */
-export const templateOptions = Effect.gen(function* () {
-  const key = yield* Config.option(Config.String("JIRA_KPI_TEMPLATE"));
-  const summary = yield* Config.String("JIRA_KPI_TEMPLATE_SUMMARY").pipe(
-    Config.withDefault(DEFAULT_TEMPLATE_SUMMARY),
-  );
-  const options: TemplateOptions = { key: Option.getOrUndefined(key), summary };
-  return options;
-}).pipe(Effect.catchTag("ConfigError", (error) => fail(`bad KPI config: ${error.message}`)));
-
-const Template = Schema.Struct({
-  key: Schema.String,
-  fields: Schema.Struct({
-    summary: Schema.String,
-    project: Schema.Struct({ key: Schema.String }),
-    issuetype: IssueType,
-    description: Schema.optional(Schema.Unknown),
-  }),
-});
-
-const getTemplate = (key: string) => get(Template, `/rest/api/3/issue/${key}`);
-
-const templateList = (matches: ReadonlyArray<Issue>) =>
-  matches.map((issue) => `${issue.key} (${issue.fields.summary})`).join(", ");
-
-const isTemplate = (phrase: string) => (issue: Issue) =>
-  (issue.fields.summary ?? "").toLowerCase().includes(phrase.toLowerCase()) &&
-  issue.fields.issuetype?.subtask !== true;
-
-const onlyMatch = (phrase: string, matches: ReadonlyArray<Issue>) => {
-  const [only, ...others] = matches;
-  if (only === undefined) {
-    return fail(
-      `no open issue has "${phrase}" in its summary. Set JIRA_KPI_TEMPLATE to the template key.`,
-    );
-  }
-  return others.length === 0
-    ? Effect.succeed(only.key)
-    : fail(
-        `more than one KPI template found: ${templateList(matches)}. Set JIRA_KPI_TEMPLATE to one of the keys.`,
-      );
-};
-
-/** Finds the KPI template issue from its key, or from text in its summary. */
-export const findTemplate = Effect.fnUntraced(function* (options: TemplateOptions) {
-  if (options.key !== undefined) return yield* getTemplate(options.key);
-  const phrase = options.summary.replaceAll('"', "");
-  const found = yield* search(`summary ~ "\\"${phrase}\\"" AND statusCategory != Done`, [
-    "summary",
-    "issuetype",
-    "project",
-  ]);
-  return yield* getTemplate(yield* onlyMatch(phrase, found.filter(isTemplate(phrase))));
-});
-
 const KPI_FIELDS = ["summary", "status", "parent", "issuetype", "project", "created"];
 
 /**
- * Finds the KPIs of the user, newest first, without a template: the parents of the "Week 1"
+ * Finds the KPIs of the user, newest first: the parents of the "Week 1"
  * sub-tasks that are assigned to the user. Without `all`, it skips KPIs in the Done category.
  */
 export const findMyKpis = Effect.fnUntraced(function* (all: boolean) {
@@ -110,12 +41,10 @@ export const findMyKpis = Effect.fnUntraced(function* (all: boolean) {
 });
 
 /**
- * What a new KPI is made from: the KPI template, or else the newest KPI of the user. The project,
- * the issue types, and the number of weeks come from it.
+ * What a new KPI is made from: the newest KPI of the user. The project, the issue types, and the
+ * number of weeks come from it.
  */
 export interface KpiSource {
-  /** `template`: the KPI template. `kpi`: the newest KPI of the user, because no template was found. */
-  readonly kind: "template" | "kpi";
   readonly key: string;
   readonly summary: string;
   readonly project: string;
@@ -123,12 +52,8 @@ export interface KpiSource {
   readonly type: IssueType;
   /** The ID of the Sub-task issue type of the weeks. */
   readonly subtaskTypeId: string;
-  /** The description to copy. Only a template has one to copy. */
-  readonly description: unknown;
   /** The weekly sub-tasks of the source. */
   readonly weeks: ReadonlyArray<Week>;
-  /** Why the template was not used, or null. */
-  readonly note: string | null;
 }
 
 const subtaskTypeOf = (subtasks: ReadonlyArray<Issue>) => subtasks[0]?.fields.issuetype?.id;
@@ -148,23 +73,6 @@ const sourceWeeks = Effect.fnUntraced(function* (key: string) {
   return { weeks, subtaskTypeId };
 });
 
-const fromTemplate = Effect.fnUntraced(function* (options: TemplateOptions) {
-  const template = yield* findTemplate(options);
-  const { weeks, subtaskTypeId } = yield* sourceWeeks(template.key);
-  const source: KpiSource = {
-    kind: "template",
-    key: template.key,
-    summary: template.fields.summary,
-    project: template.fields.project.key,
-    type: template.fields.issuetype,
-    subtaskTypeId,
-    description: template.fields.description,
-    weeks,
-    note: null,
-  };
-  return source;
-});
-
 const NewestKpi = Schema.Struct({
   key: Schema.String,
   fields: Schema.Struct({
@@ -174,45 +82,32 @@ const NewestKpi = Schema.Struct({
   }),
 });
 
-const newestKpi = (note: string) =>
-  Effect.flatMap(findMyKpis(true), ([newest]) =>
-    Schema.decodeUnknownEffect(NewestKpi)(newest).pipe(
-      Effect.mapError(
-        () =>
-          new AtlassianError({
-            message: `${note}. You also have no KPI to copy the project and the weeks from.`,
-          }),
-      ),
+const newestKpi = Effect.flatMap(findMyKpis(true), ([newest]) =>
+  Schema.decodeUnknownEffect(NewestKpi)(newest).pipe(
+    Effect.mapError(
+      () =>
+        new AtlassianError({
+          message:
+            "you have no KPI to copy the project and the weeks from. Create the first KPI in Jira.",
+        }),
     ),
-  );
+  ),
+);
 
-const fromNewestKpi = Effect.fnUntraced(function* (note: string) {
-  const newest = yield* newestKpi(note);
+/** Finds the source of new KPIs: the newest KPI of the user. */
+export const loadSource = Effect.gen(function* () {
+  const newest = yield* newestKpi;
   const { weeks, subtaskTypeId } = yield* sourceWeeks(newest.key);
   const source: KpiSource = {
-    kind: "kpi",
     key: newest.key,
     summary: newest.fields.summary,
     project: newest.fields.project.key,
     type: newest.fields.issuetype,
     subtaskTypeId,
-    description: undefined,
     weeks,
-    note: `${note}. The project and the weeks come from your newest KPI, ${newest.key}.`,
   };
   return source;
 });
-
-/**
- * Finds the source of new KPIs: the KPI template if there is one, or else the newest KPI of the
- * user.
- */
-export const loadSource = (options: TemplateOptions) =>
-  fromTemplate(options).pipe(
-    Effect.catchTag("AtlassianError", (error) =>
-      fromNewestKpi(`The KPI template was not found (${error.message})`),
-    ),
-  );
 
 /** A quarterly rock: an issue that can be the parent of a KPI. */
 export interface Rock {
@@ -325,8 +220,7 @@ export interface PlannedWeek {
 
 /**
  * Plans the weeks of a new KPI. The summaries are `Week <n> - <KPI summary>`. The due dates are
- * weekly from `firstDue`, or else the due dates of the template, or else weekly from the first
- * Friday of the quarter of `today`.
+ * weekly from `firstDue`, or else weekly from the first Friday of the quarter of `today`.
  */
 export const planWeeks = (
   source: KpiSource,
@@ -334,11 +228,7 @@ export const planWeeks = (
   today: string,
   firstDue?: string,
 ): ReadonlyArray<PlannedWeek> => {
-  const count = source.weeks.length;
-  const dues =
-    firstDue === undefined && source.kind === "template"
-      ? source.weeks.map((week) => week.due)
-      : weeklyDueDates(firstDue ?? quarterFirstFriday(today), count);
+  const dues = weeklyDueDates(firstDue ?? quarterFirstFriday(today), source.weeks.length);
   return source.weeks.map((week, index) => ({
     number: week.number,
     summary: `Week ${week.number} - ${summary}`,
@@ -349,7 +239,7 @@ export const planWeeks = (
 /** The plan or the result of {@link createKpi}. */
 export interface CreatedKpi {
   readonly dryRun: boolean;
-  /** The template or the KPI that the new KPI copies. */
+  /** The KPI that the new KPI copies. */
   readonly source: string;
   readonly project: string;
   readonly rock: string;
@@ -405,7 +295,7 @@ const weekFields =
 /**
  * Creates a KPI: an issue with the KPI type and the given summary, under the given rock, assigned
  * to the user, with one Sub-task for each week (see {@link planWeeks}). Then it moves the KPI to
- * In Progress. It copies the description of a template, but not a "clones" link.
+ * In Progress.
  */
 export const createKpi = Effect.fnUntraced(function* (
   source: KpiSource,
@@ -415,7 +305,6 @@ export const createKpi = Effect.fnUntraced(function* (
   const weeks = planWeeks(source, input.summary, today, input.firstDue);
   if (input.dryRun === true) return plan(source, input, weeks);
   const assignee = { accountId: (yield* myself).accountId };
-  const description = source.description ? { description: source.description } : {};
   const { key } = yield* call(Created, {
     method: "POST",
     path: "/rest/api/3/issue",
@@ -426,7 +315,6 @@ export const createKpi = Effect.fnUntraced(function* (
         summary: input.summary,
         parent: { key: input.rock },
         assignee,
-        ...description,
       },
     },
   });

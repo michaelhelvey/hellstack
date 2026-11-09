@@ -8,12 +8,9 @@ import {
   localToday,
   planWeeks,
   setWeek,
-  templateOptions,
 } from "../jira/kpi/actions.ts";
 import { issueUrl, site } from "../jira/search.ts";
 import { jiraTool, Nullable } from "./define.ts";
-
-const source = Effect.flatMap(templateOptions, loadSource);
 
 const Outcome = Type.Union([Type.Literal("Yes"), Type.Literal("No")]);
 
@@ -39,24 +36,21 @@ const kpiInfo = jiraTool({
   name: "jira_kpi_info",
   label: "Jira: KPI source",
   description:
-    "Get the source of new KPIs (the KPI template, or else the newest KPI of the user), its project, and the weeks that a new KPI made today gets.",
+    "Get the source of new KPIs (the newest KPI of the user), its project, and the weeks that a new KPI made today gets.",
   readOnly: true,
   parameters: Type.Object({}),
   output: Type.Object({
     source: Type.Object({
-      kind: Type.Union([Type.Literal("template"), Type.Literal("kpi")]),
       key: Type.String(),
       url: Type.String(),
       summary: Type.String(),
     }),
-    note: Nullable(Type.String({ description: "Why the template was not used" })),
     project: Type.String(),
     weeks: Type.Array(PlannedWeek),
   }),
   run: () =>
-    Effect.map(Effect.all([source, site, localToday]), ([kpi, url, today]) => ({
-      source: { kind: kpi.kind, key: kpi.key, url: issueUrl(url, kpi.key), summary: kpi.summary },
-      note: kpi.note,
+    Effect.map(Effect.all([loadSource, site, localToday]), ([kpi, url, today]) => ({
+      source: { key: kpi.key, url: issueUrl(url, kpi.key), summary: kpi.summary },
       project: kpi.project,
       weeks: planWeeks(kpi, "<KPI>", today),
     })),
@@ -81,7 +75,7 @@ const kpiRocks = jiraTool({
       }),
     ),
   }),
-  run: () => Effect.map(Effect.flatMap(source, findRocks), (rocks) => ({ rocks })),
+  run: () => Effect.map(Effect.flatMap(loadSource, findRocks), (rocks) => ({ rocks })),
 });
 
 const kpiList = jiraTool({
@@ -127,14 +121,14 @@ const kpiCreate = jiraTool({
     firstDue: Type.Optional(
       Type.String({
         description:
-          "The due date of week 1 (YYYY-MM-DD). Default: the template dates, or else the first Friday of this quarter",
+          "The due date of week 1 (YYYY-MM-DD). Default: the first Friday of this quarter",
       }),
     ),
     dryRun: Type.Optional(Type.Boolean({ description: "Only give the plan" })),
   }),
   output: Type.Object({
     dryRun: Type.Boolean(),
-    source: Type.String({ description: "The template or the KPI that the new KPI copies" }),
+    source: Type.String({ description: "The KPI that the new KPI copies" }),
     project: Type.String(),
     rock: Type.String(),
     summary: Type.String(),
@@ -151,7 +145,7 @@ const kpiCreate = jiraTool({
     ),
   }),
   run: (params) =>
-    Effect.flatMap(Effect.all([source, localToday]), ([kpi, today]) =>
+    Effect.flatMap(Effect.all([loadSource, localToday]), ([kpi, today]) =>
       createKpi(kpi, params, today),
     ),
 });
