@@ -25,6 +25,14 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+
+    // Effect language service (served by the `effect-tsgo` patched TypeScript)
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "diagnostics": false // use oxlint
+      }
+    ]
   }
 }

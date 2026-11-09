@@ -1,0 +1,34 @@
+{
+  "name": "@michaelhelvey/hellstack-pi",
+  "version": "0.0.1",
+  "private": true,
+  "keywords": [
+    "pi-package"
+  ],
+  "type": "module",
+  "dependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@michaelhelvey/hellstack-herdr": "workspace:*",
+    "@michaelhelvey/hellstack-jira": "workspace:*",
+    "deepmerge": "4.3.1",
+    "effect": "catalog:",
+    "marked": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "catalog:",
+    "@earendil-works/pi-tui": "catalog:",
+    "@xterm/headless": "6.0.0",
+    "typebox": "catalog:"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  }
+}

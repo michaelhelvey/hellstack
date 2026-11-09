@@ -1,0 +1,4 @@
+{
+  "quietStartup": true,
+  "packages": ["npm:@ff-labs/pi-fff"]
+}

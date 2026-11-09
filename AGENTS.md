@@ -1,9 +1,23 @@
+A rewrite of hellstack. If you're in this CWD and I say hellstack without specifying, I certainly
+mean this repository, NOT ~/dev/helvetici/hellstack. We'll rename this later.
+
 ## Toolchains
 
 - Use Vite+ (`vp`) for linting, formatting, and type checks. Configure it in `vite.config.ts`.
 - Use bun for package management and runtime code, including unit tests (https://bun.sh/llms.txt)
+- This is a bun workspace monorepo. Packages live in `./packages/*`. Put shared dependency versions
+  in the `catalog` of the root `package.json` and refer to them with `"catalog:"`.
+- Use Effect (v4) for application code. The Effect source and docs are at `~/dev/thirdparty/effect`
+  (start with `LLMS.md`). Do not use other copies of the Effect docs, because they can be out of
+  date.
+- `@effect/tsgo` patches TypeScript and oxlint on `bun install` (the `prepare` script). The patched
+  TypeScript is the editor LSP, and `vp check` runs the Effect lint rules (`effecttsgo/*`).
 
 ## General Rules
+
+- Pi loads the extension from the bundle `packages/pi/dist/index.js` (see
+  `packages/pi/src/build.ts`). After you change extension code, run `bun run build` so that pi loads
+  the change.
 
 - Always validate your work via all relevant checks (`bun run validate`) before declaring your work
   done.
@@ -17,7 +31,8 @@
 - Add doc comments to all public exports from a module. Avoid non-doc comments within code unless
   overwhelmingly necessary to explain an otherwise odd decision that would strike the reader as
   wrong at first glance (e.g. a lint ignore).
-- Always use `zod` to parse unknown types, rather than casting.
+- Always use `effect/Schema`, `zod`, `Typebox`, or whatever is appropriate given the context, to
+  parse unknown types, rather than casting.
 
 ## Testing Rules
 
@@ -26,9 +41,8 @@
 - Do not write code that requires module mocks in order to test -- use proper dependency injection.
   Creating `mock` functions from `bun:test` in order to assert how they are called is allowed.
 
-## Github / Collaboration Rules
+## References
 
-- Don't make git commits unless you're in a worktree or I ask you to. If you're not in a worktree,
-  that means that you are working collaboratively with me and other agents.
-- Outside of a worktree, other agents and humans will be working with you in the same working tree.
-  Do not change unrelated files or step on their work.
+- Effect source (not sure if we're going to be using effect here yet or not but anyway):
+  ~/dev/thirdparty/effect
+- Pi source: ~/dev/thirdparty/pi

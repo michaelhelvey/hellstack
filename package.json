@@ -1,22 +1,37 @@
 {
-  "name": "bun-template",
+  "name": "@michaelhelvey/hellstack2",
   "private": true,
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "catalog": {
+      "@earendil-works/pi-coding-agent": "1.5.0",
+      "@earendil-works/pi-tui": "1.5.0",
+      "@effect/platform-bun": "4.1.2",
+      "@effect/platform-node": "4.1.2",
+      "effect": "4.1.2",
+      "marked": "18.0.11",
+      "typebox": "1.3.27",
+      "zod": "4.6.7"
+    }
+  },
   "type": "module",
-  "module": "src/index.ts",
   "scripts": {
-    "prepare": "vp config",
+    "prepare": "vp config && effect-tsgo patch --oxlint",
+    "pi": "bun scripts/pi.ts",
+    "setup": "bun packages/pi/src/setup.ts",
+    "build": "bun packages/pi/src/build.ts",
     "format": "vp fmt",
     "lint": "vp lint --fix",
     "check": "vp check",
-    "validate": "bun run format && bun run lint && bun run check && bun test"
+    "validate": "bun run format && bun run lint && bun run check && bun test --pass-with-no-tests"
   },
   "devDependencies": {
-    "@michaelhelvey/vite-config": "2.0.4",
-    "@types/bun": "^1.4.3",
-    "vite-plus": "^1.3.0",
-    "zod": "4.6.7"
-  },
-  "peerDependencies": {
-    "typescript": "^7.0.2"
+    "@effect/tsgo": "0.67.5",
+    "@michaelhelvey/vite-config": "2.0.8",
+    "@types/bun": "^1.4.4",
+    "typescript": "^7.0.2",
+    "vite-plus": "^1.5.0"
   }
 }
