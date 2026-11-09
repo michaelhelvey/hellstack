@@ -1,10 +1,11 @@
 <div align="center">
   <img src="./assets/mascot.png" alt="The hellstack mascot: a small demon mouse" width="320" />
   <h1>hellstack</h1>
-  <p>How I work with LLMs: <a href="https://pi.dev">pi</a>, and a chinchilla who talks to me.</p>
 </div>
 
-> [!NOTE] If you're not me, you probably won't find this repository useful as-is. There's not a
+> [!NOTE]
+>
+> If you're not me, you probably won't find this repository useful as-is. There's not a
 > once-size-fits-all way to work with agents: you might prefer different skills, different
 > harnesses, different inference providers, and many other things. While I think that the principles
 > and techniques in this repository are broadly applicable, I don't recommend just installing and
@@ -23,13 +24,6 @@
 Clone this repository, run `bun install`, then `bun setup`. This will copy all relevant agent
 configuration files and set things up. The command is idempotent, so you can run it as many times as
 you like.
-
-Setup appends a machine-specific layer from `packages/pi/agent/layers` to `AGENTS.md`, selected by
-the username on the machine (see `LAYERS` in `packages/pi/src/setup.ts`).
-
-Pi loads the extension from the bundle `packages/pi/dist/index.js`, not from `src`: loading the
-source makes pi start seconds slower. `bun setup`, `bun run pi`, and the tests make the bundle.
-After you change the source, run `bun run build` (or `bun setup`) so that your pi gets the change.
 
 ## About
 
@@ -105,5 +99,8 @@ coord() {
 `bun setup` copies `packages/pi/agent/COORDINATOR.md` to `~/.pi/agent/COORDINATOR.md`. It tells the
 coordinator to talk to you, stay unblocked, and dispatch well-defined tasks to subagents.
 
-Do not use `hc run pi` without `--bg`: it returns when pi becomes idle, and pi continues without a
-screen.
+## About the name
+
+A lot of people have appended a letter of their name + stack to refer to their agent skills and
+plugins and what not. e.g. gstack, pstack, etc. Well, my last name is "Helvey" and I think that
+working with LLMs is about as close to hell as I'll get in this life, so thus, hellstack.
