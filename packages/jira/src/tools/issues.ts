@@ -1,5 +1,5 @@
-import { Effect } from "effect";
-import { Type } from "typebox";
+import { Effect, Schema } from "effect";
+import { Tool, Toolkit } from "effect/ai";
 import { request } from "../atlassian.ts";
 import {
   addComment,
@@ -12,63 +12,266 @@ import {
 } from "../jira/issues.ts";
 import { searchIssues, site } from "../jira/search.ts";
 import { logWork, workDay } from "../jira/worklog.ts";
-import { jiraTool, Nullable } from "./define.ts";
+import { jiraTool, READS, WRITES } from "./define.ts";
 
-const IssueSummaryProperties = {
-  key: Type.String(),
-  url: Type.String(),
-  summary: Nullable(Type.String()),
-  type: Nullable(Type.String()),
-  status: Nullable(Type.String()),
-  statusCategory: Nullable(
-    Type.String({ description: "new (To Do), indeterminate (In Progress), or done" }),
-  ),
-  assignee: Nullable(Type.String()),
-  priority: Nullable(Type.String()),
-  parent: Nullable(Type.String({ description: "The key of the parent issue" })),
-  project: Nullable(Type.String()),
-  updated: Nullable(Type.String()),
+const text = (description: string) => Schema.String.annotate({ description });
+
+const NullableString = Schema.NullOr(Schema.String);
+
+const IssueSummaryFields = {
+  key: Schema.String,
+  url: Schema.String,
+  summary: NullableString,
+  type: NullableString,
+  status: NullableString,
+  statusCategory: Schema.NullOr(text("new (To Do), indeterminate (In Progress), or done")),
+  assignee: NullableString,
+  priority: NullableString,
+  parent: Schema.NullOr(text("The key of the parent issue")),
+  project: NullableString,
+  updated: NullableString,
 };
 
 /** The short view of an issue. */
-export const IssueSummary = Type.Object(IssueSummaryProperties);
+export const IssueSummary = Schema.Struct(IssueSummaryFields);
 
-const IssueRef = Type.Object({ key: Type.String(), url: Type.String() });
+const IssueRef = Schema.Struct({ key: Schema.String, url: Schema.String });
 
-const Key = Type.String({ description: "The issue key, for example ABC-123" });
+const Key = text("The issue key, for example ABC-123");
 
-const Duration = (description: string) => Type.String({ description });
-
-const FieldValues = Type.Record(Type.String(), Type.Unknown(), {
+const FieldValues = Schema.Record(Schema.String, Schema.Unknown).annotate({
   description:
     'Other fields, by field ID or field name. Values use the REST API format, for example { "Story Points": 3 }. Fields that project managers set (Business Category, Operations Category, Complete Work Sprint, CWIP) are refused.',
 });
 
-const ChangeProperties = {
-  description: Type.Optional(
-    Type.String({ description: "Plain text. Blank lines separate paragraphs." }),
-  ),
-  parent: Type.Optional(
-    Type.String({ description: "The key of the parent issue, for example an epic" }),
-  ),
-  estimate: Type.Optional(Duration("Original estimate in Jira duration format, for example 10h")),
-  fields: Type.Optional(FieldValues),
+const ChangeFields = {
+  description: Schema.optionalKey(text("Plain text. Blank lines separate paragraphs.")),
+  parent: Schema.optionalKey(text("The key of the parent issue, for example an epic")),
+  estimate: Schema.optionalKey(text("Original estimate in Jira duration format, for example 10h")),
+  fields: Schema.optionalKey(FieldValues),
 };
 
-const whoami = jiraTool({
-  name: "jira_whoami",
-  label: "Jira: who am I",
+const Whoami = jiraTool("whoami", {
   description: "Get the Atlassian site and the Jira account that the tools use.",
-  readOnly: true,
-  parameters: Type.Object({}),
-  output: Type.Object({
-    site: Type.String(),
-    accountId: Type.String(),
-    displayName: Type.String(),
-    email: Nullable(Type.String()),
-    timeZone: Nullable(Type.String()),
+  hints: READS,
+  parameters: Tool.EmptyParams,
+  success: Schema.Struct({
+    site: Schema.String,
+    accountId: Schema.String,
+    displayName: Schema.String,
+    email: NullableString,
+    timeZone: NullableString,
   }),
-  run: () =>
+});
+
+const Request = jiraTool("request", {
+  description:
+    "Send a request to the Jira or Confluence REST API of the site, with the credentials of the user. Use it only when no other tool does the job. Gives { body }: the JSON body, the text body, or null.",
+  hints: WRITES,
+  parameters: Schema.Struct({
+    path: text(
+      "Path relative to the site, for example /rest/api/3/issue/ABC-1 or /wiki/api/v2/pages/123",
+    ),
+    method: Schema.optionalKey(Schema.Literals(["GET", "POST", "PUT", "DELETE"])),
+    query: Schema.optionalKey(
+      Schema.Record(
+        Schema.String,
+        Schema.Union([Schema.String, Schema.Finite, Schema.Boolean, Schema.Array(Schema.String)]),
+      ).annotate({ description: "Query parameters. An array repeats the parameter." }),
+    ),
+    body: Schema.optionalKey(Schema.Unknown.annotate({ description: "JSON request body" })),
+  }),
+  success: Schema.Struct({ body: Schema.Unknown }),
+});
+
+const Fields = jiraTool("fields", {
+  description:
+    "List the fields of the site, with their IDs. Field IDs (for example customfield_12345) are different on each site, so find them by name.",
+  hints: READS,
+  parameters: Schema.Struct({
+    name: Schema.optionalKey(text("Only fields whose name contains this text")),
+  }),
+  success: Schema.Struct({
+    fields: Schema.Array(
+      Schema.Struct({ id: Schema.String, name: Schema.String, custom: Schema.Boolean }),
+    ),
+  }),
+});
+
+const Search = jiraTool("search", {
+  description:
+    "Find issues with JQL, across all projects. Accounted and Removed issues are left out unless includeHidden is true.",
+  hints: READS,
+  parameters: Schema.Struct({
+    jql: text("JQL, for example assignee = currentUser() AND statusCategory != Done"),
+    fields: Schema.optionalKey(
+      Schema.Array(Schema.String).annotate({
+        description: "Other field IDs to give as raw values in `fields` of each issue",
+      }),
+    ),
+    limit: Schema.optionalKey(
+      Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
+        description: "Maximum issues. Default: 50",
+      }),
+    ),
+    includeHidden: Schema.optionalKey(
+      Schema.Boolean.annotate({ description: "Also give Accounted and Removed issues" }),
+    ),
+  }),
+  success: Schema.Struct({
+    issues: Schema.Array(
+      Schema.Struct({
+        ...IssueSummaryFields,
+        fields: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+      }),
+    ),
+    hiddenCount: Schema.Int.annotate({ description: "Accounted and Removed issues left out" }),
+  }),
+});
+
+const Issue = jiraTool("issue", {
+  description:
+    "Read one issue: the description and the Acceptance Criteria as Markdown, sub-tasks, time tracking, and the last comments. Always read both the description and the Acceptance Criteria.",
+  hints: READS,
+  parameters: Schema.Struct({
+    key: Key,
+    comments: Schema.optionalKey(
+      Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).annotate({
+        description: "Number of last comments. Default: 5",
+      }),
+    ),
+  }),
+  success: Schema.Struct({
+    ...IssueSummaryFields,
+    reporter: NullableString,
+    created: NullableString,
+    labels: Schema.Array(Schema.String),
+    timetracking: Schema.Struct({
+      originalEstimate: NullableString,
+      remainingEstimate: NullableString,
+      timeSpent: NullableString,
+    }),
+    subtasks: Schema.Array(
+      Schema.Struct({ key: Schema.String, summary: Schema.String, status: NullableString }),
+    ),
+    description: Schema.String,
+    acceptanceCriteria: Schema.NullOr(text("Null when the site has no Acceptance Criteria field")),
+    comments: Schema.Array(
+      Schema.Struct({ author: NullableString, created: Schema.String, body: Schema.String }),
+    ),
+  }),
+});
+
+const CreateIssue = jiraTool("create_issue", {
+  description:
+    "Create an issue. The parent can be an epic in any project. The original estimate is 10h unless you give one. withSubtask also creates a Sub-task with the same summary, for time tracking on a Story or a Bug.",
+  hints: WRITES,
+  parameters: Schema.Struct({
+    project: text("The project key"),
+    type: text("The issue type name, for example Task, Story, Sub-task"),
+    summary: Schema.String,
+    ...ChangeFields,
+    assignee: Schema.optionalKey(text('"me" or an account ID')),
+    withSubtask: Schema.optionalKey(Schema.Boolean),
+  }),
+  success: Schema.Struct({
+    key: Schema.String,
+    url: Schema.String,
+    subtask: Schema.NullOr(IssueRef),
+  }),
+});
+
+const UpdateIssue = jiraTool("update_issue", {
+  description: "Change the fields of an issue. Fields that you do not give do not change.",
+  hints: WRITES,
+  parameters: Schema.Struct({
+    key: Key,
+    summary: Schema.optionalKey(Schema.String),
+    ...ChangeFields,
+    assignee: Schema.optionalKey(
+      Schema.NullOr(text('"me", an account ID, or null for no assignee')),
+    ),
+  }),
+  success: IssueRef,
+});
+
+const Transition = jiraTool("transition", {
+  description:
+    "Move an issue to a status, by the status name or the transition name. If the move is not possible, the error lists the available statuses. Moves to Accounted are refused.",
+  hints: WRITES,
+  parameters: Schema.Struct({ key: Key, status: text("For example In Progress") }),
+  success: Schema.Struct({ key: Schema.String, url: Schema.String, status: Schema.String }),
+});
+
+const Comment = jiraTool("comment", {
+  description: "Add a plain-text comment to an issue. Blank lines separate paragraphs.",
+  hints: WRITES,
+  parameters: Schema.Struct({ key: Key, text: Schema.String }),
+  success: Schema.Struct({ key: Schema.String, url: Schema.String, commentId: Schema.String }),
+});
+
+const LogWork = jiraTool("log_work", {
+  description:
+    "Log time on an issue. Times without an offset use the time zone of the Jira account. Log time on a Sub-task or an ops task, not on a Story.",
+  hints: WRITES,
+  parameters: Schema.Struct({
+    key: Key,
+    duration: text("Time spent in Jira duration format, for example 1h 30m"),
+    started: Schema.optionalKey(
+      text(
+        "YYYY-MM-DD (09:00 on that day), YYYY-MM-DDTHH:mm in the account time zone, or an ISO time with an offset. Default: now",
+      ),
+    ),
+    comment: Schema.optionalKey(Schema.String),
+  }),
+  success: Schema.Struct({
+    key: Schema.String,
+    url: Schema.String,
+    worklogId: Schema.String,
+    seconds: Schema.Int,
+    started: Schema.String,
+  }),
+});
+
+const WorklogDay = jiraTool("worklog_day", {
+  description:
+    "List the issues that the user logged time to on one day, with the time on each. The day uses the time zone of the Jira account. Accounted and Removed issues are counted in `hidden`, not listed.",
+  hints: READS,
+  parameters: Schema.Struct({ date: Schema.optionalKey(text("YYYY-MM-DD. Default: today")) }),
+  success: Schema.Struct({
+    date: Schema.String,
+    timeZone: Schema.String,
+    totalSeconds: Schema.Int,
+    total: text("For example 6h 30m"),
+    issues: Schema.Array(
+      Schema.Struct({ ...IssueSummaryFields, seconds: Schema.Int, time: Schema.String }),
+    ),
+    hidden: Schema.Struct({ count: Schema.Int, seconds: Schema.Int }),
+    unresolved: Schema.Array(Schema.String).annotate({
+      description:
+        "Issues that JQL finds for the day with no matching worklog. The total can be too low.",
+    }),
+  }),
+});
+
+/** The tools for issues, fields, time tracking, and raw REST requests. */
+export const IssueTools = Toolkit.make(
+  Whoami,
+  Request,
+  Fields,
+  Search,
+  Issue,
+  CreateIssue,
+  UpdateIssue,
+  Transition,
+  Comment,
+  LogWork,
+  WorklogDay,
+);
+
+/** The handlers of {@link IssueTools}. */
+export const IssueHandlers = IssueTools.toLayer({
+  whoami: () =>
     Effect.map(Effect.all([myself, site]), ([me, url]) => ({
       site: url,
       accountId: me.accountId,
@@ -76,248 +279,14 @@ const whoami = jiraTool({
       email: me.emailAddress ?? null,
       timeZone: me.timeZone ?? null,
     })),
+  request: (params) => Effect.map(request(params), (body) => ({ body })),
+  fields: (params) => Effect.map(listFields(params.name), (list) => ({ fields: list })),
+  search: searchIssues,
+  issue: (params) => readIssue(params.key, params.comments),
+  create_issue: createIssue,
+  update_issue: ({ key, ...changes }) => updateIssue(key, changes),
+  transition: (params) => transitionIssue(params.key, params.status),
+  comment: (params) => addComment(params.key, params.text),
+  log_work: logWork,
+  worklog_day: (params) => workDay(params.date),
 });
-
-const rawRequest = jiraTool({
-  name: "jira_request",
-  label: "Jira: REST request",
-  description:
-    "Send a request to the Jira or Confluence REST API of the site, with the credentials of the user. Use it only when no other jira tool does the job. Resolves to { body }: the JSON body, the text body, or null.",
-  readOnly: false,
-  parameters: Type.Object({
-    path: Type.String({
-      description:
-        "Path relative to the site, for example /rest/api/3/issue/ABC-1 or /wiki/api/v2/pages/123",
-    }),
-    method: Type.Optional(
-      Type.Union([
-        Type.Literal("GET"),
-        Type.Literal("POST"),
-        Type.Literal("PUT"),
-        Type.Literal("DELETE"),
-      ]),
-    ),
-    query: Type.Optional(
-      Type.Record(
-        Type.String(),
-        Type.Union([Type.String(), Type.Number(), Type.Boolean(), Type.Array(Type.String())]),
-        { description: "Query parameters. An array repeats the parameter." },
-      ),
-    ),
-    body: Type.Optional(Type.Unknown({ description: "JSON request body" })),
-  }),
-  output: Type.Object({ body: Type.Unknown() }),
-  run: (params) => Effect.map(request(params), (body) => ({ body })),
-});
-
-const fields = jiraTool({
-  name: "jira_fields",
-  label: "Jira: fields",
-  description:
-    "List the fields of the site, with their IDs. Field IDs (for example customfield_12345) are different on each site, so find them by name.",
-  readOnly: true,
-  parameters: Type.Object({
-    name: Type.Optional(Type.String({ description: "Only fields whose name contains this text" })),
-  }),
-  output: Type.Object({
-    fields: Type.Array(
-      Type.Object({ id: Type.String(), name: Type.String(), custom: Type.Boolean() }),
-    ),
-  }),
-  run: (params) => Effect.map(listFields(params.name), (list) => ({ fields: list })),
-});
-
-const search = jiraTool({
-  name: "jira_search",
-  label: "Jira: search",
-  description:
-    "Find issues with JQL, across all projects. Accounted and Removed issues are left out unless includeHidden is true.",
-  readOnly: true,
-  parameters: Type.Object({
-    jql: Type.String({
-      description: "JQL, for example assignee = currentUser() AND statusCategory != Done",
-    }),
-    fields: Type.Optional(
-      Type.Array(Type.String(), {
-        description: "Other field IDs to give as raw values in `fields` of each issue",
-      }),
-    ),
-    limit: Type.Optional(Type.Integer({ minimum: 1, description: "Maximum issues. Default: 50" })),
-    includeHidden: Type.Optional(
-      Type.Boolean({ description: "Also give Accounted and Removed issues" }),
-    ),
-  }),
-  output: Type.Object({
-    issues: Type.Array(
-      Type.Object({
-        ...IssueSummaryProperties,
-        fields: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
-      }),
-    ),
-    hiddenCount: Type.Integer({ description: "Accounted and Removed issues left out" }),
-  }),
-  run: searchIssues,
-});
-
-const issue = jiraTool({
-  name: "jira_issue",
-  label: "Jira: read issue",
-  description:
-    "Read one issue: the description and the Acceptance Criteria as Markdown, sub-tasks, time tracking, and the last comments. Always read both the description and the Acceptance Criteria.",
-  readOnly: true,
-  parameters: Type.Object({
-    key: Key,
-    comments: Type.Optional(
-      Type.Integer({ minimum: 0, description: "Number of last comments. Default: 5" }),
-    ),
-  }),
-  output: Type.Object({
-    ...IssueSummaryProperties,
-    reporter: Nullable(Type.String()),
-    created: Nullable(Type.String()),
-    labels: Type.Array(Type.String()),
-    timetracking: Type.Object({
-      originalEstimate: Nullable(Type.String()),
-      remainingEstimate: Nullable(Type.String()),
-      timeSpent: Nullable(Type.String()),
-    }),
-    subtasks: Type.Array(
-      Type.Object({ key: Type.String(), summary: Type.String(), status: Nullable(Type.String()) }),
-    ),
-    description: Type.String(),
-    acceptanceCriteria: Nullable(
-      Type.String({ description: "Null when the site has no Acceptance Criteria field" }),
-    ),
-    comments: Type.Array(
-      Type.Object({ author: Nullable(Type.String()), created: Type.String(), body: Type.String() }),
-    ),
-  }),
-  run: (params) => readIssue(params.key, params.comments),
-});
-
-const createIssueTool = jiraTool({
-  name: "jira_create_issue",
-  label: "Jira: create issue",
-  description:
-    "Create an issue. The parent can be an epic in any project. The original estimate is 10h unless you give one. withSubtask also creates a Sub-task with the same summary, for time tracking on a Story or a Bug.",
-  readOnly: false,
-  parameters: Type.Object({
-    project: Type.String({ description: "The project key" }),
-    type: Type.String({ description: "The issue type name, for example Task, Story, Sub-task" }),
-    summary: Type.String(),
-    ...ChangeProperties,
-    assignee: Type.Optional(Type.String({ description: '"me" or an account ID' })),
-    withSubtask: Type.Optional(Type.Boolean()),
-  }),
-  output: Type.Object({ key: Type.String(), url: Type.String(), subtask: Nullable(IssueRef) }),
-  run: createIssue,
-});
-
-const updateIssueTool = jiraTool({
-  name: "jira_update_issue",
-  label: "Jira: update issue",
-  description: "Change the fields of an issue. Fields that you do not give do not change.",
-  readOnly: false,
-  parameters: Type.Object({
-    key: Key,
-    summary: Type.Optional(Type.String()),
-    ...ChangeProperties,
-    assignee: Type.Optional(
-      Nullable(Type.String({ description: '"me", an account ID, or null for no assignee' })),
-    ),
-  }),
-  output: IssueRef,
-  run: ({ key, ...changes }) => updateIssue(key, changes),
-});
-
-const transition = jiraTool({
-  name: "jira_transition",
-  label: "Jira: move issue",
-  description:
-    "Move an issue to a status, by the status name or the transition name. If the move is not possible, the error lists the available statuses. Moves to Accounted are refused.",
-  readOnly: false,
-  parameters: Type.Object({
-    key: Key,
-    status: Type.String({ description: "For example In Progress" }),
-  }),
-  output: Type.Object({ key: Type.String(), url: Type.String(), status: Type.String() }),
-  run: (params) => transitionIssue(params.key, params.status),
-});
-
-const comment = jiraTool({
-  name: "jira_comment",
-  label: "Jira: comment",
-  description: "Add a plain-text comment to an issue. Blank lines separate paragraphs.",
-  readOnly: false,
-  parameters: Type.Object({ key: Key, text: Type.String() }),
-  output: Type.Object({ key: Type.String(), url: Type.String(), commentId: Type.String() }),
-  run: (params) => addComment(params.key, params.text),
-});
-
-const logWorkTool = jiraTool({
-  name: "jira_log_work",
-  label: "Jira: log work",
-  description:
-    "Log time on an issue. Times without an offset use the time zone of the Jira account. Log time on a Sub-task or an ops task, not on a Story.",
-  readOnly: false,
-  parameters: Type.Object({
-    key: Key,
-    duration: Duration("Time spent in Jira duration format, for example 1h 30m"),
-    started: Type.Optional(
-      Type.String({
-        description:
-          "YYYY-MM-DD (09:00 on that day), YYYY-MM-DDTHH:mm in the account time zone, or an ISO time with an offset. Default: now",
-      }),
-    ),
-    comment: Type.Optional(Type.String()),
-  }),
-  output: Type.Object({
-    key: Type.String(),
-    url: Type.String(),
-    worklogId: Type.String(),
-    seconds: Type.Integer(),
-    started: Type.String(),
-  }),
-  run: logWork,
-});
-
-const worklogDay = jiraTool({
-  name: "jira_worklog_day",
-  label: "Jira: time on a day",
-  description:
-    "List the issues that the user logged time to on one day, with the time on each. The day uses the time zone of the Jira account. Accounted and Removed issues are counted in `hidden`, not listed.",
-  readOnly: true,
-  parameters: Type.Object({
-    date: Type.Optional(Type.String({ description: "YYYY-MM-DD. Default: today" })),
-  }),
-  output: Type.Object({
-    date: Type.String(),
-    timeZone: Type.String(),
-    totalSeconds: Type.Integer(),
-    total: Type.String({ description: "For example 6h 30m" }),
-    issues: Type.Array(
-      Type.Object({ ...IssueSummaryProperties, seconds: Type.Integer(), time: Type.String() }),
-    ),
-    hidden: Type.Object({ count: Type.Integer(), seconds: Type.Integer() }),
-    unresolved: Type.Array(Type.String(), {
-      description:
-        "Issues that JQL finds for the day with no matching worklog. The total can be too low.",
-    }),
-  }),
-  run: (params) => workDay(params.date),
-});
-
-/** The tools for issues, fields, time tracking, and raw REST requests. */
-export const ISSUE_TOOLS = [
-  whoami,
-  rawRequest,
-  fields,
-  search,
-  issue,
-  createIssueTool,
-  updateIssueTool,
-  transition,
-  comment,
-  logWorkTool,
-  worklogDay,
-];

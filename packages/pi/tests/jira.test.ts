@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, setDefaultTimeout, test } from "bun:test";
-import { TOOLS } from "@michaelhelvey/hellstack-jira";
+import { JIRA_SERVER } from "@michaelhelvey/hellstack-jira";
 import { PiSandbox } from "./pi.ts";
 
 setDefaultTimeout(30_000);
@@ -26,7 +26,13 @@ const atlassian = Bun.serve({
 
 beforeEach(async () => {
   requests.length = 0;
-  sandbox = await PiSandbox.create({ defaultTools: ["+codemode"] });
+  sandbox = await PiSandbox.create();
+  await sandbox.write(
+    ".pi/agent/mcp.json",
+    JSON.stringify({
+      mcpServers: { [JIRA_SERVER.name]: { command: process.execPath, args: [JIRA_SERVER.entry] } },
+    }),
+  );
 });
 
 afterEach(() => sandbox.dispose());
@@ -45,28 +51,35 @@ const runScript = async (code: string) => {
   return result;
 };
 
-test("codemode scripts call the jira tools, but the model does not see them", async () => {
+test("codemode scripts call the jira MCP tools, but the model does not see them", async () => {
   const result = await runScript(`
-    const ns = await describeNamespace("jira");
-    const found = await tools.jira_search({ jql: "project = PT" });
-    return { tools: ns.tools.length, keys: found.issues.map((i) => i.key), hidden: found.hiddenCount };
+    const ns = await describeNamespace("mcp__jira");
+    const found = await tools.mcp__jira__search({ jql: "project = PT" });
+    const { issues, hiddenCount } = found.structuredContent;
+    return { tools: ns.tools.length, keys: issues.map((i) => i.key), hidden: hiddenCount };
   `);
 
   expect(result.isError).toBe(false);
   expect(JSON.parse(result.text.slice(result.text.indexOf("{")))).toEqual({
-    tools: TOOLS.length,
+    tools: 23,
     keys: ["PT-1"],
     hidden: 1,
   });
   expect(requests).toEqual([`GET /rest/api/3/search/jql Basic ${btoa("me@example.com:token")}`]);
   const declared = JSON.stringify(sandbox.model.requests[0]?.["tools"] ?? []);
   expect(declared).toContain("codemode");
-  expect(declared).not.toContain('"jira_search"');
+  expect(declared).not.toContain("mcp__jira__search");
 });
 
-test("a failed request gives the script an error with the HTTP status", async () => {
-  const result = await runScript(`return await tools.jira_issue({ key: "PT-404" });`);
+test("a failed request resolves to an error result with the HTTP status", async () => {
+  const result = await runScript(`
+    const found = await tools.mcp__jira__issue({ key: "PT-404" });
+    return { isError: found.isError, text: found.content[0].text };
+  `);
 
-  expect(result.isError).toBe(true);
-  expect(result.text).toContain("GET /rest/api/3/issue/PT-404 failed with HTTP 404");
+  expect(result.isError).toBe(false);
+  expect(JSON.parse(result.text.slice(result.text.indexOf("{")))).toEqual({
+    isError: true,
+    text: 'GET /rest/api/3/issue/PT-404 failed with HTTP 404: {"errorMessages":["not found"]}',
+  });
 });

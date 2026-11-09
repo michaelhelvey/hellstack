@@ -383,7 +383,7 @@ const changeResult = (week: Week, result: Outcome) => {
   return week.result === null
     ? moveTo(week, result)
     : fail(
-        `${week.key} (${week.summary}) is already ${week.result}. To change it, move it back to Open with jira_transition first.`,
+        `${week.key} (${week.summary}) is already ${week.result}. To change it, move it back to Open with the transition tool first.`,
       );
 };
 

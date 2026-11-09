@@ -1,71 +1,74 @@
-import { Type } from "typebox";
+import { Schema } from "effect";
+import { Toolkit } from "effect/ai";
 import { listChildren, readPage, searchContent } from "../confluence/pages.ts";
-import { jiraTool, Nullable } from "./define.ts";
+import { jiraTool, READS } from "./define.ts";
 
-const ContentResults = Type.Object({
-  results: Type.Array(
-    Type.Object({
-      id: Type.String(),
-      type: Type.String({
+const NullableString = Schema.NullOr(Schema.String);
+
+const ContentResults = Schema.Struct({
+  results: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      type: Schema.String.annotate({
         description:
           "page, folder, database, attachment, comment, and others. Only a page has a body.",
       }),
-      title: Type.String(),
-      space: Nullable(Type.String()),
-      url: Nullable(Type.String()),
-      excerpt: Type.String(),
-      lastModified: Nullable(Type.String()),
+      title: Schema.String,
+      space: NullableString,
+      url: NullableString,
+      excerpt: Schema.String,
+      lastModified: NullableString,
     }),
   ),
-  totalSize: Type.Integer({ description: "All matches. It can be more than the results." }),
+  totalSize: Schema.Int.annotate({
+    description: "All matches. It can be more than the results.",
+  }),
 });
 
-const Limit = Type.Optional(Type.Integer({ minimum: 1, maximum: 250 }));
+const Limit = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 250 }));
 
-const search = jiraTool({
-  name: "confluence_search",
-  label: "Confluence: search",
+const Search = jiraTool("confluence_search", {
   description:
     'Search Confluence with CQL, for example text ~ "words" and type = page. Useful clauses: title ~ "...", space = "KEY", parent = <id>, lastModified >= "2026-01-01".',
-  readOnly: true,
-  parameters: Type.Object({
-    cql: Type.String(),
-    limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 250, description: "Default: 25" })),
+  hints: READS,
+  parameters: Schema.Struct({
+    cql: Schema.String,
+    limit: Schema.optionalKey(Limit.annotate({ description: "Default: 25" })),
   }),
-  output: ContentResults,
-  run: (params) => searchContent(params.cql, params.limit),
+  success: ContentResults,
 });
 
-const children = jiraTool({
-  name: "confluence_children",
-  label: "Confluence: children",
+const Children = jiraTool("confluence_children", {
   description: "List the children of a Confluence page or folder.",
-  readOnly: true,
-  parameters: Type.Object({
-    id: Type.String({ description: "The page or folder ID" }),
-    limit: Limit,
+  hints: READS,
+  parameters: Schema.Struct({
+    id: Schema.String.annotate({ description: "The page or folder ID" }),
+    limit: Schema.optionalKey(Limit),
   }),
-  output: ContentResults,
-  run: (params) => listChildren(params.id, params.limit),
+  success: ContentResults,
 });
 
-const page = jiraTool({
-  name: "confluence_page",
-  label: "Confluence: read page",
+const Page = jiraTool("confluence_page", {
   description:
     "Read a Confluence page as Markdown. Tables stay tables, Mermaid diagrams become mermaid code blocks, links to pages become [[Page Title]], and mentions become @Name. Pages are long: filter the markdown in the script, or write it to a file, before you show it.",
-  readOnly: true,
-  parameters: Type.Object({
-    page: Type.String({ description: "A page ID or a page URL" }),
+  hints: READS,
+  parameters: Schema.Struct({
+    page: Schema.String.annotate({ description: "A page ID or a page URL" }),
   }),
-  output: Type.Object({
-    id: Type.String(),
-    title: Type.String(),
-    url: Type.String(),
-    markdown: Type.String(),
+  success: Schema.Struct({
+    id: Schema.String,
+    title: Schema.String,
+    url: Schema.String,
+    markdown: Schema.String,
   }),
-  run: (params) => readPage(params.page),
 });
 
 /** The Confluence tools. */
-export const CONFLUENCE_TOOLS = [search, children, page];
+export const ConfluenceTools = Toolkit.make(Search, Children, Page);
+
+/** The handlers of {@link ConfluenceTools}. */
+export const ConfluenceHandlers = ConfluenceTools.toLayer({
+  confluence_search: (params) => searchContent(params.cql, params.limit),
+  confluence_children: (params) => listChildren(params.id, params.limit),
+  confluence_page: (params) => readPage(params.page),
+});
