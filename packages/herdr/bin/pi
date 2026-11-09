@@ -1,0 +1,7 @@
+#!/bin/zsh -l
+# Starts pi in a login zsh. Use it as the program of `hc run`.
+#
+# hc starts a program with the environment of the herdr-core daemon. launchd starts the daemon, so
+# that environment does not have the variables from .zshenv and .zprofile (for example PATH and
+# JIRA_API_KEY). This script loads them first. Its name is `pi` so that hc finds the pi status.
+exec pi "$@"

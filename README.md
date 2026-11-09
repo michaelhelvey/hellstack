@@ -71,15 +71,20 @@ As a result, hellstack is structured in the following way:
 terminals. Reports from subagents arrive in the parent as messages, so the parent does not poll.
 Subagents show in the herdr-app window, in one space for the folder of the top agent.
 
-The tools work only when pi runs in an hc terminal. These zsh functions start pi in hc:
+The tools work only when pi runs in an hc terminal. These zsh functions start pi in hc. hc starts a
+program with the environment of its launchd daemon, not of your shell, so they start pi through
+`packages/herdr/bin/pi`. It loads `.zshenv` and `.zprofile` (PATH, `JIRA_API_KEY`, and other
+secrets) in a login zsh. Subagents get the environment of their parent.
 
 ```zsh
+hcpi="$HOME/dev/helvetici/hellstack/packages/herdr/bin/pi"
+
 # pi in an hc terminal. Closing the pane ends pi and its subagents; ctrl+\ detaches.
 hpi() {
   emulate -L zsh
   setopt localtraps
   local id
-  id=$(hc run --bg --json pi "$@" | jq -r .address) || return
+  id=$(hc run --bg --json $hcpi "$@" | jq -r .address) || return
   trap "hc kill $id >/dev/null 2>&1" HUP TERM
   hc attach "$id"
 }
@@ -91,7 +96,7 @@ coord() {
   local name=${1:-coordinator}
   [[ $(hc get "$name" --json 2>/dev/null | jq -r .state) == live ]] ||
     hc run --bg --name "$name" --label hellstack.show=1 \
-      pi --append-system-prompt ~/.pi/agent/COORDINATOR.md >/dev/null || return
+      $hcpi --append-system-prompt ~/.pi/agent/COORDINATOR.md >/dev/null || return
   hc attach "$name"
 }
 ```

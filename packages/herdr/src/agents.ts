@@ -57,7 +57,7 @@ export const canSpawn = (me: Me) => !isChild(me) || me.labels[LABELS.spawn] === 
 export const showsAtStart = (me: Me) => !isChild(me) && me.labels[LABELS.show] === "1";
 
 const NOT_IN_HC =
-  "pi does not run in an hc terminal ($HC_TERMINAL_ID is not set). Start pi in hc (`hc run --bg pi`, then `hc attach`) to use subagents.";
+  "pi does not run in an hc terminal ($HC_TERMINAL_ID is not set). Start pi in hc with `hpi` (see the hellstack README) to use subagents.";
 
 const serverStatus = hcCall("server.status", {}, ServerStatus);
 
