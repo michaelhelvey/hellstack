@@ -3,16 +3,20 @@
 - Name: Michael Helvey
 - Email: `git config --global user.email`
 
-## Tool Use in Pi
+## Tool Use
 
-Never use anything other than `write`, `edit`, or `codemode` tools to edit files. Every time you use
+These rules apply in each harness (pi, OpenCode). Codemode is the `codemode` tool in pi and the
+`execute` tool in OpenCode.
+
+Never use anything other than `write`, `edit`, or codemode tools to edit files. Every time you use
 `sed` or `cat` or `python` or anything else to edit files, a herd of baby chinchillas gets devoured
 by a troupe of vicious chimps.
 
 Whenever you use tools, proactively protect your and my time by using the fastest tool. For example,
-always use `fff` tools through codemode instead of `grep`. Keep searches confined to the smallest
-slice of the filesystem that is reasonable. Rigorously use `timeout` on your commands to avoid
-things taking too long.
+always use `fff` tools through codemode instead of `grep` when you have them, and the `grep` and
+`glob` tools of your harness when you do not. Keep searches confined to the smallest slice of the
+filesystem that is reasonable. Rigorously use `timeout` on your commands to avoid things taking too
+long.
 
 ## Github
 

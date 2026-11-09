@@ -11,43 +11,56 @@ disable-model-invocation: true
 
 ## Tools
 
-The JIRA and Confluence tools are in the `jira` namespace. They are deferred: they are not in your
-tool list, and you call them only from `codemode` scripts. Before your first call in a session, get
-their declarations:
+The JIRA and Confluence tools are on the `jira` MCP server. They are not in your tool list: you call
+them only from codemode scripts. The codemode tool, the name of a tool, and its result are different
+in each harness:
+
+| Harness  | Codemode   | Call                            | Result                                                                                                                     |
+| -------- | ---------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| pi       | `codemode` | `tools.mcp__jira__<name>(args)` | The MCP result. The value is in `structuredContent`. On an error, `isError` is true and `content[0].text` has the message. |
+| OpenCode | `execute`  | `tools.jira.<name>(args)`       | The value. An error throws.                                                                                                |
+
+Before your first call in a session, get the declarations of the tools: in pi with
+`describeNamespace("mcp__jira")`, and in OpenCode with `search({ namespace: "jira" })`.
+
+Filter and join the results in the script, and return only what you need. In pi:
 
 ```js
-const ns = await describeNamespace("jira");
-return ns;
+const result = await tools.mcp__jira__search({
+  jql: "assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC",
+});
+if (result.isError) return result.content[0].text;
+const { issues } = result.structuredContent;
+return issues.map((i) => `${i.key}\t${i.status}\t${i.summary}`).join("\n");
 ```
 
-Then call them as `tools.<name>(args)`. Each tool resolves to a structured object, so filter and
-join the results in the script, and return only what you need:
+In OpenCode:
 
 ```js
-const { issues } = await tools.jira_search({
+const { issues } = await tools.jira.search({
   jql: "assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC",
 });
 return issues.map((i) => `${i.key}\t${i.status}\t${i.summary}`).join("\n");
 ```
 
-| Tool                                               | Use for                                                     |
-| -------------------------------------------------- | ----------------------------------------------------------- |
-| `jira_whoami`                                      | The site and the account that the tools use.                |
-| `jira_search`                                      | JQL searches across all projects.                           |
-| `jira_issue`                                       | Read one issue: description, Acceptance Criteria, comments. |
-| `jira_create_issue`, `jira_update_issue`           | Create and edit issues.                                     |
-| `jira_transition`, `jira_comment`                  | Move an issue to a status. Add a comment.                   |
-| `jira_log_work`, `jira_worklog_day`                | Log time. "What did I log time to on \<day\>?"              |
-| `jira_fields`                                      | Find the ID of a field from its name.                       |
-| `jira_boards`, `jira_sprints`, `jira_board_issues` | Boards, sprints, and the issues of a board.                 |
-| `jira_ops_epics`                                   | Find the current operations epics. See [Ops tasks](#ops).   |
-| `jira_kpi_*`                                       | Weekly KPIs. See [Weekly KPIs](#kpi).                       |
-| `confluence_search`, `confluence_children`         | Find Confluence pages. See [Confluence](#confluence).       |
-| `confluence_page`                                  | Read a Confluence page as Markdown.                         |
-| `jira_request`                                     | A REST API call that no other tool does.                    |
+| Tool                                       | Use for                                                     |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| `whoami`                                   | The site and the account that the tools use.                |
+| `search`                                   | JQL searches across all projects.                           |
+| `issue`                                    | Read one issue: description, Acceptance Criteria, comments. |
+| `create_issue`, `update_issue`             | Create and edit issues.                                     |
+| `transition`, `comment`                    | Move an issue to a status. Add a comment.                   |
+| `log_work`, `worklog_day`                  | Log time. "What did I log time to on \<day\>?"              |
+| `fields`                                   | Find the ID of a field from its name.                       |
+| `boards`, `sprints`, `board_issues`        | Boards, sprints, and the issues of a board.                 |
+| `ops_epics`                                | Find the current operations epics. See [Ops tasks](#ops).   |
+| `kpi_*`                                    | Weekly KPIs. See [Weekly KPIs](#kpi).                       |
+| `confluence_search`, `confluence_children` | Find Confluence pages. See [Confluence](#confluence).       |
+| `confluence_page`                          | Read a Confluence page as Markdown.                         |
+| `request`                                  | A REST API call that no other tool does.                    |
 
-Use `jira_request` only when no other tool does the job, for example to delete a worklog or to add
-an issue link. Its path is relative to the site. On an HTTP error, show the status and the error
+Use `request` only when no other tool does the job, for example to delete a worklog or to add an
+issue link. Its path is relative to the site. On an HTTP error, show the status and the error
 message to the user.
 
 ### Credentials
@@ -60,10 +73,11 @@ The tools read the credentials on the first call:
 
 If a tool says that there is no token, stop and tell the user to set `JIRA_API_TOKEN`. If a tool
 says that the site does not accept the credentials, ask the user for the site URL, and tell them to
-set `JIRA_BASE_URL` and restart pi.
+set `JIRA_BASE_URL` and restart the harness (for OpenCode: `opencode service restart`).
 
-If `describeNamespace("jira")` gives `undefined`, codemode cannot reach the tools. Tell the user to
-add `"defaultTools": ["+codemode"]` to the pi settings.
+If codemode cannot find the tools, the `jira` MCP server is not connected. Tell the user to run
+`bun run setup` in the hellstack repository, and to check the server with `pi mcp list` or
+`opencode mcp list`.
 
 <a id="memory"></a>
 
@@ -77,7 +91,7 @@ continue without it.
 
 Use the memory to find the scope of a request. For example, "what do I have this sprint" means the
 active sprint on the boards in the memory file. If there are no boards in the memory file, search
-across all projects with `jira_search`, and ask the user if they want to save a board.
+across all projects with `search`, and ask the user if they want to save a board.
 
 ### Save to memory
 
@@ -85,8 +99,8 @@ When the user tells you to remember something (for example, "I am on a new proje
 board"), write it to the memory file. Create the file and its directory if they do not exist.
 
 For a board URL such as `<server>/jira/software/c/projects/<KEY>/boards/<ID>/...`, get the board
-data with `jira_boards({ id: <ID> })` before you save it. Use this format, and keep one line for
-each board:
+data with `boards({ id: <ID> })` before you save it. Use this format, and keep one line for each
+board:
 
 ```markdown
 ## Boards
@@ -107,33 +121,33 @@ Rules:
 
 ### Boards and sprints
 
-- `jira_sprints({ board })` gives the active sprint of a scrum board.
-- `jira_board_issues({ board, scope: "sprint", mine: true })` gives the user's issues in the open
+- `sprints({ board })` gives the active sprint of a scrum board.
+- `board_issues({ board, scope: "sprint", mine: true })` gives the user's issues in the open
   sprints. Remove `mine` for all issues in the sprint.
 - `scope: "backlog"` gives the backlog. A kanban board has no sprints: use `scope: "open"`.
 
 ## Fields
 
 Field IDs such as `customfield_12345` are different on each site. Do not write them into notes. Find
-a field with `jira_fields({ name })`. `jira_create_issue` and `jira_update_issue` accept field names
-in `fields`, for example `{ "Story Points": 3 }`. In JQL, use the field name in quotes, for example
+a field with `fields({ name })`. `create_issue` and `update_issue` accept field names in `fields`,
+for example `{ "Story Points": 3 }`. In JQL, use the field name in quotes, for example
 `"Business Category" = Operations`.
 
 ## Read an issue
 
 When you read an issue to understand the work (for example, the requirements of a story), always
 read the description **and** the Acceptance Criteria. Many stories have important details only in
-the Acceptance Criteria. `jira_issue` gives both as Markdown.
+the Acceptance Criteria. `issue` gives both as Markdown.
 
 ## Search
 
-`jira_search` takes JQL and searches across all projects. Boards come from `jira_boards`. A project
-can have more than one board.
+`search` takes JQL and searches across all projects. Boards come from `boards`. A project can have
+more than one board.
 
 ## Create an issue
 
-`jira_create_issue` sets the `parent` field, so the parent can be an epic in any project. Give the
-user the `url` of each issue that you create or change.
+`create_issue` sets the `parent` field, so the parent can be an epic in any project. Give the user
+the `url` of each issue that you create or change.
 
 ## Time tracking and sub-tasks
 
@@ -145,9 +159,9 @@ We must track time on our work.
 - The original estimate of each new issue is `10h`, unless the user gives a different value. Do not
   estimate time yourself. We do not use the estimate, but JIRA does not let an issue go to In
   Progress without it.
-- `jira_log_work` uses the time zone of the JIRA account for times without an offset.
-- `jira_worklog_day` does not list Accounted or Removed tasks (see [Statuses](#statuses)). It gives
-  their count and time in `hidden`, and the total includes them.
+- `log_work` uses the time zone of the JIRA account for times without an offset.
+- `worklog_day` does not list Accounted or Removed tasks (see [Statuses](#statuses)). It gives their
+  count and time in `hidden`, and the total includes them.
 
 <a id="ops"></a>
 
@@ -166,8 +180,8 @@ goals, reviews, and support.
 
 ### Find the ops epic
 
-The current ops epic changes over time. Find it each time with `jira_ops_epics`. Do not remember it
-from an earlier session, and do not guess it from a name.
+The current ops epic changes over time. Find it each time with `ops_epics`. Do not remember it from
+an earlier session, and do not guess it from a name.
 
 The tool gives open epics with `"Business Category" = Operations`, the most relevant first:
 
@@ -179,7 +193,7 @@ The tool gives open epics with `"Business Category" = Operations`, the most rele
 
 ### Create an ops task
 
-1. Run `jira_ops_epics`.
+1. Run `ops_epics`.
 2. Ask the user which ops epic to use, unless they already told you the team, board, or epic (also
    in the memory file). Show each choice as board name, epic key, and epic summary. Recommend the
    first epic. If a summary names a past month or quarter, tell the user that the epic can be old.
@@ -202,17 +216,17 @@ The tools find KPIs from the "Week 1" sub-tasks that are assigned to the user. N
 project, the issue types, and the number of weeks from the newest KPI of the user. There is no KPI
 template issue.
 
-| Tool              | Gives or does                                                            |
-| ----------------- | ------------------------------------------------------------------------ |
-| `jira_kpi_info`   | The source of new KPIs, its project, and the weeks of a new KPI.         |
-| `jira_kpi_rocks`  | The open KPI epics (the parents of KPIs), with their quarterly rocks.    |
-| `jira_kpi_list`   | The user's KPIs and the result of each week.                             |
-| `jira_kpi_create` | Makes a KPI and its weeks under a KPI epic. `dryRun: true` gives a plan. |
-| `jira_kpi_update` | Sets the result of one week (default: the current week), with notes.     |
+| Tool         | Gives or does                                                            |
+| ------------ | ------------------------------------------------------------------------ |
+| `kpi_info`   | The source of new KPIs, its project, and the weeks of a new KPI.         |
+| `kpi_rocks`  | The open KPI epics (the parents of KPIs), with their quarterly rocks.    |
+| `kpi_list`   | The user's KPIs and the result of each week.                             |
+| `kpi_create` | Makes a KPI and its weeks under a KPI epic. `dryRun: true` gives a plan. |
+| `kpi_update` | Sets the result of one week (default: the current week), with notes.     |
 
-- `jira_kpi_create` assigns the KPI and its weeks to the user, and moves the KPI to In Progress. The
-  due dates are weekly from the first Friday of the quarter. `firstDue` sets the due date of week 1.
-- In `jira_kpi_list`, `grid` has one character for each week: `Y` (Yes), `N` (No), `!` (a past week
+- `kpi_create` assigns the KPI and its weeks to the user, and moves the KPI to In Progress. The due
+  dates are weekly from the first Friday of the quarter. `firstDue` sets the due date of week 1.
+- In `kpi_list`, `grid` has one character for each week: `Y` (Yes), `N` (No), `!` (a past week
   without a result), and `.` (not due yet). `missing` lists the past weeks without a result.
   `thisWeek` is the week that is due next.
 - The current week is the first week with a due date on or after today. If the user tells you about
@@ -220,22 +234,21 @@ template issue.
 
 ### Create a KPI
 
-1. Run `jira_kpi_rocks`. Ask the user which KPI epic the KPI goes under, unless they told you. Show
-   the key, the summary, and the quarterly rock (`initiative`).
+1. Run `kpi_rocks`. Ask the user which KPI epic the KPI goes under, unless they told you. Show the
+   key, the summary, and the quarterly rock (`initiative`).
 2. Get the KPI text from the user. Do not write it yourself.
-3. Run `jira_kpi_create` with `dryRun: true`, and show the plan to the user, with the due dates. Run
-   it without `dryRun` after the user agrees.
+3. Run `kpi_create` with `dryRun: true`, and show the plan to the user, with the due dates. Run it
+   without `dryRun` after the user agrees.
 4. Give the user the new key and the link.
 
 ### Update a KPI
 
-Run `jira_kpi_list` first. Tell the user about the weeks in `missing`.
+Run `kpi_list` first. Tell the user about the weeks in `missing`.
 
 Ask the user for the result of each week (Yes or No) and for notes, unless they told you. Do not
 guess a result from other work. Confirm the KPI, the week, and the result with the user before you
-run `jira_kpi_update`. The tool does not change a week that already has the other result. To fix a
-wrong result, move the week back to "Open" with `jira_transition` after the user agrees, and then
-set it again.
+run `kpi_update`. The tool does not change a week that already has the other result. To fix a wrong
+result, move the week back to "Open" with `transition` after the user agrees, and then set it again.
 
 ## Fields that you must not change
 
@@ -261,10 +274,10 @@ Backlog, New, To Do, In Progress, Ready for Release, Done, Removed, and Accounte
 
 Rules:
 
-1. Do not show Accounted or Removed issues to the user. `jira_search` and `jira_board_issues` leave
-   them out, and give the number that they left out. Do not use `includeHidden` unless the user asks
-   for these issues.
-2. Do not move an issue to Accounted. `jira_transition` refuses it.
+1. Do not show Accounted or Removed issues to the user. `search` and `board_issues` leave them out,
+   and give the number that they left out. Do not use `includeHidden` unless the user asks for these
+   issues.
+2. Do not move an issue to Accounted. `transition` refuses it.
 3. When the user asks about "my tasks" or "current tasks", show only issues that are not in the Done
    category.
 
@@ -293,8 +306,8 @@ not use a web fetch tool, because the pages need authentication.
 - **Other macros** without text become `[<name> macro]`.
 
 Pages are often long. Do not put the full page into your context. In the script, keep only the
-sections that you need, or write the page to a scratch file with `tools.write` and then use `grep`
-to find the terms that you need.
+sections that you need. In pi, you can also write the page to a scratch file with `tools.write`, and
+then use `grep` to find the terms that you need.
 
 ### Search
 

@@ -31,8 +31,8 @@ If the line above is empty or shows a literal placeholder, read the arguments fr
 that comes after this skill.
 
 Find the target: a project-local skill whose body has launch, environment, and drive sections and a
-feature map, usually `.agents/skills/verify-*/` (also look in `.pi/skills/`, `.claude/skills/`, and
-`.cursor/skills/`).
+feature map, usually `.agents/skills/verify-*/` (also look in `.pi/skills/`, `.opencode/skills/`,
+`.claude/skills/`, and `.cursor/skills/`).
 
 - No target, or the user says `create`: do [Create](#create).
 - One target, or the user says `maintain`: do [Maintain](#maintain).
@@ -164,8 +164,8 @@ Get these answers from the codebase. Ask the user only for what you cannot see.
 - **Access.** How does an agent get in? Find the auth flow and test accounts for the site, the
   database clients and connection paths, the cloud CLI profiles, the log and error tracker queries,
   and the network prerequisites. Look for existing skills, scripts, and docs on the machine that
-  already do this (for example a database skill in `~/.pi/agent/skills/`). Link to them. Do not copy
-  them.
+  already do this (for example a database skill in `~/.pi/agent/skills/`,
+  `~/.config/opencode/skills/`, or `~/.agents/skills/`). Link to them. Do not copy them.
 - **Drive.** How can an agent use the app? Use existing harnesses first: Playwright or Cypress
   specs, expect scripts, PTY helpers, endpoints that curl can call, a debug port. Then pick a
   generic recipe: a browser or CDP for web and Electron, tmux or a PTY for a CLI or TUI, HTTP for
