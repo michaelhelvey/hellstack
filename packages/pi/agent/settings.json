@@ -1,4 +1,5 @@
 {
   "quietStartup": true,
+  "defaultTools": ["+codemode"],
   "packages": ["npm:@ff-labs/pi-fff"]
 }
