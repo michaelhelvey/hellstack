@@ -3,6 +3,9 @@
   "agents": {
     "plan": { "disabled": true }
   },
+  "permission": {
+    "external_directory": "allow"
+  },
   "commands": {
     "review": {
       "description": "Review with the hellstack review skill [level] [--fix] [target or guidance]",
