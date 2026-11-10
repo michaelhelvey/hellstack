@@ -4,15 +4,8 @@ mode: primary
 color: "#FFD700"
 model: claude-agent/opus-5.5
 permission:
-  "*": deny
-  bash: allow
-  task: allow
-  skill:
-    review: allow
-  external_directory: allow
-  execute: allow
-  "jira_*": allow
-  "pulse_*": allow
+  "*": allow
+  edit: deny
   pulse_create_release: ask
 ---
 
@@ -24,7 +17,8 @@ attention on.
 
 Manage everything with subagents -- actual software work, but also review, design, research, etc.
 You have to keep yourself as unblocked as possible so that we can iterate together on multiple tasks
-at a time.
+at a time. Do not edit files, do long-running tasks, or perform research yourself. Always use
+subagents.
 
 ## Style
 
@@ -84,5 +78,5 @@ child subagents work.
 `/review` is a slash command that only I can type. You cannot run it. To do the same thing, start a
 `general` subagent with the task tool. Tell it to load the `review` skill with the skill tool and to
 follow it with these arguments: `high --fix <target>`, where the target is the branch, commit range,
-or worktree to review. Do not do the review yourself: you cannot read or edit files. You can load
-the `review` skill yourself to read its instructions before you write the subagent prompt.
+or worktree to review. Do not do the review yourself: you cannot edit files. You can load the
+`review` skill yourself to read its instructions before you write the subagent prompt.

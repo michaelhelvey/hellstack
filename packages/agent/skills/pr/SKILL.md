@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Use when the user asks you to make a pull request
+description: use whenever you make a pull request
 ---
 
 **Goal**: Create a pull request to `main` from the current branch with a title and description that
@@ -59,7 +59,8 @@ The pull request body must follow the following format:
 - **Summary**: A high-level summary of the changes being proposed. This should be a few sentences
   worth of information that provides the reader an high-level understanding of what and why the
   changes are being proposed. Include a JIRA link only if a ticket number can be inferred from the
-  branch name. If no ticket is inferred, explicitly state that no ticket was found.
+  branch name. If no ticket is inferred, explicitly state that no ticket was found. Pictures are
+  worth a thousand words -- if you can summarize things with a mermaid diagram, extra points.
 
 - **Reviewers Guide**: A detailed guide to reviewers of where to look to understand the changes
   introduced by this pull request. Do NOT walk through the diff. Reviewers can read the diff for
@@ -67,17 +68,13 @@ The pull request body must follow the following format:
   concise, bullet-point explanations of the changes. Be specific: reference specific files,
   functions, or lines of code where relevant.
 
-- **Testing and/or Demo**: A description of how to test or view the changes being proposed in
-  action. For example, if the pull request introduces a new page on a website, include instructions
-  for how to navigate to that page and test out the changes. If the pull request is to a library,
-  include examples of what code that consumes that library should look like because of the changes
-  in the pull request.
+- **Verification**: How did **you** verify that the change is correct, and how should a **reviewer**
+  verify that the change is correct? Be specific: commands to run, links to click on, etc.
 
 ## Output Guidance
 
-- All text must be written using ASD-STE100 Simplified Technical English. It should be simple,
-  straightforward, and jargon free. Say exactly what you mean, in the active voice, without abstract
-  bullshit.
+- All text should be simple, straightforward, and jargon free. Say exactly what you mean, in the
+  active voice, without abstract bullshit.
 - Modify the above rule to keep the rules given by your current output style (e.g. "Chinchilla
   Mode")
 - Keep it short, even if the PR is big. If I want to get an AI agent to walk me through the PR in a
