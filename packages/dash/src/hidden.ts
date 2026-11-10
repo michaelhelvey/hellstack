@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Layer, Path, Schema } from "effect";
+import { Context, Effect, FileSystem, Layer, Path, Schema, Semaphore } from "effect";
 import { DashError } from "./item.ts";
 
 const HiddenIds = Schema.fromJsonString(Schema.Array(Schema.String));
@@ -52,14 +52,17 @@ export class HiddenStore extends Context.Service<
           });
 
         const guard = wrap(file);
+        const lock = yield* Semaphore.make(1);
 
         return HiddenStore.of({
           list: guard(read),
           hide: (id) =>
-            guard(Effect.flatMap(read, (ids) => write(new Set([...ids, id])))).pipe(
-              Effect.tap(() => Effect.logInfo("hid issue", id)),
-            ),
-          clear: guard(write(new Set())).pipe(Effect.tap(() => Effect.logInfo("cleared hidden"))),
+            guard(
+              lock.withPermit(Effect.flatMap(read, (ids) => write(new Set([...ids, id])))),
+            ).pipe(Effect.tap(() => Effect.logInfo("hid issue", id))),
+          clear: guard(lock.withPermit(write(new Set()))).pipe(
+            Effect.tap(() => Effect.logInfo("cleared hidden")),
+          ),
         });
       }),
     );

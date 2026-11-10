@@ -68,6 +68,20 @@ test("hidden ids persist across store instances until clear", async () => {
   expect(JSON.parse(await readFile(file, "utf8"))).toEqual([]);
 });
 
+test("concurrent hides keep all ids", async () => {
+  const file = await tempFile();
+  const ids = ["1", "2", "3", "4", "5"];
+
+  await run(
+    file,
+    Effect.flatMap(Effect.service(HiddenStore), (store) =>
+      Effect.forEach(ids, store.hide, { concurrency: "unbounded" }),
+    ),
+  );
+
+  expect([...(await run(file, list))].toSorted()).toEqual(ids);
+});
+
 test("a file that is not a list of ids fails with the path in the message", async () => {
   const file = await tempFile();
   await run(
