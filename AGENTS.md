@@ -22,6 +22,11 @@ mean this repository, NOT ~/dev/helvetici/hellstack. We'll rename this later.
 - `packages/opencode`: the OpenCode config (`opencode.json`) and TUI settings (`cli.json`).
 - `packages/jira`: the Jira and Confluence MCP server (`src/mcp.ts`). Both harnesses start it from
   their MCP config, and call its tools from codemode.
+- `packages/dash`: the `bun whatsgoingon` TUI dashboard of GitHub notifications and recent Sentry
+  issues (OpenTUI + Solid). It gets data with the `gh` and `sentry` CLIs. `bun whatsgoingon --dump`
+  prints the items as JSON and does not start the TUI: use it to check the data layer against the
+  real APIs. Logs go to `~/.local/state/hellstack/dash/dash.log`. The `.tsx` files need the Solid
+  transform (`src/preload.ts`): the root script and `bunfig.toml` (for tests) load it.
 
 ## General Rules
 

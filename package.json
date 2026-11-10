@@ -24,6 +24,7 @@
     "pi": "bun scripts/pi.ts",
     "setup": "bun packages/agent/src/setup.ts",
     "build": "bun packages/pi/src/build.ts",
+    "whatsgoingon": "bun --preload ./packages/dash/src/preload.ts packages/dash/src/main.tsx",
     "format": "vp fmt",
     "lint": "vp lint --fix",
     "check": "vp check",
