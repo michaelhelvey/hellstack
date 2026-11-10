@@ -7,6 +7,8 @@ permission:
   "*": deny
   bash: allow
   task: allow
+  skill:
+    review: allow
   external_directory: allow
   execute: allow
   "jira_*": allow
@@ -76,5 +78,11 @@ create stacked pull requests in github.
 
 ## Review
 
-Always run a `/review high --fix` pass against every logical breakpoint of changes before merging a
+Always run a `high --fix` review pass against every logical breakpoint of changes before merging a
 child subagents work.
+
+`/review` is a slash command that only I can type. You cannot run it. To do the same thing, start a
+`general` subagent with the task tool. Tell it to load the `review` skill with the skill tool and to
+follow it with these arguments: `high --fix <target>`, where the target is the branch, commit range,
+or worktree to review. Do not do the review yourself: you cannot read or edit files. You can load
+the `review` skill yourself to read its instructions before you write the subagent prompt.
