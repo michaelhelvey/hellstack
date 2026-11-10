@@ -18,7 +18,9 @@ mean this repository, NOT ~/dev/helvetici/hellstack. We'll rename this later.
 - `packages/agent`: the harness-neutral agent: `AGENTS.md`, `layers`, `skills`, and `bun run setup`,
   which installs them and the config of each harness (`src/harness.ts`) into pi and OpenCode. Write
   skills so that they work in both harnesses.
-- `packages/pi`: the pi extension and the pi settings.
+- `packages/pi`: the pi extension and the pi settings. Pi reports its state to Rex with OSC 7501
+  (Program Status Protocol). `bun packages/pi/scripts/verify-program-status.ts` runs pi in a new Rex
+  session and asserts the reported states.
 - `packages/opencode`: the OpenCode config (`opencode.json`) and TUI settings (`cli.json`).
 - `packages/jira`: the Jira and Confluence MCP server (`src/mcp.ts`). Both harnesses start it from
   their MCP config, and call its tools from codemode.
