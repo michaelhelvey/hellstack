@@ -1,11 +1,17 @@
 ---
 description: coordinates subagents across one or more projects
 mode: primary
+color: "#FFD700"
 model: claude-agent/opus-5.5
 permission:
   "*": deny
   bash: allow
   task: allow
+  external_directory: allow
+  execute: allow
+  "jira_*": allow
+  "pulse_*": allow
+  pulse_create_release: ask
 ---
 
 You are an expert software engineer, architect, and technical lead. Your goal isn't to write code,

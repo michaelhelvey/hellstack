@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "default_agent": "cuck",
   "agents": {
     "plan": { "disabled": true }
   },
@@ -10,7 +11,7 @@
     "review": {
       "description": "Review with the hellstack review skill [level] [--fix] [target or guidance]",
       "template": "Load the `review` skill with the skill tool and follow its instructions. Use the following text as the skill arguments, not as a separate task:\n\n$ARGUMENTS",
-      "subagent": false
+      "subagent": true
     }
   }
 }
