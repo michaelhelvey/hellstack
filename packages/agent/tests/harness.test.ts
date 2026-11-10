@@ -49,16 +49,14 @@ beforeAll(async () => {
     path.join(agents, "reviewer.md"),
     "---\ndescription: Reviews changes\nmode: primary\n---\nReview changes without editing files.\n",
   );
+  const opencodeHarness = opencode(path.join(env.XDG_CONFIG_HOME, "opencode"), servers);
   await Effect.runPromise(
     setup.pipe(
       Effect.provideService(SetupEnv, {
         sourceDir: path.resolve(import.meta.dir, ".."),
         harnesses: [
           pi(env.PI_CODING_AGENT_DIR, servers),
-          {
-            ...opencode(path.join(env.XDG_CONFIG_HOME, "opencode"), servers),
-            directories: { agents },
-          },
+          { ...opencodeHarness, directories: { ...opencodeHarness.directories, agents } },
         ],
         username: "nobody",
       }),
@@ -78,7 +76,7 @@ test.skipIf(Bun.which("pi") === null)("pi connects to the jira MCP server", asyn
 });
 
 test.skipIf(Bun.which("opencode") === null)(
-  "opencode connects to jira, disables plan, and loads installed primary agents",
+  "opencode connects to jira, disables plan, and loads installed agents and commands",
   async () => {
     const port = 40_000 + Math.floor(Math.random() * 20_000);
     const server = Bun.spawn(["opencode", "serve", "--port", String(port)], {

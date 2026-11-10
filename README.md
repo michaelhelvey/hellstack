@@ -26,7 +26,8 @@ The command is idempotent, so you can run it as many times as you like.
 
 OpenCode's `/review` command uses the hellstack `review` skill instead of the built-in review
 prompt. For example, `/review high --fix` uses the high effort level and applies fixes. The command
-runs in the current session. The skill selects when to use a subagent.
+runs in a subagent session, so the review does not fill the context of the current session. The
+command is in `packages/opencode/commands/review.md`.
 
 ## About
 
@@ -95,3 +96,27 @@ Review the current changes for bugs and regressions. Do not edit files.
 
 The file name is the agent ID. For example, `reviewer.md` defines `reviewer`. OpenCode reloads the
 installed files after setup. Use `/reload` if the list does not update.
+
+### OpenCode commands
+
+Add custom slash commands as Markdown files in `packages/opencode/commands/`, then run
+`bun run setup` to copy them to `~/.config/opencode/commands/` (or the configured OpenCode config
+folder). Setup updates files with the same name and keeps other installed commands. To remove or
+rename a command, also remove its old installed file.
+
+The frontmatter can set `description`, `agent`, `model`, and `subagent`. The body is the prompt
+template. `$ARGUMENTS` is all of the command arguments, and `$1`, `$2`, and so on are single
+arguments:
+
+```md
+---
+description: Explain a file [path]
+subagent: false
+---
+
+Explain what $1 does. Do not edit files.
+```
+
+The file path in `commands/`, without `.md`, is the command name. For example, `explain.md` defines
+`/explain`. In the same config folder, a Markdown command replaces an `opencode.json` command with
+the same name. A project config replaces a global command with the same name.

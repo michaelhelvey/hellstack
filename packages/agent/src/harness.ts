@@ -1,3 +1,4 @@
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { JIRA_SERVER } from "@michaelhelvey/hellstack-jira";
 import opencodeCliConfig from "@michaelhelvey/hellstack-opencode/cli.json" with { type: "json" };
@@ -37,6 +38,10 @@ export const localServers = (bun: string): Readonly<Record<string, LocalServer>>
   },
 });
 
+const OPENCODE_PACKAGE_DIR = path.dirname(
+  fileURLToPath(import.meta.resolve("@michaelhelvey/hellstack-opencode/opencode.json")),
+);
+
 const mapValues = <A, B>(record: Readonly<Record<string, A>>, f: (value: A) => B) =>
   Object.fromEntries(Object.entries(record).map(([key, value]) => [key, f(value)]));
 
@@ -67,7 +72,8 @@ export const pi = (dir: string, servers: Readonly<Record<string, LocalServer>>):
 
 /**
  * OpenCode: the hellstack config and the MCP servers in `opencode.json`, and the TUI settings in
- * `cli.json`. OpenCode gives MCP tools Code Mode exposure, so they cost no context.
+ * `cli.json`, and the custom agents and commands in `agents` and `commands`. OpenCode gives MCP tools
+ * Code Mode exposure, so they cost no context.
  *
  * @example
  * ```ts
@@ -78,9 +84,8 @@ export const opencode = (dir: string, servers: Readonly<Record<string, LocalServ
   name: "opencode",
   dir,
   directories: {
-    agents: fileURLToPath(
-      new URL("./agents", import.meta.resolve("@michaelhelvey/hellstack-opencode/opencode.json")),
-    ),
+    agents: path.join(OPENCODE_PACKAGE_DIR, "agents"),
+    commands: path.join(OPENCODE_PACKAGE_DIR, "commands"),
   },
   configs: {
     "opencode.json": {

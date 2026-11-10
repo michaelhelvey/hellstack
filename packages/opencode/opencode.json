@@ -6,12 +6,5 @@
   },
   "permission": {
     "external_directory": "allow"
-  },
-  "commands": {
-    "review": {
-      "description": "Review with the hellstack review skill [level] [--fix] [target or guidance]",
-      "template": "Load the `review` skill with the skill tool and follow its instructions. Use the following text as the skill arguments, not as a separate task:\n\n$ARGUMENTS",
-      "subagent": true
-    }
   }
 }
