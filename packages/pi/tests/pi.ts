@@ -71,14 +71,14 @@ export class PiSandbox {
 
   /** Starts pi in interactive mode in a pseudo-terminal, with the fake model. */
   tui(): TuiPi {
-    const pi = new TuiPi(this.#command(), this.workDir, this.#env(), FAKE_MODEL);
+    const pi = new TuiPi(this.command(), this.workDir, this.env(), FAKE_MODEL);
     this.#running.push(pi);
     return pi;
   }
 
   /** Starts pi in RPC mode with the fake model. `env` adds environment variables. */
   rpc(env: Record<string, string> = {}): RpcPi {
-    const pi = new RpcPi(this.#command(), this.workDir, { ...this.#env(), ...env });
+    const pi = new RpcPi(this.command(), this.workDir, { ...this.env(), ...env });
     this.#running.push(pi);
     return pi;
   }
@@ -90,11 +90,13 @@ export class PiSandbox {
     await rm(this.root, { recursive: true, force: true });
   }
 
-  #command(): Array<string> {
+  /** The command that starts pi with the fake model. Run it in `workDir` with `env()`. */
+  command(): Array<string> {
     return ["pi", "--no-session", "--provider", FAKE_PROVIDER, "--model", FAKE_MODEL];
   }
 
-  #env(): Record<string, string> {
+  /** The environment that makes pi use the sandbox and not the files of the real user. */
+  env(): Record<string, string> {
     return {
       PATH: process.env.PATH ?? "",
       HOME: this.root,

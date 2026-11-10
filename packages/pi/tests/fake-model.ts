@@ -13,10 +13,11 @@ export interface FakeToolCall {
   readonly arguments: Record<string, unknown>;
 }
 
-/** One scripted reply of the fake model: text, or tool calls. */
+/** One scripted reply of the fake model: text, tool calls, or an HTTP 400 error. */
 export type FakeReply =
   | { readonly text: string }
-  | { readonly toolCalls: ReadonlyArray<FakeToolCall> };
+  | { readonly toolCalls: ReadonlyArray<FakeToolCall> }
+  | { readonly error: string };
 
 /** The name of the fake provider in `models.json`. */
 export const FAKE_PROVIDER = "fake";
@@ -43,7 +44,7 @@ const toolCallChunk = (call: FakeToolCall, index: number) =>
     ],
   });
 
-const toSse = (reply: FakeReply) => {
+const toSse = (reply: Exclude<FakeReply, { error: string }>) => {
   const body =
     "text" in reply
       ? chunk({ role: "assistant", content: reply.text }) + chunk({}, "stop")
@@ -64,6 +65,9 @@ export class FakeModel {
     fetch: async (request) => {
       this.requests.push(RequestSchema.parse(await request.json()));
       const reply = this.#replies.shift() ?? { text: "The fake model has no scripted reply." };
+      if ("error" in reply) {
+        return Response.json({ error: { message: reply.error } }, { status: 400 });
+      }
       return new Response(toSse(reply), { headers: { "content-type": "text/event-stream" } });
     },
   });
@@ -81,6 +85,11 @@ export class FakeModel {
   /** Adds text replies. */
   reply(...texts: Array<string>): void {
     this.#replies.push(...texts.map((text) => ({ text })));
+  }
+
+  /** Adds an HTTP 400 error reply. Pi does not retry a 400 error, so it uses no other reply. */
+  fail(error: string): void {
+    this.#replies.push({ error });
   }
 
   /** Adds a reply with the tool calls, and then a final text reply. */
