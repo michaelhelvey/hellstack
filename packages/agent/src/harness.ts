@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { JIRA_SERVER } from "@michaelhelvey/hellstack-jira";
+import opencodeCliConfig from "@michaelhelvey/hellstack-opencode/cli.json" with { type: "json" };
 import opencodeConfig from "@michaelhelvey/hellstack-opencode/opencode.json" with { type: "json" };
 import { PACKAGE_DIR as PI_PACKAGE_DIR } from "@michaelhelvey/hellstack-pi/build";
 import piSettings from "@michaelhelvey/hellstack-pi/settings.json" with { type: "json" };
@@ -65,8 +66,8 @@ export const pi = (dir: string, servers: Readonly<Record<string, LocalServer>>):
 });
 
 /**
- * OpenCode: the hellstack config and the MCP servers in `opencode.json`. OpenCode gives MCP tools
- * Code Mode exposure, so they cost no context.
+ * OpenCode: the hellstack config and the MCP servers in `opencode.json`, and the TUI settings in
+ * `cli.json`. OpenCode gives MCP tools Code Mode exposure, so they cost no context.
  *
  * @example
  * ```ts
@@ -91,5 +92,6 @@ export const opencode = (dir: string, servers: Readonly<Record<string, LocalServ
         })),
       },
     },
+    "cli.json": opencodeCliConfig,
   },
 });

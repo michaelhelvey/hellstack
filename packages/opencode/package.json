@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./opencode.json": "./opencode.json"
+    "./opencode.json": "./opencode.json",
+    "./cli.json": "./cli.json"
   }
 }

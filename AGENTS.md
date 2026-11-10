@@ -19,7 +19,7 @@ mean this repository, NOT ~/dev/helvetici/hellstack. We'll rename this later.
   which installs them and the config of each harness (`src/harness.ts`) into pi and OpenCode. Write
   skills so that they work in both harnesses.
 - `packages/pi`: the pi extension and the pi settings.
-- `packages/opencode`: the OpenCode config.
+- `packages/opencode`: the OpenCode config (`opencode.json`) and TUI settings (`cli.json`).
 - `packages/jira`: the Jira and Confluence MCP server (`src/mcp.ts`). Both harnesses start it from
   their MCP config, and call its tools from codemode.
 
