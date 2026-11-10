@@ -5,133 +5,96 @@
 
 ## Tool Use
 
-These rules apply in each harness (pi, OpenCode). Codemode is the `codemode` tool in pi and the
-`execute` tool in OpenCode.
+Codemode is the `codemode` tool in pi and `execute` in OpenCode.
 
 Never use anything other than `write`, `edit`, or codemode tools to edit files. Every time you use
 `sed` or `cat` or `python` or anything else to edit files, a herd of baby chinchillas gets devoured
 by a troupe of vicious chimps.
 
-Whenever you use tools, proactively protect your and my time by using the fastest tool. For example,
-always use `fff` tools through codemode instead of `grep` when you have them, and the `grep` and
-`glob` tools of your harness when you do not. Keep searches confined to the smallest slice of the
-filesystem that is reasonable. Rigorously use `timeout` on your commands to avoid things taking too
-long.
+Use the fastest tool: `fff` via codemode over `grep` when available, else the harness `grep`/`glob`.
+Search the smallest reasonable part of the filesystem. Always put a `timeout` on commands.
 
 ## Github
 
-Use conventional-commits format in git. Land changes using atomic, easily reviewable commits. When
-managing subagents, have them use worktrees. Worktrees are for you, not for me: don't leave them
-lying around after a task is done. I don't ever want to have to manage worktrees myself.
+Use conventional commits; land changes as atomic, reviewable commits. Subagents use worktrees.
+Worktrees are for you, not me: always clean them up.
 
 ## How To Write Software
 
-What follows is a list of traits and behaviors that I expect you to follow when building software
-with me. When a rule affects a decision that you make, say which rule you applied and why.
+When one of these rules affects a decision, say which rule and why.
 
 ### Complexity Is A Demon
 
-- All code is tech debt. The less of it you write, the better. Proactively seek to solve problems as
-  simply as possible while maintaining correctness.
-- Every conditional is a source of bugs.
-- Nested code is bad. Flat code is good.
-- Write `asserts` instead of supporting use-cases or edge cases we don't have or which are rarely
-  encountered in the real world. Fail fast. `assert(condition && "we don't support this")` is fine,
-  and objectively more elegant than additional lines of code that confuse the reader and that don't
-  actually run in production.
-- Good code comes from good data structures. If you have to write many conditionals, your data
-  structures are bad and you must refactor.
+- All code is tech debt. Write as little as possible while staying correct.
+- Every conditional is a source of bugs. Flat code beats nested code.
+- Fail fast: `assert(condition && "we don't support this")` instead of handling edge cases we don't
+  have or rarely see.
+- Good code comes from good data structures. Many conditionals mean bad data structures: refactor.
 
 ### Design From First Principles
 
-- Every time you write code, ask how it **should** work if this was a greenfield project or you had
-  unlimited capacity for refactoring. Then do that.
-- Backwards compatibility never matters unless the interface you are working on is dependended on by
-  projects outside of the current one (e.g. a published, non-internal NPM package). Otherwise,
-  refactor to meet the right design without considering backwards compatibility.
-- Proactively consider where the boundaries of a module **should be**, and refactor code that makes
-  changes leak across those boundaries. The end-goal of every change should be a simple, logically
-  consistent codebase that works exactly as it would as if its current feature set was the
-  greenfield spec.
-- Follow John Ousterhout's "deep modules" principle when designing module boundaries. A deep module
-  has a simple, direct interface, even when hiding significant complexity underneath. A shallow
-  module has a wide interface that exposes the underlying complexities of its implementation.
-  Proactively avoid writing code that widens the complexities exposed by an interface.
+- Ask how the code **should** work if this were greenfield with unlimited refactoring. Do that.
+- Ignore backwards compatibility unless outside projects depend on the interface (e.g. a published
+  NPM package).
+- Refactor code that leaks across where module boundaries **should be**.
+- Follow Ousterhout's "deep modules": simple interfaces over significant complexity. Fight against
+  widening what an interface exposes.
 
 ### Fix The Root Cause
 
-- Whenever you fix a bug, find out why it happened, and fix the root cause, not just the observable
-  symptom.
-- Finding out why a bug happens means that you have a deterministic way to reproduce the bug. Never
-  fix something speculatively. Reproduce, fix, verify.
-- Proactively find other places in the codebase affected by the same pattern or issue, and fix those
-  as well. Never "spot fix."
-- When you fix something, tell me the following things: 1) how you reproduced it, 2) the root
-  cause, 3) how you fixed it (the root cause), 4) how I can reproduce and see the fix for myself.
+- Find why a bug happened and fix the root cause, not the symptom.
+- Get a deterministic repro first. Never fix speculatively: reproduce, fix, verify.
+- Find and fix the same pattern elsewhere. Never spot fix.
+- Report: 1) how you reproduced it, 2) the root cause, 3) how you fixed it, 4) how I can reproduce
+  and see the fix.
 
 ### Build the Lever
 
-When the work is not trivial, build a tool that deterministically drives it, rather than doing it by
-hand.
+For non-trivial work, build a tool that drives it deterministically instead of doing it by hand.
 
-- Put scripts in a project-specific scripts directory. If you are not sure where this is, ask.
-  Likely locations are `./scripts`, `./agents/skills/verify-<project>/scripts`, and similar.
-- Work that outlives the current session must be git-tracked.
-- Work that needs non-determinism or judgement (for example, an agent) belongs in a project-local
-  skill. Add to an existing skill, or create a new one.
-- Agents must be able to find the scripts. Do not orphan a script in a `scripts` directory. Add a
-  reference to it in an agent skill, or in other agent-accessible documentation that drives it.
-- The goal is that you, or other agents, can always drive the current project, feature, bug fix, or
-  test with code that is as deterministic and repeatable as possible.
+- Put scripts in the project's scripts dir (e.g. `./scripts`,
+  `./agents/skills/verify-<project>/scripts`); ask if unsure. Git-track anything that outlives the
+  session.
+- Work needing judgement (e.g. an agent) goes in a project-local skill.
+- Reference every script from a skill or agent-readable docs so agents can find it.
 
 ### Prove It Works
 
-- Avoid writing unit tests that can pass while the software is broken. Don't chase a coverage
-  number. Never write tautological tests -- tests that assert against mocks or are otherwise not
-  "real." This does not mean that all unit tests are bad.
-- Strongly prefer writing test that are "e2e" in some important way -- tests that verify that the
-  software is working in the real world, used in the way that it's actually going to be used.
-- When you fix a bug or build a feature, figure out how to drive your change in the real world to
-  verify what you did.
-- Tell _me_ how to verify what you did. Give me specific instructions: run this script, execute this
-  SQL, click this link, and so on. Pretend I'm a QA engineer that has no clue how the software works
-  under the hood and I'm just here to rigorously verify the change as a user.
+- No tests that can pass while the software is broken (tautological, mock-asserting, coverage
+  chasing). Unit tests are still fine.
+- Prefer tests that are e2e in some important way. Verify every change in the real world.
+- Give me exact verification steps (script, SQL, link), as if I'm a QA engineer who knows nothing of
+  the internals.
 
 ## Language Rules
 
 ### TypeScript
 
-- Never use `any` to resolve type system errors. The only acceptable use of `any` is in a generic to
-  perform inference (e.g. `type T<R> = R extends (...args: any[]) => any ? ...`).
-- External data is always `unknown`, never `any`.
-- Identify the schema validation library in use by the project (zod, valibot, effect/Schema, etc),
-  and use it for all input validation. Never naively cast (`JSON.parse(data) as SomeType`). Every
-  cast is a bug waiting to happen.
-- Do not write out types yourself when you can infer them from the schema library (e.g. `z.infer`,
-  `Schema.Type`).
-- Use `Pick/Omit/Parameters/ReturnType` to derive a new type before creating a new, overlapping
-  type.
-- Use the type system to make incorrect states impossible to represent. For example, model variants
-  with a `kind` or `type` literal discriminant. Never create optional-field bags.
-- Add readable whitespace within code. I do not want to read 10 lines of code smushed together.
-- Add logging and telemetry when you write code, with the conventions of the project. Code that you
-  cannot diagnose in production is broken code.
-- Write doc comments with usage examples for public exports from a module. Never write
-  non-doc-comments within the code.
-- When writing tests, prefer table-based tests (e.g. `it.each` or similar) over many repeated cases.
+- Never use `any` to fix type errors. Only allowed in generics for inference (e.g.
+  `type T<R> = R extends (...args: any[]) => any ? ...`).
+- External data is `unknown`, never `any`.
+- Validate all input with the project's schema library (zod, valibot, effect/Schema, etc). Never
+  cast (`JSON.parse(data) as SomeType`).
+- Infer types from schemas (`z.infer`, `Schema.Type`) instead of writing them out.
+- Derive types with `Pick/Omit/Parameters/ReturnType` before making new overlapping ones.
+- Make incorrect states unrepresentable: `kind`/`type` literal discriminants, no optional-field
+  bags.
+- Use readable whitespace.
+- Add logging and telemetry per project conventions: undiagnosable code is broken.
+- Doc-comment public exports with usage examples. No non-doc comments in code.
+- Prefer table-based tests (e.g. `it.each`) over repeated cases.
 
 ### Rust
 
-- Add readable whitespace within code.
-- Add logging and telemetry when you write code, with the conventions of the project.
-- Avoid dynamic dispatch when at all possible, unless the user or the constraints of the project
-  require it (e.g. a library that must call a user-provided trait implementation). Default to
-  `enum_dispatch` to express polymorphism.
-- Use `thiserror` within modules to clearly express the error boundaries of that module. Do not let
-  error types leak everywhere. Use `anyhow` only at top-level boundaries.
-- Exclude the features of external crates that you do not need, to make compilation faster.
-- Write doc comments with examples that run with `cargo test` for public traits, methods, and
-  functions. Do not write non-doc-comments within code.
+- Use readable whitespace.
+- Add logging and telemetry per project conventions.
+- Avoid dynamic dispatch unless required (e.g. a library calling a user-provided trait impl).
+  Default to `enum_dispatch`.
+- Use `thiserror` for per-module error boundaries; don't leak error types. `anyhow` only at
+  top-level boundaries.
+- Disable unneeded features of external crates for faster compiles.
+- Doc-comment public traits, methods, and functions with examples that run under `cargo test`. No
+  non-doc comments in code.
 
 ## Output Style: Chinchilla Mode
 
