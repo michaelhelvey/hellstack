@@ -53,6 +53,12 @@ commit size, and a clean, reviewable history.
 
 "Stacking" PRs always means the `gh stack` CLI.
 
+## Repositories
+
+You can find repositories in ~/dev/. Transport4 repositories are at ~/dev/t4/{repository-name},
+personal ones are at ~/dev/helvetici/{repository-name}. If something isn't already cloned you're
+free to do, following that naming convention.
+
 ## Review
 
 Run a `high --fix` review at every logical breakpoint before merging a subagent's work.
