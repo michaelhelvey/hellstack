@@ -5,6 +5,7 @@ import { Result } from "effect";
 import { createEffect, createSignal, For, onCleanup, onMount } from "solid-js";
 import type { Action, Row } from "../dashboard.ts";
 import { ACTIONS, type Item, itemKey, KINDS } from "../item.ts";
+import { makeHolds } from "./holds.ts";
 import type { Connection } from "./run.ts";
 
 type Kind = Item["kind"];
@@ -128,6 +129,8 @@ export interface AppProps extends Connection {
 /**
  * The full-screen dashboard. It shows one pane for each kind of item, and loads the items again
  * each `pollMs`. An action removes its row at once, and puts the row back if the action fails.
+ * Only the newest load changes the rows. A load that started before an action completed can have
+ * old data, thus it does not show the row of that action again.
  *
  * @example
  * ```tsx
@@ -137,7 +140,7 @@ export interface AppProps extends Connection {
  */
 export const App = (props: AppProps) => {
   const renderer = useRenderer();
-  const [pending, setPending] = createSignal<ReadonlySet<string>>(new Set());
+  const holds = makeHolds();
   const [rows, setRows] = createSignal<ReadonlyArray<Row>>([]);
   const [hidden, setHidden] = createSignal(0);
   const [status, setStatus] = createSignal("loading…");
@@ -162,9 +165,12 @@ export const App = (props: AppProps) => {
     });
 
   const refresh = async () => {
+    const load = holds.start();
     setStatus("loading…");
     const snapshot = Result.getOrThrow(await props.run(props.dashboard.load));
-    setRows(snapshot.rows.filter((row) => !pending().has(itemKey(row.item))));
+    const fresh = holds.apply(load, snapshot.rows, (row) => itemKey(row.item));
+    if (fresh === undefined) return;
+    setRows(fresh);
     setHidden(snapshot.hidden);
     setStatus(snapshot.errors.join("; "));
   };
@@ -172,13 +178,15 @@ export const App = (props: AppProps) => {
   const act = async (row: Row, action: Action) => {
     const at = rows().findIndex(sameItem(row));
     const key = itemKey(row.item);
-    setPending((keys) => new Set([...keys, key]));
+    holds.hold(key);
     setRows((current) => current.filter((other) => !sameItem(row)(other)));
-    const result = await props.run(action.run);
-    setPending((keys) => new Set([...keys].filter((other) => other !== key)));
-    Result.match(result, {
-      onSuccess: () => setStatus(`${action.name}: ${row.item.title}`),
+    Result.match(await props.run(action.run), {
+      onSuccess: () => {
+        holds.settle(key);
+        setStatus(`${action.name}: ${row.item.title}`);
+      },
       onFailure: (message) => {
+        holds.release(key);
         setRows((current) => restore(current, row, at));
         setStatus(`${action.name} failed: ${message}`);
       },

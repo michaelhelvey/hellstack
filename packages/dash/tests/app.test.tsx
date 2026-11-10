@@ -47,10 +47,12 @@ const BROKEN = issue("12", "Issue that cannot be resolved");
 
 /**
  * In-memory sources. `done` and `resolve` remove the item and record the call. `resolve` fails for
- * `BROKEN`.
+ * `BROKEN`. The GitHub `list` reads the notifications, and then waits until `gate` resolves. Thus
+ * a test can make a load that is in progress while an action completes.
  */
 const fakeSources = () => {
   const calls: Array<string> = [];
+  const gate = { promise: Promise.resolve() };
   let notifications = [notification("1", "Review the auth PR"), notification("2", "Bump deps")];
   let issues = [issue("10", "TypeError in handler"), issue("11", "NUL byte in text"), BROKEN];
 
@@ -64,7 +66,13 @@ const fakeSources = () => {
     Layer.succeed(
       Github,
       Github.of({
-        list: Effect.sync(() => notifications),
+        list: Effect.suspend(() => {
+          const read = notifications;
+          return Effect.as(
+            Effect.promise(() => gate.promise),
+            read,
+          );
+        }),
         done: (id) =>
           Effect.sync(() => {
             calls.push(`done ${id}`);
@@ -83,7 +91,7 @@ const fakeSources = () => {
       }),
     ),
   );
-  return { calls, layer };
+  return { calls, gate, layer };
 };
 
 /** True if a row of a pane shows `title`. The status line can also show a title, so skip it. */
@@ -128,7 +136,7 @@ const renderApp = async () => {
     height: 24,
   });
   await until(app, (frame) => listed(frame, "TypeError in handler"));
-  return { app, calls: sources.calls };
+  return { app, calls: sources.calls, gate: sources.gate };
 };
 
 test("h hides a sentry row until C clears the hidden list", async () => {
@@ -170,6 +178,30 @@ test("d marks the selected github thread done in the source", async () => {
 
     expect(listed(frame, "Review the auth PR")).toBe(true);
     expect(calls).toEqual(["done 2"]);
+  } finally {
+    app.renderer.destroy();
+  }
+});
+
+test("a load that started before an action completed does not show the row again", async () => {
+  const { app, calls, gate } = await renderApp();
+  try {
+    const { promise, resolve } = Promise.withResolvers<void>();
+    gate.promise = promise;
+    app.mockInput.pressKey("g");
+    await until(app, (frame) => frame.includes("loading"));
+
+    app.mockInput.pressArrow("down");
+    app.mockInput.pressKey("d");
+    await until(app, (frame) => frame.includes("done: Bump deps"));
+
+    expect(calls).toEqual(["done 2"]);
+
+    resolve();
+    const frame = await until(app, (frame) => !frame.includes("done: Bump deps"));
+
+    expect(listed(frame, "Bump deps")).toBe(false);
+    expect(frame).toContain("GitHub (1)");
   } finally {
     app.renderer.destroy();
   }
