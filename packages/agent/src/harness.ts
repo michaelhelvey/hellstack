@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { JIRA_SERVER } from "@michaelhelvey/hellstack-jira";
 import opencodeConfig from "@michaelhelvey/hellstack-opencode/opencode.json" with { type: "json" };
 import { PACKAGE_DIR as PI_PACKAGE_DIR } from "@michaelhelvey/hellstack-pi/build";
@@ -14,6 +15,8 @@ export interface Harness {
   readonly dir: string;
   /** The config files in `dir`, by file name, with the values that setup deep merges into them. */
   readonly configs: Readonly<Record<string, JsonObject>>;
+  /** Extra folders to install, by target name, with absolute source paths. */
+  readonly directories: Readonly<Record<string, string>>;
 }
 
 /** An MCP server that a harness starts as a local process on stdin and stdout. */
@@ -48,6 +51,7 @@ const mapValues = <A, B>(record: Readonly<Record<string, A>>, f: (value: A) => B
 export const pi = (dir: string, servers: Readonly<Record<string, LocalServer>>): Harness => ({
   name: "pi",
   dir,
+  directories: {},
   configs: {
     "settings.json": { ...piSettings, packages: [...piSettings.packages, PI_PACKAGE_DIR] },
     "mcp.json": {
@@ -72,6 +76,11 @@ export const pi = (dir: string, servers: Readonly<Record<string, LocalServer>>):
 export const opencode = (dir: string, servers: Readonly<Record<string, LocalServer>>): Harness => ({
   name: "opencode",
   dir,
+  directories: {
+    agents: fileURLToPath(
+      new URL("./agents", import.meta.resolve("@michaelhelvey/hellstack-opencode/opencode.json")),
+    ),
+  },
   configs: {
     "opencode.json": {
       ...opencodeConfig,

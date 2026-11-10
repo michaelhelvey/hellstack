@@ -24,6 +24,10 @@ Clone this repository, run `bun install`, then `bun setup`. This will copy all r
 configuration files into pi (`~/.pi/agent`) and OpenCode (`~/.config/opencode`) and set things up.
 The command is idempotent, so you can run it as many times as you like.
 
+OpenCode's `/review` command uses the hellstack `review` skill instead of the built-in review
+prompt. For example, `/review high --fix` uses the high effort level and applies fixes. The command
+runs in the current session. The skill selects when to use a subagent.
+
 ## About
 
 Hellstack is built on a few important principles that I've learned over the last few years of
@@ -65,3 +69,29 @@ As a result, hellstack is structured in the following way:
 A lot of people have appended a letter of their name + stack to refer to their agent skills and
 plugins and what not. e.g. gstack, pstack, etc. Well, my last name is "Helvey" and I think that
 working with LLMs is about as close to hell as I'll get in this life, so thus, hellstack.
+
+## AI Generated Bullshit
+
+It seems to make the clankers happy to add stuff to this README so I let them do it below this line.
+Everything above this is me, The Human.
+
+### OpenCode agents
+
+The built-in `plan` agent is disabled. Add custom agents as Markdown files in
+`packages/opencode/agents/`, then run `bun run setup` to copy them to `~/.config/opencode/agents/`
+(or the configured OpenCode config folder). Setup updates files with the same name and keeps other
+installed agents. To remove or rename an agent, also remove its old installed file.
+
+Use `mode: primary` to select an agent with **Shift+Tab**:
+
+```md
+---
+description: Reviews code changes
+mode: primary
+---
+
+Review the current changes for bugs and regressions. Do not edit files.
+```
+
+The file name is the agent ID. For example, `reviewer.md` defines `reviewer`. OpenCode reloads the
+installed files after setup. Use `/reload` if the list does not update.

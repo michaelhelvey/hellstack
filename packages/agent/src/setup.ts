@@ -67,13 +67,26 @@ const union = (local: Array<unknown>, ours: Array<unknown>) => {
   return [...local, ...ours.filter((item) => !seen.has(JSON.stringify(item)))];
 };
 
+const installDirectory = Effect.fnUntraced(function* (source: string, target: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+
+  yield* fs.makeDirectory(target, { recursive: true });
+  const entries = yield* fs.readDirectory(source);
+  for (const entry of entries.filter((name) => !name.startsWith("."))) {
+    const destination = path.join(target, entry);
+    yield* fs.remove(destination, { recursive: true, force: true });
+    yield* fs.copy(path.join(source, entry), destination);
+  }
+});
+
 const install = Effect.fnUntraced(function* (harness: Harness, agents: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const { sourceDir } = yield* SetupEnv;
   const target = (...parts: Array<string>) => path.join(harness.dir, ...parts);
 
-  yield* fs.makeDirectory(target("skills"), { recursive: true });
+  yield* fs.makeDirectory(harness.dir, { recursive: true });
 
   for (const [file, ours] of Object.entries(harness.configs)) {
     const exists = yield* fs.exists(target(file));
@@ -86,10 +99,9 @@ const install = Effect.fnUntraced(function* (harness: Harness, agents: string) {
   yield* fs.remove(target("AGENTS.md"), { force: true });
   yield* fs.writeFileString(target("AGENTS.md"), agents);
 
-  const skills = yield* fs.readDirectory(path.join(sourceDir, "skills"));
-  for (const skill of skills.filter((name) => !name.startsWith("."))) {
-    yield* fs.remove(target("skills", skill), { recursive: true, force: true });
-    yield* fs.copy(path.join(sourceDir, "skills", skill), target("skills", skill));
+  const directories = { skills: path.join(sourceDir, "skills"), ...harness.directories };
+  for (const [directory, source] of Object.entries(directories)) {
+    yield* installDirectory(source, target(directory));
   }
 
   yield* Effect.logInfo("installed the agent").pipe(
@@ -98,7 +110,7 @@ const install = Effect.fnUntraced(function* (harness: Harness, agents: string) {
 });
 
 /**
- * Installs `AGENTS.md`, the skills, and the config of each harness. Setup appends the layer of the
+ * Installs `AGENTS.md`, skills, extra folders, and config for each harness. Setup appends the layer of the
  * current user (see `LAYERS`) to `AGENTS.md`. The hellstack config is deep merged into the config
  * files of the user: hellstack values win, and arrays are a union.
  *

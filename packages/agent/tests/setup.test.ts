@@ -22,6 +22,7 @@ const harnesses = (): ReadonlyArray<Harness> => [
   {
     name: "one",
     dir: harnessDir("one"),
+    directories: { agents: path.join(root, "opencode-agents") },
     configs: {
       "settings.json": { quietStartup: true, terminal: { clearOnShrink: true }, skills: ["-x"] },
     },
@@ -29,6 +30,7 @@ const harnesses = (): ReadonlyArray<Harness> => [
   {
     name: "two",
     dir: harnessDir("two"),
+    directories: {},
     configs: { "two.json": { mcp: { servers: { jira: { a: 1 } } } } },
   },
 ];
@@ -48,6 +50,7 @@ const runSetup = (username = "nobody") =>
 beforeEach(async () => {
   root = await mkdtemp(path.join(os.tmpdir(), "hellstack-setup-"));
   await write(path.join(sourceDir(), "AGENTS.md"), "new instructions\n");
+  await mkdir(path.join(root, "opencode-agents"), { recursive: true });
   await write(path.join(sourceDir(), "skills", "review", "SKILL.md"), "review");
   await write(path.join(sourceDir(), "layers", "personal.md"), "personal layer\n");
   await write(path.join(sourceDir(), "layers", "transport4.md"), "work layer\n");
@@ -124,6 +127,24 @@ test("replaces hellstack skills and keeps other skills", async () => {
     "review",
   ]);
   expect(await readdir(path.join(harnessDir("one"), "skills", "review"))).toEqual(["SKILL.md"]);
+});
+
+test("installs and updates custom agents only in the configured harness and keeps local agents", async () => {
+  const agent = "---\nmode: primary\ndescription: Reviews changes\n---\nReview changes.\n";
+  const source = path.join(root, "opencode-agents", "reviewer.md");
+  const target = path.join(harnessDir("one"), "agents");
+  await write(source, "old agent");
+  await write(path.join(root, "opencode-agents", ".gitkeep"), "");
+  await write(path.join(target, "local.md"), "local agent");
+
+  await runSetup();
+  await write(source, agent);
+  await runSetup();
+
+  expect(await readFile(path.join(target, "reviewer.md"), "utf8")).toBe(agent);
+  expect(await readFile(path.join(target, "local.md"), "utf8")).toBe("local agent");
+  expect((await readdir(target)).toSorted()).toEqual(["local.md", "reviewer.md"]);
+  expect(await readdir(harnessDir("two"))).not.toContain("agents");
 });
 
 test.each([

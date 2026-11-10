@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { BunServices } from "@effect/platform-bun";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { localServers, opencode, pi } from "../src/harness.ts";
 import { setup, SetupEnv } from "../src/setup.ts";
 
@@ -43,13 +43,22 @@ beforeAll(async () => {
   home = await mkdtemp(path.join(os.tmpdir(), "hellstack-harness-"));
   const env = sandboxEnv();
   const servers = localServers(process.execPath);
+  const agents = path.join(home, "custom-agents");
+  await mkdir(agents);
+  await writeFile(
+    path.join(agents, "reviewer.md"),
+    "---\ndescription: Reviews changes\nmode: primary\n---\nReview changes without editing files.\n",
+  );
   await Effect.runPromise(
     setup.pipe(
       Effect.provideService(SetupEnv, {
         sourceDir: path.resolve(import.meta.dir, ".."),
         harnesses: [
           pi(env.PI_CODING_AGENT_DIR, servers),
-          opencode(path.join(env.XDG_CONFIG_HOME, "opencode"), servers),
+          {
+            ...opencode(path.join(env.XDG_CONFIG_HOME, "opencode"), servers),
+            directories: { agents },
+          },
         ],
         username: "nobody",
       }),
@@ -69,7 +78,7 @@ test.skipIf(Bun.which("pi") === null)("pi connects to the jira MCP server", asyn
 });
 
 test.skipIf(Bun.which("opencode") === null)(
-  "opencode connects to the jira MCP server",
+  "opencode connects to jira, disables plan, and loads installed primary agents",
   async () => {
     const port = 40_000 + Math.floor(Math.random() * 20_000);
     const server = Bun.spawn(["opencode", "serve", "--port", String(port)], {
@@ -88,6 +97,59 @@ test.skipIf(Bun.which("opencode") === null)(
           : connected(attempts - 1);
       };
       expect(await connected(30)).toContain("✓ jira  connected");
+      const output = await run([
+        "opencode",
+        "api",
+        "get",
+        "/api/agent",
+        "--server",
+        `http://127.0.0.1:${port}`,
+      ]);
+      const result = Schema.decodeSync(
+        Schema.fromJsonString(
+          Schema.Struct({
+            data: Schema.Array(
+              Schema.Struct({
+                id: Schema.String,
+                mode: Schema.String,
+                hidden: Schema.Boolean,
+                system: Schema.optional(Schema.String),
+              }),
+            ),
+          }),
+        ),
+      )(output);
+      expect(result.data.map((agent) => agent.id)).not.toContain("plan");
+      expect(result.data.find((agent) => agent.id === "reviewer")).toMatchObject({
+        mode: "primary",
+        hidden: false,
+        system: "Review changes without editing files.",
+      });
+      const commands = Schema.decodeSync(
+        Schema.fromJsonString(
+          Schema.Struct({
+            data: Schema.Array(
+              Schema.Struct({ name: Schema.String, description: Schema.optional(Schema.String) }),
+            ),
+          }),
+        ),
+      )(
+        await run([
+          "opencode",
+          "api",
+          "get",
+          "/api/command",
+          "--server",
+          `http://127.0.0.1:${port}`,
+        ]),
+      );
+      expect(commands.data.filter((command) => command.name === "review")).toEqual([
+        {
+          name: "review",
+          description:
+            "Review with the hellstack review skill [level] [--fix] [target or guidance]",
+        },
+      ]);
     } finally {
       server.kill();
       await server.exited;
