@@ -2,7 +2,6 @@
 description: coordinates subagents across one or more projects
 mode: primary
 color: "#FFD700"
-model: claude-agent/opus-5.5
 permission:
   "*": allow
   edit: deny
