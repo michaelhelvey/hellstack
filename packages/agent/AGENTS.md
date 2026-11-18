@@ -3,70 +3,58 @@
 - Name: Michael Helvey
 - Email: `git config --global user.email`
 
-## Tool Use
+## Tools
 
-Codemode is the `codemode` tool in pi and `execute` in OpenCode.
+- Always use the fastest and most harness-native tool available to you. `fff` via codemode when
+  available, `grep` (tool, not bash) when available, etc. Always put a `timeout` on commands.
+- Never use anything other than `write`, `edit`, or codemode tools to editfiles. **Never** use
+  `sed`, `cat`, `python`, or similar to edit files.
+- When searching etc, search the smallest possible part of the filesystem to answer your question.
+  Grepping `~/dev/` or similar large swaths is very bad.
 
-Never use anything other than `write`, `edit`, or codemode tools to edit files. Every time you use
-`sed` or `cat` or `python` or anything else to edit files, a herd of baby chinchillas gets devoured
-by a troupe of vicious chimps.
-
-Use the fastest tool: `fff` via codemode over `grep` when available, else the harness `grep`/`glob`.
-Search the smallest reasonable part of the filesystem. Always put a `timeout` on commands.
-
-## Github
+## VCS
 
 Use conventional commits; land changes as atomic, reviewable commits. Subagents use worktrees.
-Worktrees are for you, not me: always clean them up.
+Worktrees are for you, not me. Always clean them up.
 
-## How To Write Software
+## General Rules
 
-When one of these rules affects a decision, say which rule and why.
+How to write software. When you apply one of these rules, say which rule and why.
 
-### Complexity Is A Demon
-
-- All code is tech debt. Write as little as possible while staying correct.
-- Every conditional is a source of bugs. Flat code beats nested code.
-- Fail fast: `assert(condition && "we don't support this")` instead of handling edge cases we don't
-  have or rarely see.
-- Good code comes from good data structures. Many conditionals mean bad data structures: refactor.
-
-### Design From First Principles
-
-- Ask how the code **should** work if this were greenfield with unlimited refactoring. Do that.
-- Ignore backwards compatibility unless outside projects depend on the interface (e.g. a published
-  NPM package).
-- Refactor code that leaks across where module boundaries **should be**.
-- Follow Ousterhout's "deep modules": simple interfaces over significant complexity. Fight against
-  widening what an interface exposes.
-
-### Fix The Root Cause
-
-- Find why a bug happened and fix the root cause, not the symptom.
-- Get a deterministic repro first. Never fix speculatively: reproduce, fix, verify.
-- Find and fix the same pattern elsewhere. Never spot fix.
-- Report: 1) how you reproduced it, 2) the root cause, 3) how you fixed it, 4) how I can reproduce
-  and see the fix.
-
-### Build the Lever
-
-For non-trivial work, build a tool that drives it deterministically instead of doing it by hand.
-
-- Put scripts in the project's scripts dir (e.g. `./scripts`,
-  `./agents/skills/verify-<project>/scripts`); ask if unsure. Git-track anything that outlives the
-  session.
-- Work needing judgement (e.g. an agent) goes in a project-local skill.
-- Reference every script from a skill or agent-readable docs so agents can find it.
-
-### Prove It Works
-
-- No tests that can pass while the software is broken (tautological, mock-asserting, coverage
-  chasing). Unit tests are still fine.
-- Prefer tests that are e2e in some important way. Verify every change in the real world.
-- Give me exact verification steps (script, SQL, link), as if I'm a QA engineer who knows nothing of
-  the internals.
+- **Complexity is a demon**: all code is tech debt, write of it as little as possible to solve a
+  problem. every conditional is a source of bugs. having to writes many conditionals means that your
+  data structures are bad: refactor them. fail-fast with an assert rather than handling edge cases
+  that are unlikely to happen.
+- **Design from first principles**: Think about how the code _should_ work if this were greenfield
+  with unlimited opportunity for refactoring, then make it like that. Ignore backwards compatibility
+  unless outside projects depend on the interface (e.g. a public NPM package).
+- **Deep modules**: Think John Ousterhout's "deep modules" when writing interfaces: prefer simple,
+  deep interfaces that have one clear right way to do things. Avoid shallow interfaces that leak
+  implementation details. Fight against widening what an interface exposes when adding features
+  (see: "design from first principles").
+- **Fix the root cause**: When fixing a bug, always figure out the root cause of why it happened,
+  get a determinstic reproduction of it, and fix that, not just the observable system. Never "spot
+  fix." Proactively look for other instances of the faulty pattern or bug in the rest of the
+  codebase and fix those instances too when you fix a bug.
+- **Build the lever**: For non-trivial work, build a tool that drives it determinstically rather
+  than doing it yourself, in order to make it repeatable for me and other agents. Work that should
+  survive the current session (e.g. a verification script) should be git tracked.
+- **No tautological tests**: Avoid tests that can pass while the software is broken (tautological,
+  asserting on mocks, coverage number chasing). Strongly prefer tests that are e2e in some important
+  way that provide confidence that the software works in the real world.
+- **Prove it works**: Tests are good, but don't say that something is done or that it works because
+  the tests pass, or because it compiles, or some other tautological check. Prove it works in the
+  real world by driving it yourself where necessary. Tell me how I can verify it myself: specific
+  scripts, link to click on, etc, as if I'm a QA engineer that knows nothing about the internals.
 
 ## Language Rules
+
+### General
+
+- Proactively add logging and telemetry per project conventions. Undiagnosable code is broken code.
+- Always add readable whitespace, breaking up groups of statements.
+- Always add doc-comments with usage examples to public exports of a module (typescript file, rust
+  mod, etc). Never add non-doc-commnents within the code.
 
 ### TypeScript
 
@@ -79,22 +67,15 @@ For non-trivial work, build a tool that drives it deterministically instead of d
 - Derive types with `Pick/Omit/Parameters/ReturnType` before making new overlapping ones.
 - Make incorrect states unrepresentable: `kind`/`type` literal discriminants, no optional-field
   bags.
-- Use readable whitespace.
-- Add logging and telemetry per project conventions: undiagnosable code is broken.
-- Doc-comment public exports with usage examples. No non-doc comments in code.
 - Prefer table-based tests (e.g. `it.each`) over repeated cases.
 
 ### Rust
 
-- Use readable whitespace.
-- Add logging and telemetry per project conventions.
 - Avoid dynamic dispatch unless required (e.g. a library calling a user-provided trait impl).
   Default to `enum_dispatch`.
 - Use `thiserror` for per-module error boundaries; don't leak error types. `anyhow` only at
   top-level boundaries.
 - Disable unneeded features of external crates for faster compiles.
-- Doc-comment public traits, methods, and functions with examples that run under `cargo test`. No
-  non-doc comments in code.
 
 ## Output Style: Chinchilla Mode
 
